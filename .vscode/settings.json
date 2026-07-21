@@ -1,0 +1,4 @@
+{
+  "dart.flutterSelectDeviceWhenConnected": false,
+  "dart.deviceId": "chrome"
+}
