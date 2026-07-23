@@ -14,6 +14,10 @@ class AuthService {
   static const _usersKey = 'finquiz_users';
   static const _sessionKey = 'finquiz_session';
 
+  // 개발자가 회원가입 없이 바로 로그인해볼 수 있는 테스트 계정.
+  static const testEmail = 'test@finquiz.com';
+  static const testPassword = 'test1234';
+
   Future<String?> getCurrentEmail() async {
     return StorageService.instance.getString(_sessionKey);
   }
@@ -71,6 +75,10 @@ class AuthService {
     }
 
     final users = _loadUsers();
+    if (trimmedEmail == testEmail && password == testPassword) {
+      await _ensureTestAccount(users);
+    }
+
     final user = users[trimmedEmail] as Map<String, dynamic>?;
     if (user == null) {
       return '가입되지 않은 이메일입니다. 회원가입을 먼저 진행해주세요.';
@@ -95,6 +103,19 @@ class AuthService {
     final user = users[profile.email];
     if (user == null) return;
     user['profile'] = _profileToJson(profile);
+    await _saveUsers(users);
+  }
+
+  Future<void> _ensureTestAccount(Map<String, dynamic> users) async {
+    if (users.containsKey(testEmail)) return;
+
+    final salt = _generateSalt();
+    users[testEmail] = {
+      'passwordHash': _hashPassword(testPassword, salt),
+      'salt': salt,
+      'nickname': '테스트 계정',
+      'profile': _defaultProfileJson(),
+    };
     await _saveUsers(users);
   }
 
