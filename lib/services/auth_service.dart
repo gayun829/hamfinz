@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
 import 'storage_service.dart';
@@ -44,8 +49,10 @@ class AuthService {
       return '이미 가입된 이메일입니다.';
     }
 
+    final salt = _generateSalt();
     users[trimmedEmail] = {
-      'password': password,
+      'passwordHash': _hashPassword(password, salt),
+      'salt': salt,
       'nickname': nickname.trim(),
       'profile': _defaultProfileJson(),
     };
@@ -59,18 +66,20 @@ class AuthService {
     required String password,
   }) async {
     final trimmedEmail = email.trim().toLowerCase();
-    if (trimmedEmail.isEmpty) {
-      return '이메일을 입력해주세요.';
+    if (trimmedEmail.isEmpty || password.isEmpty) {
+      return '이메일과 비밀번호를 입력해주세요.';
     }
 
     final users = _loadUsers();
-    if (!users.containsKey(trimmedEmail)) {
-      users[trimmedEmail] = {
-        'password': password,
-        'nickname': trimmedEmail.split('@').first,
-        'profile': _defaultProfileJson(),
-      };
-      await _saveUsers(users);
+    final user = users[trimmedEmail] as Map<String, dynamic>?;
+    if (user == null) {
+      return '가입되지 않은 이메일입니다. 회원가입을 먼저 진행해주세요.';
+    }
+
+    final salt = user['salt'] as String?;
+    final storedHash = user['passwordHash'] as String?;
+    if (salt == null || storedHash == null || _hashPassword(password, salt) != storedHash) {
+      return '이메일 또는 비밀번호가 일치하지 않습니다.';
     }
 
     await StorageService.instance.setString(_sessionKey, trimmedEmail);
@@ -87,6 +96,16 @@ class AuthService {
     if (user == null) return;
     user['profile'] = _profileToJson(profile);
     await _saveUsers(users);
+  }
+
+  String _generateSalt() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    return base64Url.encode(bytes);
+  }
+
+  String _hashPassword(String password, String salt) {
+    return sha256.convert(utf8.encode('$salt:$password')).toString();
   }
 
   Map<String, dynamic> _loadUsers() {
