@@ -13,6 +13,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nicknameController = TextEditingController();
   String? _error;
   bool _loading = false;
@@ -21,11 +22,17 @@ class _SignupScreenState extends State<SignupScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nicknameController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() => _error = '비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -48,6 +55,14 @@ class _SignupScreenState extends State<SignupScreen> {
     Navigator.of(context).pop(true);
   }
 
+  void _loginWithGoogle() {
+    // 나중에 추가: 구글 계정 로그인 연동
+  }
+
+  void _loginWithPhone() {
+    // 나중에 추가: 전화번호 로그인 연동
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,10 +78,30 @@ class _SignupScreenState extends State<SignupScreen> {
                 decoration: const InputDecoration(labelText: '닉네임'),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: '이메일'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: '이메일'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    child: const Text('이메일 인증'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               TextField(
@@ -74,21 +109,67 @@ class _SignupScreenState extends State<SignupScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(labelText: '비밀번호 (6자 이상)'),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: '비밀번호 확인'),
+              ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: AppTheme.error, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: AppTheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
               const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _loginWithGoogle,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: const Text('구글 계정으로 가입'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _loginWithPhone,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: const Text('전화번호로 가입'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: _loading ? null : _submit,
                 child: _loading
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('가입 완료'),
               ),
