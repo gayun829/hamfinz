@@ -2,25 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
-import 'find_password_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class FindPasswordScreen extends StatefulWidget {
+  const FindPasswordScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<FindPasswordScreen> createState() => _FindPasswordScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _FindPasswordScreenState extends State<FindPasswordScreen> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
   String? _error;
   bool _loading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
+    _newPasswordController.dispose();
     super.dispose();
   }
 
@@ -30,9 +29,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
 
-    final error = await AuthService.instance.login(
+    final error = await AuthService.instance.resetPassword(
       email: _emailController.text,
-      password: _passwordController.text,
+      newPassword: _newPasswordController.text,
     );
 
     if (!mounted) return;
@@ -49,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('로그인')),
+      appBar: AppBar(title: const Text('비밀번호 찾기')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -63,9 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: _passwordController,
+                controller: _newPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호'),
+                decoration: const InputDecoration(labelText: '새 비밀번호'),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -89,17 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('로그인'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const FindPasswordScreen(),
-                    ),
-                  );
-                },
-                child: const Text('비밀번호를 잊으셨나요?'),
+                    : const Text('비밀번호 재설정'),
               ),
             ],
           ),

@@ -86,7 +86,9 @@ class AuthService {
 
     final salt = user['salt'] as String?;
     final storedHash = user['passwordHash'] as String?;
-    if (salt == null || storedHash == null || _hashPassword(password, salt) != storedHash) {
+    if (salt == null ||
+        storedHash == null ||
+        _hashPassword(password, salt) != storedHash) {
       return '이메일 또는 비밀번호가 일치하지 않습니다.';
     }
 
@@ -104,6 +106,28 @@ class AuthService {
     if (user == null) return;
     user['profile'] = _profileToJson(profile);
     await _saveUsers(users);
+  }
+
+  Future<String?> resetPassword({
+    required String email,
+    required String newPassword,
+  }) async {
+    final trimmedEmail = email.trim().toLowerCase();
+    if (newPassword.length < 6) {
+      return '6자 이상 비밀번호를 입력해주세요.';
+    }
+
+    final users = _loadUsers();
+    final user = users[trimmedEmail] as Map<String, dynamic>?;
+    if (user == null) {
+      return '가입되지 않은 이메일입니다.';
+    }
+
+    final salt = _generateSalt();
+    user['salt'] = salt;
+    user['passwordHash'] = _hashPassword(newPassword, salt);
+    await _saveUsers(users);
+    return null;
   }
 
   Future<void> _ensureTestAccount(Map<String, dynamic> users) async {
@@ -140,15 +164,15 @@ class AuthService {
   }
 
   Map<String, dynamic> _defaultProfileJson() => {
-        'xp': 0,
-        'streak': 0,
-        'lastQuizCompletedDate': null,
-        'todayQuizCompleted': false,
-        'unlockedHamsterIds': ['hamster_basic'],
-        'selectedHamsterId': 'hamster_basic',
-        'learningHistory': <Map<String, dynamic>>[],
-        'categoryStats': <String, dynamic>{},
-      };
+    'xp': 0,
+    'streak': 0,
+    'lastQuizCompletedDate': null,
+    'todayQuizCompleted': false,
+    'unlockedHamsterIds': ['hamster_basic'],
+    'selectedHamsterId': 'hamster_basic',
+    'learningHistory': <Map<String, dynamic>>[],
+    'categoryStats': <String, dynamic>{},
+  };
 
   UserProfile _profileFromJson(String email, Map<String, dynamic> user) {
     final profile = Map<String, dynamic>.from(user['profile'] as Map? ?? {});
@@ -171,7 +195,9 @@ class AuthService {
     var streak = profile['streak'] as int? ?? 0;
     var todayCompleted = profile['todayQuizCompleted'] as bool? ?? false;
 
-    if (lastDate != null && !DateHelper.isToday(lastDate) && !DateHelper.isYesterday(lastDate)) {
+    if (lastDate != null &&
+        !DateHelper.isToday(lastDate) &&
+        !DateHelper.isYesterday(lastDate)) {
       streak = 0;
       todayCompleted = false;
     } else if (lastDate != null && !DateHelper.isToday(lastDate)) {
@@ -188,22 +214,23 @@ class AuthService {
       unlockedHamsterIds: List<String>.from(
         profile['unlockedHamsterIds'] as List? ?? ['hamster_basic'],
       ),
-      selectedHamsterId: profile['selectedHamsterId'] as String? ?? 'hamster_basic',
+      selectedHamsterId:
+          profile['selectedHamsterId'] as String? ?? 'hamster_basic',
       learningHistory: historyRaw,
       categoryStats: stats,
     );
   }
 
   Map<String, dynamic> _profileToJson(UserProfile profile) => {
-        'xp': profile.xp,
-        'streak': profile.streak,
-        'lastQuizCompletedDate': profile.lastQuizCompletedDate,
-        'todayQuizCompleted': profile.todayQuizCompleted,
-        'unlockedHamsterIds': profile.unlockedHamsterIds,
-        'selectedHamsterId': profile.selectedHamsterId,
-        'learningHistory': profile.learningHistory.map((e) => e.toJson()).toList(),
-        'categoryStats': profile.categoryStats.map(
-          (key, value) => MapEntry(key, value.toJson()),
-        ),
-      };
+    'xp': profile.xp,
+    'streak': profile.streak,
+    'lastQuizCompletedDate': profile.lastQuizCompletedDate,
+    'todayQuizCompleted': profile.todayQuizCompleted,
+    'unlockedHamsterIds': profile.unlockedHamsterIds,
+    'selectedHamsterId': profile.selectedHamsterId,
+    'learningHistory': profile.learningHistory.map((e) => e.toJson()).toList(),
+    'categoryStats': profile.categoryStats.map(
+      (key, value) => MapEntry(key, value.toJson()),
+    ),
+  };
 }
