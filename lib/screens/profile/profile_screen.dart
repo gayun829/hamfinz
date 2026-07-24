@@ -56,17 +56,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed != true) return;
 
-    try {
-      await AuthService.instance.logout();
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      widget.onLogout();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그아웃 중 오류 발생: $e')),
-      );
-    }
+    await AuthService.instance.logout();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    widget.onLogout();
   }
 
   @override
