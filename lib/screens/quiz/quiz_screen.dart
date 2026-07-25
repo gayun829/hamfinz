@@ -72,6 +72,88 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
+  Widget _buildOptionButton(QuizQuestion question, int index, bool isCorrect) {
+    final option = question.options[index];
+    final isSelected = _selectedIndex == index;
+    final isOX = question.type == QuizType.ox;
+    Color? background;
+    Color borderColor = const Color(0xFFE5E7EB);
+
+    if (_showResult && isSelected) {
+      background = isCorrect ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
+      borderColor = isCorrect ? AppTheme.success : AppTheme.error;
+    } else if (_showResult && index == question.correctIndex) {
+      background = const Color(0xFFDCFCE7);
+      borderColor = AppTheme.success;
+    }
+
+    return Material(
+      color: background ?? Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _showResult ? null : () => _selectAnswer(index),
+        child: Container(
+          alignment: Alignment.center,
+          padding: isOX ? EdgeInsets.zero : const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor, width: 2),
+          ),
+          child: isOX
+              ? FractionallySizedBox(
+                  widthFactor: 0.8,
+                  heightFactor: 0.8,
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Text(
+                      option,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                )
+              : Text(
+                  option,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionLayout(QuizQuestion question, bool isCorrect) {
+    return question.type == QuizType.ox
+        ? _buildOXOptions(question, isCorrect)
+        : _buildMultipleChoiceOptions(question, isCorrect);
+  }
+
+  Widget _buildOXOptions(QuizQuestion question, bool isCorrect) {
+    return Row(
+      children: [
+        Expanded(child: AspectRatio(aspectRatio: 1, child: _buildOptionButton(question, 0, isCorrect))),
+        const SizedBox(width: 12),
+        Expanded(child: AspectRatio(aspectRatio: 1, child: _buildOptionButton(question, 1, isCorrect))),
+      ],
+    );
+  }
+
+  Widget _buildMultipleChoiceOptions(QuizQuestion question, bool isCorrect) {
+    return ListView.separated(
+      itemCount: question.options.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => _buildOptionButton(question, index, isCorrect),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final question = _currentQuestion;
@@ -117,51 +199,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: question.options.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final option = question.options[index];
-                    Color? background;
-                    Color borderColor = const Color(0xFFE5E7EB);
-
-                    if (_showResult && _selectedIndex == index) {
-                      background = isCorrect
-                          ? const Color(0xFFDCFCE7)
-                          : const Color(0xFFFEE2E2);
-                      borderColor = isCorrect ? AppTheme.success : AppTheme.error;
-                    } else if (_showResult && index == question.correctIndex) {
-                      background = const Color(0xFFDCFCE7);
-                      borderColor = AppTheme.success;
-                    }
-
-                    return Material(
-                      color: background ?? Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: _showResult ? null : () => _selectAnswer(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderColor, width: 2),
-                          ),
-                          child: Text(
-                            option,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+              Expanded(child: _buildOptionLayout(question, isCorrect)),
               if (_showResult) ...[
                 Container(
                   padding: const EdgeInsets.all(16),
