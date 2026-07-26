@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../data/quiz_data.dart';
 import '../../models/quiz_question.dart';
 import '../../models/user_profile.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/figma/figma_canvas.dart';
+import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/figma/quiz_figma_layout.dart';
 import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -103,181 +105,39 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
-  Widget _buildOptionButton(QuizQuestion question, int index, bool isCorrect) {
-    final option = question.options[index];
-    final isSelected = _selectedIndex == index;
-    final isOX = question.type == QuizType.ox;
-    Color? background;
-    Color borderColor = const Color(0xFFE5E7EB);
-
-    if (_showResult && isSelected) {
-      background = isCorrect ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
-      borderColor = isCorrect ? AppTheme.success : AppTheme.error;
-    } else if (_showResult && index == question.correctIndex) {
-      background = const Color(0xFFDCFCE7);
-      borderColor = AppTheme.success;
-    } else if (!_showResult && isSelected) {
-      background = const Color(0xFFEFF6FF);
-      borderColor = AppTheme.primaryBlue;
-    }
-
-    return Material(
-      color: background ?? Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: _showResult ? null : () => _selectAnswer(index),
-        child: Container(
-          alignment: Alignment.center,
-          padding: isOX ? EdgeInsets.zero : const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor, width: 2),
-          ),
-          child: isOX
-              ? FractionallySizedBox(
-                  widthFactor: 0.8,
-                  heightFactor: 0.8,
-                  alignment: Alignment.center,
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: Text(
-                      option,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ),
-                )
-              : Text(
-                  option,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionLayout(QuizQuestion question, bool isCorrect) {
-    return question.type == QuizType.ox
-        ? _buildOXOptions(question, isCorrect)
-        : _buildMultipleChoiceOptions(question, isCorrect);
-  }
-
-  Widget _buildOXOptions(QuizQuestion question, bool isCorrect) {
-    return Row(
-      children: [
-        Expanded(child: AspectRatio(aspectRatio: 1, child: _buildOptionButton(question, 0, isCorrect))),
-        const SizedBox(width: 12),
-        Expanded(child: AspectRatio(aspectRatio: 1, child: _buildOptionButton(question, 1, isCorrect))),
-      ],
-    );
-  }
-
-  Widget _buildMultipleChoiceOptions(QuizQuestion question, bool isCorrect) {
-    return ListView.separated(
-      itemCount: question.options.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => _buildOptionButton(question, index, isCorrect),
-    );
+  void _onPrimaryAction() {
+    _confirmAnswer();
   }
 
   @override
   Widget build(BuildContext context) {
     final question = _currentQuestion;
-    final isCorrect = _selectedIndex != null && question.isCorrect(_selectedIndex!);
+    final isCorrect =
+        _selectedIndex != null && question.isCorrect(_selectedIndex!);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('퀴즈 ${_currentIndex + 1}/${_questions.length}'),
-      ),
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  question.category.label,
-                  style: const TextStyle(
-                    color: AppTheme.primaryBlue,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                question.type == QuizType.ox ? 'OX 퀴즈' : '4지선다',
-                style: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                question.question,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimary,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(child: _buildOptionLayout(question, isCorrect)),
-              if (!_showResult) ...[
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _selectedIndex == null ? null : _confirmAnswer,
-                  child: const Text('확인'),
-                ),
-              ],
-              if (_showResult) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isCorrect ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    isCorrect ? '정답! +${QuizData.correctXp} XP' : '오답 +${QuizData.wrongXp} XP',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: isCorrect ? AppTheme.success : AppTheme.error,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _showExplanationDialog(question),
-                        child: const Text('풀이 확인'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _next,
-                        child: Text(
-                          _currentIndex >= _questions.length - 1 ? '결과 보기' : '다음 문제',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
+        child: SizedBox.expand(
+          child: FigmaCanvas(
+            designWidth: FigmaScale.quizDesignWidth,
+            designHeight: FigmaScale.quizContentHeight,
+            scrollable: false,
+            fitToViewport: true,
+            builder: (context, figma) => buildQuizFigmaLayers(
+              figma: figma,
+              question: question,
+              currentIndex: _currentIndex,
+              totalQuestions: _questions.length,
+              selectedIndex: _selectedIndex,
+              showResult: _showResult,
+              isCorrect: isCorrect,
+              onBack: () => Navigator.of(context).pop(),
+              onSelectOption: _selectAnswer,
+              onPrimaryAction: _onPrimaryAction,
+              onNextQuestion: _next,
+              onShowExplanation: () => _showExplanationDialog(question),
+            ),
           ),
         ),
       ),

@@ -1,0 +1,47 @@
+---
+description: Figma 프레임 단위 Dev Mode + MCP → Flutter (icons SVG · 위젯 레이아웃 · Code Connect)
+globs: lib/screens/**/*.dart,lib/widgets/**/*.dart,lib/theme/*_tokens.dart,assets/icons/**,assets/figma/**
+alwaysApply: false
+---
+
+# Figma → Flutter 변환 규칙
+
+상세: `docs/figma-to-code.md`
+
+## 필수 원칙
+
+1. **한 프레임씩** — `get_design_context(fileKey, nodeId)`는 화면 node **하나**만. 파일/페이지 통째 금지.
+2. **Code Connect** — `get_code_connect_map`으로 Figma 컴포넌트 ↔ 기존 Flutter 위젯 매핑 우선 (미지원 시 `figma_auth_widgets.dart` 등 수동 대응).
+3. **벡터 SVG** → `assets/icons/{화면}/` · **레이아웃** → MCP spacing/CSS 그대로 Flutter 위젯 트리.
+4. **PNG** → 3D/래스터만 `assets/figma/{화면}/` (`download_assets` export).
+
+fileKey: `PLn1jwyOU2194plYlLdRkl`
+
+## 프레임 작업 순서
+
+| # | 화면 | node |
+|---|------|------|
+| ✅ | 로그인 | `1:152` |
+| ✅ | 회원가입 | `1:195` |
+| ⏳ | 홈 | `83:2` |
+| ⏳ | 퀴즈 | `1:242` … |
+
+## 인증 (완료)
+
+- 토큰: `lib/theme/figma_auth_tokens.dart`
+- 위젯: `lib/widgets/figma_auth_widgets.dart`
+- SVG: `assets/icons/auth/divider_line*.svg`
+- **`FigmaCanvas` 절대 좌표 Stack 금지**
+
+## 홈·퀴즈 (레거시)
+
+- `FigmaCanvas` 유지 → **프레임 하나씩** 위젯 방식으로 마이그레이션
+
+## 체크리스트 (프레임 1개)
+
+- [ ] `get_design_context` — **단일 nodeId**
+- [ ] `get_code_connect_map` — 재사용 위젯 확인
+- [ ] CSS → 토큰/상수
+- [ ] 벡터 → `assets/icons/{화면}/`
+- [ ] `figma_assets.dart` · `pubspec.yaml`
+- [ ] Hot **Restart**
