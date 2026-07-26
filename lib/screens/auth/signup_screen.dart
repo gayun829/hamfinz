@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import 'category_select_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -52,6 +53,14 @@ class _SignupScreenState extends State<SignupScreen> {
       });
       return;
     }
+
+    // 가입 성공 → 관심 카테고리 선택 화면을 먼저 보여주고,
+    // 선택이 끝나면 기존과 동일하게 AuthGate로 결과를 돌려준다.
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CategorySelectScreen()),
+    );
+
+    if (!mounted) return;
     Navigator.of(context).pop(true);
   }
 

@@ -10,6 +10,7 @@ class UserProfile {
     this.selectedHamsterId = 'hamster_basic',
     this.learningHistory = const [],
     this.categoryStats = const {},
+    this.interestCategories = const [],
   });
 
   final String email;
@@ -22,6 +23,11 @@ class UserProfile {
   String selectedHamsterId;
   List<LearningRecord> learningHistory;
   Map<String, CategoryStat> categoryStats;
+
+  /// 회원가입 시 선택한 관심 카테고리 id 목록.
+  /// QuizCategory enum의 name과 동일한 문자열을 저장한다.
+  /// (allowance / saving / stock / insurance / tax / credit)
+  List<String> interestCategories;
 
   int get level => LevelUtils.levelFromXp(xp);
   String get levelTitle => LevelUtils.titleForLevel(level);

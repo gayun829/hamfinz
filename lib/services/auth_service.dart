@@ -108,6 +108,16 @@ class AuthService {
     await _saveUsers(users);
   }
 
+  /// 관심 카테고리 저장.
+  /// 회원가입 직후 카테고리 선택 화면에서 호출한다.
+  /// (categoryIds는 QuizCategory enum의 name 문자열 목록)
+  Future<void> saveInterestCategories(List<String> categoryIds) async {
+    final profile = await getCurrentUser();
+    if (profile == null) return;
+    profile.interestCategories = List<String>.from(categoryIds);
+    await saveProfile(profile);
+  }
+
   Future<String?> resetPassword({
     required String email,
     required String newPassword,
@@ -172,6 +182,7 @@ class AuthService {
     'selectedHamsterId': 'hamster_basic',
     'learningHistory': <Map<String, dynamic>>[],
     'categoryStats': <String, dynamic>{},
+    'interestCategories': <String>[],
   };
 
   UserProfile _profileFromJson(String email, Map<String, dynamic> user) {
@@ -218,6 +229,9 @@ class AuthService {
           profile['selectedHamsterId'] as String? ?? 'hamster_basic',
       learningHistory: historyRaw,
       categoryStats: stats,
+      interestCategories: List<String>.from(
+        profile['interestCategories'] as List? ?? [],
+      ),
     );
   }
 
@@ -232,5 +246,6 @@ class AuthService {
     'categoryStats': profile.categoryStats.map(
       (key, value) => MapEntry(key, value.toJson()),
     ),
+    'interestCategories': profile.interestCategories,
   };
 }
