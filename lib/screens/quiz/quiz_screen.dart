@@ -33,10 +33,41 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _selectAnswer(int index) {
     if (_showResult) return;
-    setState(() {
-      _selectedIndex = index;
-      _showResult = true;
-    });
+    setState(() => _selectedIndex = index);
+  }
+
+  void _confirmAnswer() {
+    if (_selectedIndex == null || _showResult) return;
+    setState(() => _showResult = true);
+  }
+
+  void _showExplanationDialog(QuizQuestion question) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          '풀이',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          question.explanation,
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              '확인',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _next() async {
@@ -85,6 +116,9 @@ class _QuizScreenState extends State<QuizScreen> {
     } else if (_showResult && index == question.correctIndex) {
       background = const Color(0xFFDCFCE7);
       borderColor = AppTheme.success;
+    } else if (!_showResult && isSelected) {
+      background = const Color(0xFFEFF6FF);
+      borderColor = AppTheme.primaryBlue;
     }
 
     return Material(
@@ -200,6 +234,13 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
               const SizedBox(height: 24),
               Expanded(child: _buildOptionLayout(question, isCorrect)),
+              if (!_showResult) ...[
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _selectedIndex == null ? null : _confirmAnswer,
+                  child: const Text('확인'),
+                ),
+              ],
               if (_showResult) ...[
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -207,33 +248,33 @@ class _QuizScreenState extends State<QuizScreen> {
                     color: isCorrect ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isCorrect ? '정답! +${QuizData.correctXp} XP' : '오답 +${QuizData.wrongXp} XP',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: isCorrect ? AppTheme.success : AppTheme.error,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        question.explanation,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    isCorrect ? '정답! +${QuizData.correctXp} XP' : '오답 +${QuizData.wrongXp} XP',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: isCorrect ? AppTheme.success : AppTheme.error,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: _next,
-                  child: Text(
-                    _currentIndex >= _questions.length - 1 ? '결과 보기' : '다음 문제',
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _showExplanationDialog(question),
+                        child: const Text('풀이 확인'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _next,
+                        child: Text(
+                          _currentIndex >= _questions.length - 1 ? '결과 보기' : '다음 문제',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
