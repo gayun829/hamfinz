@@ -5,6 +5,10 @@ import '../../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 
+/// 세션 확인 후 Figma 로그인 화면(`1:152`)을 시작 화면으로 표시한다.
+///
+/// 로그인 ↔ 회원가입 전환은 Navigator 없이 [AuthGate] 상태로 처리해
+/// `onAuthenticated` 콜백이 항상 유지되도록 한다.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.onAuthenticated});
 
@@ -16,6 +20,7 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   bool _checking = true;
+  bool _showSignup = false;
 
   @override
   void initState() {
@@ -33,66 +38,29 @@ class _AuthGateState extends State<AuthGate> {
     setState(() => _checking = false);
   }
 
+  void _showLoginScreen() => setState(() => _showSignup = false);
+
+  void _showSignupScreen() => setState(() => _showSignup = true);
+
   @override
   Widget build(BuildContext context) {
     if (_checking) {
       return const Scaffold(
+        backgroundColor: AppTheme.figmaAuthBackground,
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              const Text('🐹', textAlign: TextAlign.center, style: TextStyle(fontSize: 72)),
-              const SizedBox(height: 16),
-              const Text(
-                '핀퀴즈',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '매일 5분, 재미있는 금융 퀴즈',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: () async {
-                  final success = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(builder: (_) => const SignupScreen()),
-                  );
-                  if (success == true) widget.onAuthenticated();
-                },
-                child: const Text('이메일로 회원가입'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () async {
-                  final success = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
-                  if (success == true) widget.onAuthenticated();
-                },
-                child: const Text('로그인'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    if (_showSignup) {
+      return SignupScreen(
+        onAuthenticated: widget.onAuthenticated,
+        onSwitchToLogin: _showLoginScreen,
+      );
+    }
+
+    return LoginScreen(
+      onAuthenticated: widget.onAuthenticated,
+      onSwitchToSignup: _showSignupScreen,
     );
   }
 }

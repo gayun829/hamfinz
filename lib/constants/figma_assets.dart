@@ -1,0 +1,50 @@
+class FigmaAssets {
+  static const _home = 'assets/figma/home';
+  static const _auth = 'assets/figma/auth';
+  static const _quiz = 'assets/figma/quiz';
+  static const _iconsAuth = 'assets/icons/auth';
+
+  // Home
+  static const hamsterMain = '$_home/hamster_main.png';
+  /// 홈 카드·썸네일 — 단일 햄스터만 (`assets/images/hamster_auth.png`)
+  static const hamsterCard = hamsterAuth;
+  static const bgTop = '$_home/bg_top.svg';
+  static const bgBottom = '$_home/bg_bottom.svg';
+  static const menuIcon = '$_home/menu_icon.svg';
+  static const megaphone = '$_home/megaphone.svg';
+  static const chevronRight = '$_home/chevron_right.svg';
+  static const chevronSmall = '$_home/chevron_small.svg';
+  static const chevronLearning = '$_home/chevron_learning.svg';
+  static const statEnergy = '$_home/stat_energy.svg';
+  static const statCoin = '$_home/stat_coin.svg';
+  static const statStreak = '$_home/stat_streak.svg';
+  static const cardHamsterFrame = '$_home/card_hamster_frame.svg';
+  static const bookmark = '$_home/bookmark.svg';
+  static const questIconCircle = '$_home/quest_icon_circle.svg';
+  static const questIconDot = '$_home/quest_icon_dot.svg';
+  static const navList = '$_home/nav_list.svg';
+  static const navHomeA = '$_home/nav_home_a.svg';
+  static const navHomeB = '$_home/nav_home_b.svg';
+  static const navProfile = '$_home/nav_profile.svg';
+
+  // Auth — 벡터 SVG는 assets/icons/, PNG는 assets/figma/auth/
+  static const authDividerLine = '$_iconsAuth/divider_line.svg';
+  static const authDividerLineSignup = '$_iconsAuth/divider_line_signup.svg';
+  static const hamsterLogin = '$_auth/hamster_login.png';
+  static const hamsterSignup = '$_auth/hamster_signup.png';
+  static const googleLogin = '$_auth/google.png';
+  static const appleLogin = '$_auth/apple.png';
+  static const kakaoLogin = '$_auth/kakao.png';
+  static const googleSignup = '$_auth/google_signup.png';
+  static const appleSignup = '$_auth/apple_signup.png';
+  static const kakaoSignup = '$_auth/kakao_signup.png';
+
+  // Quiz
+  static const quizHamster = '$_quiz/hamster_quiz.png';
+  static const quizHamsterShadow = '$_quiz/hamster_shadow.svg';
+  static const quizBackChevron = '$_quiz/back_chevron.svg';
+  static const quizBgEllipse = '$_quiz/bg_ellipse.svg';
+
+  // 단일 햄스터 PNG (손 흔드는 캐릭터)
+  static const hamsterAuth = 'assets/images/hamster_auth.png';
+}

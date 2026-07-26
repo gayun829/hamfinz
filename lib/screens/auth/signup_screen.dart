@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/figma_auth_tokens.dart';
+import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/figma_auth_widgets.dart';
 import 'category_select_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  const SignupScreen({
+    super.key,
+    this.onAuthenticated,
+    this.onSwitchToLogin,
+  });
+
+  final VoidCallback? onAuthenticated;
+  final VoidCallback? onSwitchToLogin;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -14,7 +24,6 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   final _nicknameController = TextEditingController();
   String? _error;
   bool _loading = false;
@@ -23,17 +32,11 @@ class _SignupScreenState extends State<SignupScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     _nicknameController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() => _error = '비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
     setState(() {
       _loading = true;
       _error = null;
@@ -54,134 +57,139 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    // 가입 성공 → 관심 카테고리 선택 화면을 먼저 보여주고,
-    // 선택이 끝나면 기존과 동일하게 AuthGate로 결과를 돌려준다.
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const CategorySelectScreen()),
     );
 
     if (!mounted) return;
+    if (widget.onAuthenticated != null) {
+      widget.onAuthenticated!();
+      return;
+    }
     Navigator.of(context).pop(true);
   }
 
-  void _loginWithGoogle() {
-    // 나중에 추가: 구글 계정 로그인 연동
+  void _checkNicknameDuplicate() {
+    // 나중에 추가: 닉네임 중복 확인
   }
 
-  void _loginWithPhone() {
-    // 나중에 추가: 전화번호 로그인 연동
+  void _signUpWithGoogle() {
+    // 나중에 추가: 구글 계정 가입 연동
+  }
+
+  void _signUpWithApple() {
+    // 나중에 추가: Apple 가입 연동
+  }
+
+  void _signUpWithKakao() {
+    // 나중에 추가: 카카오 가입 연동
+  }
+
+  void _openLogin() {
+    if (widget.onSwitchToLogin != null) {
+      widget.onSwitchToLogin!();
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final figma = FigmaScale.ofContext(
+      context,
+      designWidth: FigmaAuthTokens.designWidth,
+    );
+    final s = figma.s;
+    final fieldPad = s(FigmaAuthTokens.signupFieldPaddingX);
+    final nicknamePad = s(FigmaAuthTokens.signupNicknameFieldPaddingX);
+    final buttonPad = s(FigmaAuthTokens.signupButtonPaddingX);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('회원가입')),
+      backgroundColor: FigmaAuthTokens.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: _nicknameController,
-                decoration: const InputDecoration(labelText: '닉네임'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: '이메일'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+              const FigmaHamsterHero(useSignupAsset: true),
+              Padding(
+                padding: EdgeInsets.only(left: nicknamePad, right: fieldPad),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: s(FigmaAuthTokens.signupHeroToForm)),
+                    FigmaAuthField(
+                      label: '닉네임',
+                      controller: _nicknameController,
+                      placeholder: '닉네임을 입력하세요',
+                      borderColor: FigmaAuthTokens.inputBorder,
+                      trailing: FigmaDuplicateCheckButton(
+                        onPressed: _checkNicknameDuplicate,
                       ),
                     ),
-                    child: const Text('이메일 인증'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호 (6자 이상)'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호 확인'),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: const TextStyle(
-                    color: AppTheme.error,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  ],
                 ),
-              ],
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _loginWithGoogle,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: fieldPad),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: s(FigmaAuthTokens.signupFieldGap)),
+                    FigmaAuthField(
+                      label: '아이디(이메일)',
+                      controller: _emailController,
+                      placeholder: '아이디/ 이메일 주소를 입력하세요',
+                      keyboardType: TextInputType.emailAddress,
+                      borderColor: FigmaAuthTokens.inputBorderAlt,
+                    ),
+                    SizedBox(height: s(FigmaAuthTokens.signupFieldGap)),
+                    FigmaAuthField(
+                      label: '비밀번호',
+                      controller: _passwordController,
+                      placeholder: '비밀번호를 입력하세요',
+                      obscureText: true,
+                      borderColor: FigmaAuthTokens.inputBorderAlt,
+                    ),
+                    if (_error != null) ...[
+                      SizedBox(height: s(16)),
+                      Text(
+                        _error!,
+                        style: TextStyle(
+                          fontSize: s(28),
+                          color: AppTheme.error,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: const Text('구글 계정으로 가입'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _loginWithPhone,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      child: const Text('전화번호로 가입'),
-                    ),
-                  ),
-                ],
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('가입 완료'),
+              SizedBox(height: s(FigmaAuthTokens.signupButtonTopGap)),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: buttonPad),
+                child: FigmaAuthPrimaryButton(
+                  label: '회원가입',
+                  loading: _loading,
+                  onPressed: _submit,
+                ),
               ),
+              SizedBox(height: s(FigmaAuthTokens.signupDividerTopGap)),
+              const FigmaAuthDivider(useSignupLine: true),
+              SizedBox(height: s(FigmaAuthTokens.signupSocialTopGap)),
+              FigmaSocialLoginRow(
+                useSignupAssets: true,
+                onGoogle: _signUpWithGoogle,
+                onApple: _signUpWithApple,
+                onKakao: _signUpWithKakao,
+              ),
+              SizedBox(height: s(FigmaAuthTokens.signupFooterTopGap)),
+              FigmaAuthFooterLink(
+                prefix: '이미 계정을 가지고 있나요?',
+                actionLabel: '로그인',
+                onAction: _openLogin,
+              ),
+              SizedBox(height: s(32)),
             ],
           ),
         ),

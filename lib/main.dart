@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'screens/auth/auth_gate.dart';
-import 'screens/home/home_screen.dart';
+import 'screens/home/main_shell.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/mobile_viewport.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ class FinQuizApp extends StatelessWidget {
       title: '핀퀴즈',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
+      builder: (context, child) => MobileViewport(child: child),
       home: const AppRoot(),
     );
   }
@@ -46,7 +48,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   Widget build(BuildContext context) {
     if (_authenticated) {
-      return HomeScreen(onLogout: _onLogout);
+      return MainShell(onLogout: _onLogout);
     }
 
     return AuthGate(onAuthenticated: _onAuthenticated);
