@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/home_bottom_nav.dart';
 import '../profile/profile_screen.dart';
 import 'home_screen.dart';
 
@@ -39,56 +40,57 @@ class _MainShellState extends State<MainShell> {
     setState(() => _currentIndex = index);
   }
 
-  Widget _buildBody() {
+  @override
+  Widget build(BuildContext context) {
     if (_loadingProfile) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        backgroundColor: AppTheme.figmaHomeBackground,
+        body: Column(
+          children: [
+            const Expanded(child: Center(child: CircularProgressIndicator())),
+            HomeBottomNav(currentIndex: _currentIndex, onTap: _onNavTap),
+          ],
+        ),
+      );
     }
 
     final profile = _profile;
     if (profile == null) {
-      return const Center(child: Text('사용자 정보를 불러올 수 없습니다.'));
+      return Scaffold(
+        backgroundColor: AppTheme.figmaHomeBackground,
+        body: Column(
+          children: [
+            const Expanded(child: Center(child: Text('사용자 정보를 불러올 수 없습니다.'))),
+            HomeBottomNav(currentIndex: _currentIndex, onTap: _onNavTap),
+          ],
+        ),
+      );
     }
 
-    switch (_currentIndex) {
-      case 0:
-        return const _PlaceholderTab(
-          title: '메뉴',
-          message: '학습 메뉴 화면이 준비 중이에요.',
-        );
-      case 2:
-        return const _PlaceholderTab(
-          title: '커뮤니티',
-          message: '친구/커뮤니티 기능이 준비 중이에요.',
-        );
-      case 3:
-        return ProfileScreen(
-          profile: profile,
-          onLogout: widget.onLogout,
-        );
-      case 1:
-      default:
-        return HomeScreen(
-          onLogout: widget.onLogout,
-          currentNavIndex: _currentIndex,
-          onNavTap: _onNavTap,
-        );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.figmaHomeBackground,
-      body: _buildBody(),
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                const _PlaceholderTab(title: '메뉴', message: '준비 중'),
+                const HomeScreen(),
+                const _PlaceholderTab(title: '커뮤니티', message: '준비 중'),
+                ProfileScreen(profile: profile, onLogout: widget.onLogout),
+              ],
+            ),
+          ),
+          HomeBottomNav(currentIndex: _currentIndex, onTap: _onNavTap),
+        ],
+      ),
     );
   }
 }
 
 class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({
-    required this.title,
-    required this.message,
-  });
+  const _PlaceholderTab({required this.title, required this.message});
 
   final String title;
   final String message;
@@ -103,10 +105,7 @@ class _PlaceholderTab extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(

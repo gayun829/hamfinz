@@ -11,16 +11,7 @@ import '../../widgets/figma/figma_scale.dart';
 import '../quiz/quiz_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    super.key,
-    required this.onLogout,
-    this.currentNavIndex = 1,
-    this.onNavTap,
-  });
-
-  final VoidCallback onLogout;
-  final int currentNavIndex;
-  final ValueChanged<int>? onNavTap;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -121,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onRefresh: _loadProfile,
       child: FigmaCanvas(
         designWidth: FigmaScale.homeDesignWidth,
-        designHeight: FigmaScale.homeDesignHeight,
+        designHeight: FigmaScale.homeContentHeight,
         builder: (context, figma) => _buildFigmaHomeLayers(
           figma: figma,
           energy: energyValue,
@@ -133,13 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
           questTotal: questionCount,
           progressFillWidth: progressFillWidth,
           todayCompleted: profile.todayQuizCompleted,
-          currentNavIndex: widget.currentNavIndex,
           onMenu: _openCategorySwitcher,
           onNews: _openNews,
           onDigging: _openDigging,
           onBookmark: _openBookmark,
           onStartLearning: _startQuiz,
-          onNavTap: widget.onNavTap,
         ),
       ),
     );
@@ -157,13 +146,11 @@ List<Widget> _buildFigmaHomeLayers({
   required int questTotal,
   required double progressFillWidth,
   required bool todayCompleted,
-  required int currentNavIndex,
   required VoidCallback onMenu,
   required VoidCallback onNews,
   required VoidCallback onDigging,
   required VoidCallback onBookmark,
   required VoidCallback onStartLearning,
-  required ValueChanged<int>? onNavTap,
 }) {
   final s = figma.s;
 
@@ -264,16 +251,6 @@ List<Widget> _buildFigmaHomeLayers({
         height: 141,
         color: const Color(0xFF9CE5FF),
         radius: 46.285,
-      ),
-
-      // 83:3 하단 네비 배경
-      FigmaBox(
-        figma: figma,
-        left: 1,
-        top: 2474,
-        width: 1237,
-        height: 155,
-        child: const ColoredBox(color: Color(0x3872BFC2)),
       ),
 
       // 83:80 메뉴 버튼
@@ -551,9 +528,6 @@ List<Widget> _buildFigmaHomeLayers({
         onTap: onBookmark,
         child: const FigmaSvg(FigmaAssets.bookmark, fit: BoxFit.fill),
       ),
-
-      // 83:161, 83:144, 83:152, 83:168 하단 네비
-      ..._bottomNavLayers(figma, currentNavIndex, onNavTap),
   ];
 }
 
@@ -691,82 +665,6 @@ List<Widget> _quizIconLayers(FigmaScale figma) {
   ];
 }
 
-List<Widget> _bottomNavLayers(
-  FigmaScale figma,
-  int currentNavIndex,
-  ValueChanged<int>? onNavTap,
-) {
-  final s = figma.s;
-  return [
-    FigmaTapArea(
-      figma: figma,
-      left: 66,
-      top: 2511,
-      width: 74,
-      height: 65,
-      onTap: onNavTap == null ? null : () => onNavTap(2),
-      child: _NavCommunityIcon(figma: figma),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 383,
-      top: 2517,
-      width: 88,
-      height: 71.461,
-      onTap: onNavTap == null ? null : () => onNavTap(0),
-      child: FigmaSvg(
-        FigmaAssets.navList,
-        fit: BoxFit.fill,
-        opacity: currentNavIndex == 0 ? 1 : 0.72,
-      ),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 728,
-      top: 2510,
-      width: 120,
-      height: 80,
-      onTap: onNavTap == null ? null : () => onNavTap(1),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          FigmaSvg(
-            FigmaAssets.navHomeA,
-            width: s(76),
-            height: s(70),
-            fit: BoxFit.contain,
-            opacity: currentNavIndex == 1 ? 1 : 0.72,
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: FigmaSvg(
-              FigmaAssets.navHomeB,
-              width: s(52),
-              height: s(48),
-              fit: BoxFit.contain,
-              opacity: currentNavIndex == 1 ? 1 : 0.72,
-            ),
-          ),
-        ],
-      ),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 1054,
-      top: 2524,
-      width: 88.407,
-      height: 60,
-      onTap: onNavTap == null ? null : () => onNavTap(3),
-      child: FigmaSvg(
-        FigmaAssets.navProfile,
-        fit: BoxFit.fill,
-        opacity: currentNavIndex == 3 ? 1 : 0.72,
-      ),
-    ),
-  ];
-}
-
 class _FigmaMenuButton extends StatelessWidget {
   const _FigmaMenuButton({required this.figma, required this.onTap});
 
@@ -820,70 +718,6 @@ class _FigmaMenuButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(s(9.026)),
-      ),
-    );
-  }
-}
-
-class _NavCommunityIcon extends StatelessWidget {
-  const _NavCommunityIcon({required this.figma});
-
-  final FigmaScale figma;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return Stack(
-      children: [
-        _box(s, 0, 0, 57.5, 65.017, const Color(0xFF1B9CA1)),
-        _box(s, 16.16, 14.66, 57.5, 65.017, const Color(0xFF46CABF)),
-        _line(s, 25.93, 24.8, 37.958, 3.007),
-        _line(s, 25.61, 37.94, 37.958, 3.007),
-        _line(s, 25.61, 49.32, 33.072, 3.007),
-        _box(s, 60.56, 49.32, 3.007, 3.007, Colors.white),
-      ],
-    );
-  }
-
-  Widget _box(
-    double Function(double) s,
-    double left,
-    double top,
-    double w,
-    double h,
-    Color color,
-  ) {
-    return Positioned(
-      left: s(left),
-      top: s(top),
-      child: Container(
-        width: s(w),
-        height: s(h),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(s(10.523)),
-        ),
-      ),
-    );
-  }
-
-  Widget _line(
-    double Function(double) s,
-    double left,
-    double top,
-    double w,
-    double h,
-  ) {
-    return Positioned(
-      left: s(left),
-      top: s(top),
-      child: Container(
-        width: s(w),
-        height: s(h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(s(10.523)),
-        ),
       ),
     );
   }
