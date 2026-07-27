@@ -1,73 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../data/interest_categories.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
 /// 회원가입 직후 관심 카테고리를 고르는 화면.
 ///
-/// 각 항목의 [id]는 QuizCategory enum의 name과 동일하게 맞춰두었다.
-/// (allowance / saving / stock / insurance / tax / credit)
-/// 나중에 "관심 카테고리 위주로 일일 퀴즈 출제" 같은 기능을 붙일 때
-/// `question.category.name`과 바로 비교할 수 있다.
+/// 카테고리 목록은 [kInterestCategories]를 사용한다. 나중에 "관심 카테고리 위주로
+/// 일일 퀴즈 출제" 같은 기능을 붙일 때 `question.category.name`과 바로 비교할 수 있다.
 class CategorySelectScreen extends StatefulWidget {
   const CategorySelectScreen({super.key});
 
   @override
   State<CategorySelectScreen> createState() => _CategorySelectScreenState();
 }
-
-class _CategoryItem {
-  const _CategoryItem({
-    required this.id,
-    required this.emoji,
-    required this.name,
-    required this.description,
-  });
-
-  final String id;
-  final String emoji;
-  final String name;
-  final String description;
-}
-
-const List<_CategoryItem> _categories = [
-  _CategoryItem(
-    id: 'allowance',
-    emoji: '💸',
-    name: '용돈&지출관리',
-    description: '똑똑한 소비 습관',
-  ),
-  _CategoryItem(
-    id: 'saving',
-    emoji: '🏦',
-    name: '저축&예금',
-    description: '차곡차곡 모으기',
-  ),
-  _CategoryItem(
-    id: 'stock',
-    emoji: '📈',
-    name: '주식&투자',
-    description: '투자 기초 다지기',
-  ),
-  _CategoryItem(
-    id: 'insurance',
-    emoji: '🛡️',
-    name: '보험',
-    description: '위험에 대비하기',
-  ),
-  _CategoryItem(
-    id: 'tax',
-    emoji: '🧾',
-    name: '세금',
-    description: '아는 만큼 아끼기',
-  ),
-  _CategoryItem(
-    id: 'credit',
-    emoji: '💳',
-    name: '신용&대출',
-    description: '신용점수 관리하기',
-  ),
-];
 
 class _CategorySelectScreenState extends State<CategorySelectScreen> {
   final Set<String> _selected = {};
@@ -138,9 +84,9 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
                           crossAxisSpacing: 12,
                           childAspectRatio: 1.0,
                         ),
-                        itemCount: _categories.length,
+                        itemCount: kInterestCategories.length,
                         itemBuilder: (context, index) {
-                          final item = _categories[index];
+                          final item = kInterestCategories[index];
                           return _CategoryCard(
                             item: item,
                             selected: _selected.contains(item.id),
@@ -194,7 +140,7 @@ class _CategoryCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _CategoryItem item;
+  final InterestCategory item;
   final bool selected;
   final VoidCallback onTap;
 
