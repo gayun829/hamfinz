@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "flutter-web",
+      "runtimeExecutable": "/Users/gayun/flutter/bin/flutter",
+      "runtimeArgs": ["run", "-d", "chrome", "--web-port", "8765"],
+      "port": 8765
+    }
+  ]
+}

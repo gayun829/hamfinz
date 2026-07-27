@@ -4,6 +4,7 @@ import '../../constants/figma_assets.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/quiz_service.dart';
+import '../../widgets/category_switcher_sheet.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
@@ -65,9 +66,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openMenu() {
-    // 나중에 추가: 메뉴 화면
-    widget.onNavTap?.call(0);
+  Future<void> _openCategorySwitcher() async {
+    final profile = _profile;
+    if (profile == null) return;
+
+    await showCategorySwitcherSheet(
+      context: context,
+      interestCategoryIds: profile.interestCategories,
+      onCategoriesChanged: (updated) {
+        if (!mounted) return;
+        setState(() => profile.interestCategories = updated);
+      },
+    );
   }
 
   void _openNews() {
@@ -124,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
           progressFillWidth: progressFillWidth,
           todayCompleted: profile.todayQuizCompleted,
           currentNavIndex: widget.currentNavIndex,
-          onMenu: _openMenu,
+          onMenu: _openCategorySwitcher,
           onNews: _openNews,
           onDigging: _openDigging,
           onBookmark: _openBookmark,
