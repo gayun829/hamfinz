@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../data/quiz_data.dart';
 import '../../models/quiz_question.dart';
 import '../../models/user_profile.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/figma/figma_canvas.dart';
+import '../../theme/figma_quiz_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
-import '../../widgets/figma/quiz_figma_layout.dart';
+import '../../widgets/quiz_widgets.dart';
 import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -105,42 +106,224 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
-  void _onPrimaryAction() {
-    _confirmAnswer();
-  }
-
   @override
   Widget build(BuildContext context) {
     final question = _currentQuestion;
     final isCorrect =
         _selectedIndex != null && question.isCorrect(_selectedIndex!);
 
+    if (question.type == QuizType.multipleChoice) {
+      return _buildMcQuizScreen(question, isCorrect);
+    }
+
+    return _buildOxQuizScreen(question, isCorrect);
+  }
+
+  Widget _buildQuizFooter({
+    required FigmaScale figma,
+    required QuizQuestion question,
+    required bool isLast,
+  }) {
+    final s = figma.s;
+
+    return ColoredBox(
+      color: FigmaQuizTokens.footerMint.withValues(alpha: 0.73),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          s(FigmaQuizTokens.horizontalPadding),
+          s(24),
+          s(FigmaQuizTokens.horizontalPadding),
+          s(32),
+        ),
+        child: _showResult
+            ? Row(
+                children: [
+                  Expanded(
+                    child: QuizFooterOutlinedButton(
+                      label: '풀이확인',
+                      onPressed: () => _showExplanationDialog(question),
+                    ),
+                  ),
+                  SizedBox(width: s(FigmaQuizTokens.dualButtonGap)),
+                  Expanded(
+                    child: QuizFooterPrimaryButton(
+                      label: isLast ? '결과 보기' : '다음문제',
+                      onPressed: _next,
+                    ),
+                  ),
+                ],
+              )
+            : QuizFooterPrimaryButton(
+                label: '정답 제출',
+                enabled: _selectedIndex != null,
+                onPressed: _confirmAnswer,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildMcQuizScreen(QuizQuestion question, bool isCorrect) {
+    final figma = FigmaScale.ofContext(
+      context,
+      designWidth: FigmaQuizTokens.designWidth,
+    );
+    final s = figma.s;
+    final progress = (_currentIndex + 1) / _questions.length;
+    final isLast = _currentIndex >= _questions.length - 1;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: FigmaQuizTokens.background,
       body: SafeArea(
-        child: SizedBox.expand(
-          child: FigmaCanvas(
-            designWidth: FigmaScale.quizDesignWidth,
-            designHeight: FigmaScale.quizContentHeight,
-            scrollable: false,
-            fitToViewport: true,
-            builder: (context, figma) => buildQuizFigmaLayers(
-              figma: figma,
-              question: question,
-              currentIndex: _currentIndex,
-              totalQuestions: _questions.length,
-              selectedIndex: _selectedIndex,
-              showResult: _showResult,
-              isCorrect: isCorrect,
-              onBack: () => Navigator.of(context).pop(),
-              onSelectOption: _selectAnswer,
-              onPrimaryAction: _onPrimaryAction,
-              onNextQuestion: _next,
-              onShowExplanation: () => _showExplanationDialog(question),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: s(FigmaQuizTokens.horizontalPadding)),
+                child: Column(
+                  children: [
+                    QuizProgressHeader(
+                      progress: progress,
+                      onBack: () => Navigator.of(context).pop(),
+                    ),
+                    const QuizMc1Hero(),
+                    QuizCategoryBadge(label: question.category.label),
+                    SizedBox(height: s(FigmaQuizTokens.questionTopGap)),
+                    Text(
+                      question.question,
+                      textAlign: TextAlign.center,
+                      style: FigmaQuizTokens.questionStyle(figma.scale),
+                    ),
+                    SizedBox(height: s(FigmaQuizTokens.questionTopGap)),
+                    ...List.generate(question.options.length, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: s(FigmaQuizTokens.optionGap)),
+                        child: QuizOptionButton(
+                          label: question.options[index],
+                          isSelected: _selectedIndex == index,
+                          isCorrectOption: question.correctIndex == index,
+                          showResult: _showResult,
+                          onTap: _showResult ? null : () => _selectAnswer(index),
+                        ),
+                      );
+                    }),
+                    if (_showResult) ...[
+                      SizedBox(height: s(FigmaQuizTokens.resultTopGap)),
+                      QuizResultBanner(
+                        isCorrect: isCorrect,
+                        xpText: isCorrect
+                            ? '정답! +${QuizData.correctXp} XP'
+                            : '오답 +${QuizData.wrongXp} XP',
+                      ),
+                    ],
+                    SizedBox(height: s(24)),
+                  ],
+                ),
+              ),
+            ),
+            _buildQuizFooter(figma: figma, question: question, isLast: isLast),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOxQuizScreen(QuizQuestion question, bool isCorrect) {
+    final figma = FigmaScale.ofContext(
+      context,
+      designWidth: FigmaQuizTokens.designWidth,
+    );
+    final s = figma.s;
+    final progress = (_currentIndex + 1) / _questions.length;
+    final isLast = _currentIndex >= _questions.length - 1;
+    final useVerticalOx = _currentIndex.isOdd;
+
+    return Scaffold(
+      backgroundColor: FigmaQuizTokens.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  QuizProgressHeader(
+                    progress: progress,
+                    onBack: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: useVerticalOx
+                        ? Padding(
+                            padding: EdgeInsets.symmetric(horizontal: s(FigmaQuizTokens.horizontalPadding)),
+                            child: _buildOxVerticalBody(
+                              figma: figma,
+                              question: question,
+                            ),
+                          )
+                        : Padding(
+                            padding: EdgeInsets.symmetric(horizontal: s(18)),
+                            child: QuizOxHorizontalLayout(
+                              question: question.question,
+                              options: question.options,
+                              selectedIndex: _selectedIndex,
+                              correctIndex: question.correctIndex,
+                              showResult: _showResult,
+                              onSelect: _selectAnswer,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            _buildQuizFooter(figma: figma, question: question, isLast: isLast),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOxVerticalBody({
+    required FigmaScale figma,
+    required QuizQuestion question,
+  }) {
+    final s = figma.s;
+
+    return Column(
+      children: [
+        const Flexible(flex: 3, child: QuizMc1Hero()),
+        Flexible(
+          flex: 2,
+          child: Center(
+            child: Text(
+              question.question,
+              textAlign: TextAlign.center,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: FigmaQuizTokens.questionStyle(figma.scale).copyWith(
+                fontSize: s(FigmaQuizTokens.questionFontSize * 0.9),
+              ),
             ),
           ),
         ),
-      ),
+        Expanded(
+          flex: 4,
+          child: Column(
+            children: [
+              for (var i = 0; i < question.options.length; i++)
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: s(FigmaQuizTokens.optionGap)),
+                    child: QuizOxChoiceButton(
+                      label: question.options[i],
+                      isSelected: _selectedIndex == i,
+                      isCorrectOption: question.correctIndex == i,
+                      showResult: _showResult,
+                      onTap: _showResult ? null : () => _selectAnswer(i),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
