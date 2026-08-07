@@ -4,6 +4,7 @@ import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/home_bottom_nav.dart';
+import '../news/news_screen.dart';
 import '../profile/profile_screen.dart';
 import 'home_screen.dart';
 
@@ -75,7 +76,7 @@ class _MainShellState extends State<MainShell> {
             child: IndexedStack(
               index: _currentIndex,
               children: [
-                const _PlaceholderTab(title: '메뉴', message: '준비 중'),
+                const NewsScreen(),
                 const HomeScreen(),
                 const _PlaceholderTab(title: '커뮤니티', message: '준비 중'),
                 ProfileScreen(profile: profile, onLogout: widget.onLogout),
