@@ -5,7 +5,7 @@ import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../news/news_screen.dart';
-import '../profile/profile_screen.dart';
+import '../settings/settings_screen.dart';
 import 'home_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -78,44 +78,16 @@ class _MainShellState extends State<MainShell> {
               children: [
                 const NewsScreen(),
                 const HomeScreen(),
-                const _PlaceholderTab(title: '커뮤니티', message: '준비 중'),
-                ProfileScreen(profile: profile, onLogout: widget.onLogout),
+                SettingsScreen(
+                  profile: profile,
+                  onLogout: widget.onLogout,
+                  onComplete: () => setState(() => _currentIndex = 1),
+                ),
               ],
             ),
           ),
           HomeBottomNav(currentIndex: _currentIndex, onTap: _onNavTap),
         ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
       ),
     );
   }

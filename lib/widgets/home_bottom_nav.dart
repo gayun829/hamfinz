@@ -80,16 +80,26 @@ List<Widget> _bottomNavIconLayers({
   required ValueChanged<int> onNavTap,
   required double yOffset,
 }) {
-  final s = figma.s;
+  final barWidth = HomeBottomNav.designWidth;
 
   double top(double designTop) => designTop + yOffset;
+
+  // 3탭 균등 배치 — 리스트(0) · 홈(1) · 프로필(2)
+  const listWidth = 74.0;
+  const homeWidth = 88.0;
+  const profileWidth = 88.407;
+  final slot = barWidth / 3;
+
+  final listLeft = slot * 0.5 - listWidth / 2;
+  final homeLeft = slot * 1.5 - homeWidth / 2;
+  final profileLeft = slot * 2.5 - profileWidth / 2;
 
   return [
     FigmaTapArea(
       figma: figma,
-      left: 66,
+      left: listLeft,
       top: top(2511),
-      width: 74,
+      width: listWidth,
       height: 65,
       onTap: () => onNavTap(0),
       child: Opacity(
@@ -99,9 +109,9 @@ List<Widget> _bottomNavIconLayers({
     ),
     FigmaTapArea(
       figma: figma,
-      left: 383,
+      left: homeLeft,
       top: top(2517),
-      width: 88,
+      width: homeWidth,
       height: 71.461,
       onTap: () => onNavTap(1),
       child: FigmaSvg(
@@ -112,46 +122,15 @@ List<Widget> _bottomNavIconLayers({
     ),
     FigmaTapArea(
       figma: figma,
-      left: 728,
-      top: top(2510),
-      width: 120,
-      height: 80,
-      onTap: () => onNavTap(2),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          FigmaSvg(
-            FigmaAssets.navHomeA,
-            width: s(76),
-            height: s(70),
-            fit: BoxFit.contain,
-            opacity: currentNavIndex == 2 ? 1 : 0.72,
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: FigmaSvg(
-              FigmaAssets.navHomeB,
-              width: s(52),
-              height: s(48),
-              fit: BoxFit.contain,
-              opacity: currentNavIndex == 2 ? 1 : 0.72,
-            ),
-          ),
-        ],
-      ),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 1054,
+      left: profileLeft,
       top: top(2524),
-      width: 88.407,
+      width: profileWidth,
       height: 60,
-      onTap: () => onNavTap(3),
+      onTap: () => onNavTap(2),
       child: FigmaSvg(
         FigmaAssets.navProfile,
         fit: BoxFit.fill,
-        opacity: currentNavIndex == 3 ? 1 : 0.72,
+        opacity: currentNavIndex == 2 ? 1 : 0.72,
       ),
     ),
   ];
