@@ -28,6 +28,12 @@ class NewsService {
     'credit': '신용점수 OR 대출 when:7d',
   };
 
+  /// 웹으로 띄웠을 때만 쓰는 우회로. 브라우저는 구글뉴스 응답에 CORS 헤더가
+  /// 없어서 막아버리므로, 개발 중에는 `tool/cors_proxy.dart`를 띄우고
+  /// `--dart-define=NEWS_PROXY=http://localhost:8766`으로 붙인다.
+  /// 값이 비어 있으면(=모바일 빌드) 구글뉴스를 그대로 호출한다.
+  static const _proxy = String.fromEnvironment('NEWS_PROXY');
+
   static Future<List<NewsItem>> topFor(String categoryId, {int limit = 3}) async {
     final query = categoryQueries[categoryId];
     if (query == null) return const [];
@@ -38,8 +44,11 @@ class NewsService {
       'gl': 'KR',
       'ceid': 'KR:ko',
     });
+    final target = _proxy.isEmpty
+        ? uri
+        : Uri.parse(_proxy).replace(queryParameters: {'url': uri.toString()});
 
-    final res = await http.get(uri).timeout(const Duration(seconds: 10));
+    final res = await http.get(target).timeout(const Duration(seconds: 10));
     if (res.statusCode != 200) {
       throw Exception('구글뉴스 응답 오류 (${res.statusCode})');
     }
