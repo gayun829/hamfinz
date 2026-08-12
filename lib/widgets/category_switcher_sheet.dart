@@ -4,10 +4,9 @@ import '../data/interest_categories.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
-/// 홈 화면 좌측 상단 아이콘을 눌렀을 때 뜨는 관심 카테고리 스위처.
+/// 홈 화면 좌측 상단 아이콘을 눌렀을 때 뜨는 관심 카테고리 관리 시트.
 ///
-/// 이미 등록한 카테고리를 위쪽에 보여주고, '+' 버튼을 누르면 같은 시트 안에서
-/// 아직 선택하지 않은 카테고리들을 펼쳐 추가로 등록할 수 있게 한다.
+/// 모든 카테고리를 한 화면에 보여 주고, 탭으로 선택(초록) / 해제한다.
 Future<void> showCategorySwitcherSheet({
   required BuildContext context,
   required List<String> interestCategoryIds,
@@ -40,37 +39,35 @@ class CategorySwitcherSheet extends StatefulWidget {
 
 class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
   late List<String> _selectedIds;
-  String? _activeId;
-  bool _showAdd = false;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     _selectedIds = List<String>.from(widget.initialSelectedIds);
-    _activeId = _selectedIds.isNotEmpty ? _selectedIds.first : null;
   }
 
-  List<InterestCategory> get _selectedCategories => _selectedIds
-      .map((id) => kInterestCategories.firstWhere((c) => c.id == id))
-      .toList();
+  Future<void> _toggleCategory(String id) async {
+    if (_saving) return;
 
-  List<InterestCategory> get _remainingCategories => kInterestCategories
-      .where((c) => !_selectedIds.contains(c.id))
-      .toList();
+    final isSelected = _selectedIds.contains(id);
+    if (isSelected && _selectedIds.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('관심 카테고리는 최소 1개 이상 선택해야 해요.')),
+      );
+      return;
+    }
 
-  Future<void> _addCategory(String id) async {
-    if (_saving || _selectedIds.contains(id)) return;
+    final updated = isSelected
+        ? _selectedIds.where((item) => item != id).toList()
+        : [..._selectedIds, id];
+
     setState(() => _saving = true);
-
-    final updated = [..._selectedIds, id];
     await AuthService.instance.saveInterestCategories(updated);
 
     if (!mounted) return;
     setState(() {
       _selectedIds = updated;
-      _activeId = id;
-      _showAdd = false;
       _saving = false;
     });
     widget.onCategoriesChanged(updated);
@@ -108,58 +105,38 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
                 color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 16),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final category in _selectedCategories)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: _CategoryIconButton(
-                        category: category,
-                        selected: category.id == _activeId,
-                        onTap: () =>
-                            setState(() => _activeId = category.id),
-                      ),
-                    ),
-                  _AddCategoryButton(
-                    expanded: _showAdd,
-                    enabled: _remainingCategories.isNotEmpty,
-                    onTap: () => setState(() => _showAdd = !_showAdd),
-                  ),
-                ],
+            const SizedBox(height: 8),
+            const Text(
+              '카테고리를 탭해 추가하거나 해제할 수 있어요 (최소 1개)',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
               ),
             ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              alignment: Alignment.topCenter,
-              child: !_showAdd
-                  ? const SizedBox(width: double.infinity)
-                  : Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: _remainingCategories.isEmpty
-                          ? const Text(
-                              '모든 카테고리를 이미 선택했어요',
-                              textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(color: AppTheme.textSecondary),
-                            )
-                          : Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                for (final category in _remainingCategories)
-                                  _CategoryIconButton(
-                                    category: category,
-                                    selected: false,
-                                    onTap: () => _addCategory(category.id),
-                                  ),
-                              ],
-                            ),
-                    ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final category in kInterestCategories)
+                  _CategoryIconButton(
+                    category: category,
+                    selected: _selectedIds.contains(category.id),
+                    onTap: _saving ? null : () => _toggleCategory(category.id),
+                  ),
+              ],
             ),
+            if (_saving)
+              const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -176,85 +153,53 @@ class _CategoryIconButton extends StatelessWidget {
 
   final InterestCategory category;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppTheme.primaryGreen.withValues(alpha: 0.12)
-                  : AppTheme.card,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
+      child: Opacity(
+        opacity: onTap == null ? 0.6 : 1,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
                 color: selected
-                    ? AppTheme.primaryGreen
-                    : const Color(0xFFE5E7EB),
-                width: 2,
+                    ? AppTheme.primaryGreen.withValues(alpha: 0.12)
+                    : AppTheme.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: selected
+                      ? AppTheme.primaryGreen
+                      : const Color(0xFFE5E7EB),
+                  width: 2,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(category.emoji, style: const TextStyle(fontSize: 28)),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: 68,
+              child: Text(
+                category.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color:
+                      selected ? AppTheme.primaryGreen : AppTheme.textSecondary,
+                ),
               ),
             ),
-            alignment: Alignment.center,
-            child: Text(category.emoji, style: const TextStyle(fontSize: 28)),
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 68,
-            child: Text(
-              category.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddCategoryButton extends StatelessWidget {
-  const _AddCategoryButton({
-    required this.expanded,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final bool expanded;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: enabled ? AppTheme.card : const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: expanded ? AppTheme.primaryGreen : const Color(0xFFE5E7EB),
-            width: 2,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          expanded ? Icons.close : Icons.add,
-          color: enabled ? AppTheme.textPrimary : AppTheme.textSecondary,
+          ],
         ),
       ),
     );
