@@ -41,11 +41,8 @@ class _NewsScreenState extends State<NewsScreen> {
     await future;
   }
 
-  Future<void> _open(NewsItem item) async {
-    final ok = await launchUrl(
-      Uri.parse(item.url),
-      mode: LaunchMode.externalApplication,
-    );
+  Future<void> _open(Uri url) async {
+    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('뉴스 페이지를 열지 못했어요.')),
@@ -87,7 +84,7 @@ class _NewsScreenState extends State<NewsScreen> {
                   ),
                   const SizedBox(height: 16),
                   for (final section in sections) ...[
-                    _SectionCard(section: section, onTapItem: _open),
+                    _SectionCard(section: section, onOpen: _open),
                     const SizedBox(height: 12),
                   ],
                 ],
@@ -109,13 +106,14 @@ class _Section {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.section, required this.onTapItem});
+  const _SectionCard({required this.section, required this.onOpen});
 
   final _Section section;
-  final ValueChanged<NewsItem> onTapItem;
+  final ValueChanged<Uri> onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final more = NewsService.searchPageFor(section.category.id);
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.card,
@@ -148,8 +146,28 @@ class _SectionCard extends StatelessWidget {
               _NewsRow(
                 rank: i + 1,
                 item: section.items[i],
-                onTap: () => onTapItem(section.items[i]),
+                onTap: () => onOpen(Uri.parse(section.items[i].url)),
               ),
+          if (more != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => onOpen(more),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.figmaTeal,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('더보기', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    Icon(Icons.chevron_right, size: 16),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

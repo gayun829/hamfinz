@@ -321,9 +321,9 @@ List<Widget> _buildFigmaHomeLayers({
       FigmaLabel(
         figma: figma,
         left: 224,
-        top: 304,
+        top: 300,
         text: 'HOT 뉴스 / 기사 제목 ~',
-        fontSize: 27,
+        fontSize: 34,
         width: 867,
       ),
       FigmaBox(
@@ -431,7 +431,7 @@ List<Widget> _buildFigmaHomeLayers({
         figma: figma,
         left: 447.9,
         top: 1920,
-        width: 301,
+        width: 346,
         height: 62,
         color: Colors.white,
         radius: 17,
@@ -439,9 +439,9 @@ List<Widget> _buildFigmaHomeLayers({
       FigmaLabel(
         figma: figma,
         left: 521.9,
-        top: 1938,
+        top: 1935,
         text: '오늘의 퀘스트    $questCompleted / $questTotal',
-        fontSize: 22,
+        fontSize: 28,
       ),
       FigmaBox(
         figma: figma,
@@ -496,9 +496,9 @@ List<Widget> _buildFigmaHomeLayers({
       FigmaLabel(
         figma: figma,
         left: 305.9,
-        top: 2168,
+        top: 2166,
         text: todayCompleted ? '오늘 학습 완료' : '오늘의 학습',
-        fontSize: 27,
+        fontSize: 34,
       ),
       FigmaBox(
         figma: figma,

@@ -32,4 +32,13 @@ void main() {
   test('6개 카테고리 모두 검색 질의를 갖는다', () {
     expect(NewsService.categoryQueries.length, 6);
   });
+
+  test('더보기는 같은 질의의 구글뉴스 검색 페이지를 가리킨다', () {
+    final uri = NewsService.searchPageFor('saving')!;
+
+    expect(uri.host, 'news.google.com');
+    expect(uri.path, '/search');
+    expect(uri.queryParameters['q'], NewsService.categoryQueries['saving']);
+    expect(NewsService.searchPageFor('없는카테고리'), isNull);
+  });
 }
