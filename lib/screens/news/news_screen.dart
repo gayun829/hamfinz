@@ -4,6 +4,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/interest_categories.dart';
 import '../../services/news_service.dart';
 import '../../theme/app_theme.dart';
+import 'article_screen.dart';
+
+/// 목록에서 기사를 여는 콜백. 인앱 화면 제목으로 쓸 이름을 같이 넘긴다.
+typedef OpenArticle = void Function(Uri url, String title);
 
 /// 하단 네비 첫 번째 탭. 6개 관심 주제별로 인기 뉴스 1·2·3위를 보여준다.
 class NewsScreen extends StatefulWidget {
@@ -41,7 +45,18 @@ class _NewsScreenState extends State<NewsScreen> {
     await future;
   }
 
-  Future<void> _open(Uri url) async {
+  /// 앱을 나가지 않도록 기사도 앱 안(WebView)에서 연다.
+  /// WebView 구현체가 없는 Web·Windows에서만 예전처럼 외부 브라우저로 넘긴다.
+  Future<void> _open(Uri url, String title) async {
+    if (ArticleScreen.isSupported) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ArticleScreen(url: url, title: title),
+        ),
+      );
+      return;
+    }
+
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,7 +124,7 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.section, required this.onOpen});
 
   final _Section section;
-  final ValueChanged<Uri> onOpen;
+  final OpenArticle onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -146,13 +161,16 @@ class _SectionCard extends StatelessWidget {
               _NewsRow(
                 rank: i + 1,
                 item: section.items[i],
-                onTap: () => onOpen(Uri.parse(section.items[i].url)),
+                onTap: () => onOpen(
+                  Uri.parse(section.items[i].url),
+                  section.items[i].title,
+                ),
               ),
           if (more != null)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => onOpen(more),
+                onPressed: () => onOpen(more, '${section.category.name} 뉴스'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.figmaTeal,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
