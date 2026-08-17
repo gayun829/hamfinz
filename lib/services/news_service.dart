@@ -34,6 +34,19 @@ class NewsService {
   /// 값이 비어 있으면(=모바일 빌드) 구글뉴스를 그대로 호출한다.
   static const _proxy = String.fromEnvironment('NEWS_PROXY');
 
+  /// '더보기'용 구글뉴스 검색 결과 페이지. RSS와 같은 질의라 목록도 같은 순서로 이어진다.
+  /// 사람이 보는 페이지라 프록시를 태우지 않는다.
+  static Uri? searchPageFor(String categoryId) {
+    final query = categoryQueries[categoryId];
+    if (query == null) return null;
+    return Uri.https('news.google.com', '/search', {
+      'q': query,
+      'hl': 'ko',
+      'gl': 'KR',
+      'ceid': 'KR:ko',
+    });
+  }
+
   static Future<List<NewsItem>> topFor(String categoryId, {int limit = 3}) async {
     final query = categoryQueries[categoryId];
     if (query == null) return const [];
