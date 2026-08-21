@@ -22,8 +22,9 @@ get_design_context(..., nodeId: 0:1)
 |------|------|---------|------|
 | 1 | 로그인 | `1:152` | ✅ 위젯 방식 완료 |
 | 2 | 회원가입 | `1:195` | ✅ 위젯 방식 완료 |
-| 3 | 홈 | `83:2` | FigmaCanvas (프레임 단위 마이그레이션 예정) |
-| 4 | 퀴즈 | `1:242` … | FigmaCanvas (프레임 단위 마이그레이션 예정) |
+| 3 | 홈 | `83:2` | ⏳ FigmaCanvas (마이그레이션 예정) |
+| 4 | 퀴즈 객관식1 / OX | `1:242` / `1:376` | ✅ 위젯 + `figma_quiz_tokens` / `quiz_widgets` |
+| 5 | 설정 | `27:3` | ✅ 위젯 + `figma_settings_tokens` |
 
 fileKey: `PLn1jwyOU2194plYlLdRkl`
 
@@ -100,15 +101,15 @@ Dev Mode CSS → `lib/theme/figma_auth_tokens.dart`
 
 ---
 
-## 홈 · 퀴즈 — 레거시 FigmaCanvas (프레임별 마이그레이션 예정)
+## 홈 — 레거시 FigmaCanvas (마이그레이션 예정)
 
-레이어가 많은 화면은 당분간 `FigmaCanvas` + `FigmaBox` 유지.  
-**다음 프레임 작업 시** 위젯 방식 + `assets/icons/` 규칙을 동일 적용.
+홈은 당분간 `FigmaCanvas` + `FigmaBox` 유지.  
+퀴즈·설정은 위젯 방식으로 이전됨 (`figma_quiz_tokens.dart`, `quiz_widgets.dart`, `figma_settings_tokens.dart`).
 
 ```dart
 FigmaCanvas(
   designWidth: FigmaScale.homeDesignWidth,
-  designHeight: FigmaScale.homeDesignHeight,
+  designHeight: FigmaScale.homeContentHeight,
   builder: (context, figma) => [ /* 레이어 */ ],
 );
 ```
@@ -118,15 +119,17 @@ FigmaCanvas(
 ## 코드베이스 구조
 
 ```
-lib/theme/figma_auth_tokens.dart      # Dev Mode CSS 토큰 (프레임별)
-lib/widgets/figma_auth_widgets.dart   # Code Connect 대응 공통 위젯
+lib/theme/figma_auth_tokens.dart
+lib/theme/figma_quiz_tokens.dart
+lib/theme/figma_settings_tokens.dart
+lib/widgets/figma_auth_widgets.dart
+lib/widgets/quiz_widgets.dart
 lib/widgets/figma/                    # FigmaSvg, FigmaScale, FigmaCanvas
-lib/constants/figma_assets.dart       # 에셋 경로
+lib/constants/figma_assets.dart
 
-assets/icons/{auth,home,quiz}/        # 벡터 SVG만
-assets/figma/{auth,home,quiz}/        # PNG (캐릭터·브랜드)
+assets/icons/{auth,home,quiz}/
+assets/figma/{auth,home,quiz}/
 ```
-
 ## 알려진 한계
 
 - **폰트**: Figma Inter ≠ 시스템 폰트 → 한글/자간 미세 차이

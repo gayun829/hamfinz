@@ -39,8 +39,20 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() => _selectedIndex = index);
   }
 
-  void _confirmAnswer() {
+  Future<void> _confirmAnswer() async {
     if (_selectedIndex == null || _showResult) return;
+
+    final consumed = await QuizService.instance.consumeEnergyForQuestion(
+      widget.profile,
+    );
+    if (!mounted) return;
+    if (!consumed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('에너지가 부족해 더 이상 풀 수 없어요.')),
+      );
+      return;
+    }
+
     setState(() => _showResult = true);
   }
 

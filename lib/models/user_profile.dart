@@ -6,6 +6,8 @@ class UserProfile {
     this.streak = 0,
     this.lastQuizCompletedDate,
     this.todayQuizCompleted = false,
+    this.energy = 100,
+    this.lastEnergyResetDate,
     this.unlockedHamsterIds = const ['hamster_basic'],
     this.selectedHamsterId = 'hamster_basic',
     this.learningHistory = const [],
@@ -19,6 +21,11 @@ class UserProfile {
   int streak;
   String? lastQuizCompletedDate;
   bool todayQuizCompleted;
+
+  /// 학습에 쓰는 에너지. 문제 1개당 10 소모 (최대 100).
+  int energy;
+  String? lastEnergyResetDate;
+
   List<String> unlockedHamsterIds;
   String selectedHamsterId;
   List<LearningRecord> learningHistory;
@@ -35,7 +42,6 @@ class UserProfile {
   int get xpForNextLevel => LevelUtils.xpForNextLevel(xp);
   int get xpInCurrentLevel => LevelUtils.xpInCurrentLevel(xp);
 }
-
 class LearningRecord {
   LearningRecord({
     required this.date,

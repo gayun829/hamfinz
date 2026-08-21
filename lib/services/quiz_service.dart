@@ -11,6 +11,15 @@ class QuizService {
 
   List<QuizQuestion> getTodayQuestions() => QuizData.dailyQuestions();
 
+  /// 문제 1개를 풀었을 때 에너지를 차감하고 저장한다.
+  Future<bool> consumeEnergyForQuestion(UserProfile profile) async {
+    if (profile.energy < QuizData.energyCostPerQuestion) return false;
+    profile.energy =
+        (profile.energy - QuizData.energyCostPerQuestion).clamp(0, QuizData.maxEnergy);
+    await AuthService.instance.saveProfile(profile);
+    return true;
+  }
+
   Future<QuizSessionResult> completeSession({
     required UserProfile profile,
     required List<QuizAnswer> answers,
@@ -47,6 +56,7 @@ class QuizService {
       ),
     );
 
+    // streak만 하루 1회 갱신. 학습 횟수 제한은 에너지로 대체.
     if (!profile.todayQuizCompleted) {
       profile.todayQuizCompleted = true;
       final lastDate = profile.lastQuizCompletedDate;
