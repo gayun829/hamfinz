@@ -7,7 +7,7 @@ void main() {
     await StorageService.instance.init();
   });
 
-  test('FinQuiz app smoke placeholder', () {
+  test('Hamfinz app smoke placeholder', () {
     expect(true, isTrue);
   });
 }

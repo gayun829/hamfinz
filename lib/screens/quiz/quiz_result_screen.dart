@@ -36,7 +36,7 @@ class QuizResultScreen extends StatelessWidget {
                       const Text('🎉', textAlign: TextAlign.center, style: TextStyle(fontSize: 64)),
                       const SizedBox(height: 8),
                       const Text(
-                        '오늘의 퀴즈 완료!',
+                        '학습 완료!',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 28,
@@ -53,6 +53,11 @@ class QuizResultScreen extends StatelessWidget {
                               _ResultRow(label: '정답', value: '$correctCount / ${result.answers.length}'),
                               const SizedBox(height: 12),
                               _ResultRow(label: '획득 XP', value: '+${result.xpEarned}'),
+                              const SizedBox(height: 12),
+                              _ResultRow(
+                                label: '남은 에너지',
+                                value: '${profile.energy}',
+                              ),
                               const SizedBox(height: 12),
                               _ResultRow(
                                 label: '현재 레벨',

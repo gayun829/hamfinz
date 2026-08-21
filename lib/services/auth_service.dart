@@ -3,10 +3,10 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 
+import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
 import 'storage_service.dart';
-
 class AuthService {
   AuthService._();
   static final instance = AuthService._();
@@ -30,9 +30,16 @@ class AuthService {
 
   Future<UserProfile?> getUser(String email) async {
     final users = _loadUsers();
-    final data = users[email];
-    if (data == null) return null;
-    return _profileFromJson(email, data);
+    final raw = users[email];
+    if (raw == null) return null;
+    final data = Map<String, dynamic>.from(raw as Map);
+    final profile = _profileFromJson(email, data);
+    final storedProfile = Map<String, dynamic>.from(data['profile'] as Map? ?? {});
+    if (storedProfile['energy'] != profile.energy ||
+        storedProfile['lastEnergyResetDate'] != profile.lastEnergyResetDate) {
+      await saveProfile(profile);
+    }
+    return profile;
   }
 
   Future<String?> signUp({
@@ -178,6 +185,8 @@ class AuthService {
     'streak': 0,
     'lastQuizCompletedDate': null,
     'todayQuizCompleted': false,
+    'energy': QuizData.maxEnergy,
+    'lastEnergyResetDate': DateHelper.todayKey(),
     'unlockedHamsterIds': ['hamster_basic'],
     'selectedHamsterId': 'hamster_basic',
     'learningHistory': <Map<String, dynamic>>[],
@@ -215,6 +224,15 @@ class AuthService {
       todayCompleted = false;
     }
 
+    final today = DateHelper.todayKey();
+    var energy = profile['energy'] as int? ?? QuizData.maxEnergy;
+    var lastEnergyResetDate = profile['lastEnergyResetDate'] as String?;
+    // 날짜가 바뀌면 에너지를 최대로 회복한다.
+    if (lastEnergyResetDate != today) {
+      energy = QuizData.maxEnergy;
+      lastEnergyResetDate = today;
+    }
+
     return UserProfile(
       email: email,
       nickname: user['nickname'] as String? ?? email,
@@ -222,6 +240,8 @@ class AuthService {
       streak: streak,
       lastQuizCompletedDate: lastDate,
       todayQuizCompleted: todayCompleted,
+      energy: energy.clamp(0, QuizData.maxEnergy),
+      lastEnergyResetDate: lastEnergyResetDate,
       unlockedHamsterIds: List<String>.from(
         profile['unlockedHamsterIds'] as List? ?? ['hamster_basic'],
       ),
@@ -240,6 +260,8 @@ class AuthService {
     'streak': profile.streak,
     'lastQuizCompletedDate': profile.lastQuizCompletedDate,
     'todayQuizCompleted': profile.todayQuizCompleted,
+    'energy': profile.energy,
+    'lastEnergyResetDate': profile.lastEnergyResetDate,
     'unlockedHamsterIds': profile.unlockedHamsterIds,
     'selectedHamsterId': profile.selectedHamsterId,
     'learningHistory': profile.learningHistory.map((e) => e.toJson()).toList(),
