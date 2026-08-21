@@ -2,6 +2,8 @@ class FigmaAssets {
   static const _home = 'assets/figma/home';
   static const _auth = 'assets/figma/auth';
   static const _quiz = 'assets/figma/quiz';
+  static const _shop = 'assets/figma/shop';
+  static const _calendar = 'assets/figma/calendar';
   static const _iconsAuth = 'assets/icons/auth';
 
   // Home
@@ -38,6 +40,20 @@ class FigmaAssets {
   static const googleSignup = '$_auth/google_signup.png';
   static const appleSignup = '$_auth/apple_signup.png';
   static const kakaoSignup = '$_auth/kakao_signup.png';
+
+  // Shop
+  static const shopSeedPouch = '$_shop/seed_pouch.svg';
+  static const shopHamsterSheet = '$_shop/hamster_headband.png';
+
+  // Calendar
+  static const calendarPeekHamster = '$_calendar/hamster_peek.png';
+  static const calendarDropOn = '$_calendar/drop_empty_1.svg';
+  static const calendarDropMid = '$_calendar/drop_empty_2.svg';
+  static const calendarDropOff = '$_calendar/drop_filled.svg';
+  static const calendarPodium1 = '$_calendar/podium_1.svg';
+  static const calendarPodium2 = '$_calendar/podium_2.svg';
+  static const calendarPodium3 = '$_calendar/podium_3.svg';
+  static const calendarPodium4 = '$_calendar/podium_4.svg';
 
   // Quiz
   static const quizHamster = '$_quiz/hamster_quiz.png';

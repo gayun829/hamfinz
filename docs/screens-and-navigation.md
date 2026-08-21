@@ -29,6 +29,35 @@ AuthGate는 Navigator 없이 상태(`_showSignup`)로 로그인/회원가입을 
 
 > `lib/screens/profile/profile_screen.dart`(햄스터 컬렉션 UI)는 현재 셸에 **연결되어 있지 않다**.
 
+## 상점 흐름 (홈에서)
+
+홈 상단 **해바라기씨 주머니** 아이콘을 누르면 상점 스택이 열린다.
+
+```
+HomeScreen
+  → ShopScreen (아이템 상점, node `235:479`)
+    → ClosetScreen (햄핀이 옷장, node `235:382`)
+  → pop → HomeScreen 프로필(씨앗) 새로고침
+```
+
+| 화면 | 파일 |
+|------|------|
+| ShopScreen | `lib/screens/shop/shop_screen.dart` |
+| ClosetScreen | `lib/screens/shop/closet_screen.dart` |
+
+## 연속학습 캘린더 (홈에서)
+
+홈 상단 **불꽃(연속학습)** 아이콘을 누르면 캘린더가 열린다. 친구 경쟁·출석 날짜는 프론트 목업이다.
+
+```
+HomeScreen
+  → StreakCalendarScreen (node `235:53`)
+```
+
+| 화면 | 파일 |
+|------|------|
+| StreakCalendarScreen | `lib/screens/calendar/streak_calendar_screen.dart` |
+
 ## 퀴즈 흐름 (홈에서)
 
 ```
@@ -77,5 +106,8 @@ flowchart TD
   H --> J[Quiz]
   J --> K[Result]
   K --> H
+  H --> S[Shop]
+  S --> T[Closet]
+  H --> U[StreakCalendar]
   G --> L[Article]
 ```

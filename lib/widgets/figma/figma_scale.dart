@@ -20,8 +20,25 @@ class FigmaScale {
 
   double s(double value) => value * scale;
 
+  FigmaScale clamped({double min = 0.8, double max = 1.2}) {
+    return FigmaScale(scale.clamp(min, max));
+  }
+
   static FigmaScale ofWidth(double width, {double designWidth = homeDesignWidth}) {
-    return FigmaScale(width / designWidth);
+    final safeWidth = width.isFinite && width > 0 ? width : designWidth;
+    return FigmaScale(safeWidth / designWidth);
+  }
+
+  static FigmaScale ofLayout(
+    BoxConstraints constraints, {
+    required double designWidth,
+    double min = 0.8,
+    double max = 1.2,
+  }) {
+    return ofWidth(
+      constraints.maxWidth,
+      designWidth: designWidth,
+    ).clamped(min: min, max: max);
   }
 
   /// 가로·세로 모두 들어가도록 더 작은 scale을 사용한다 (스크롤 없이 1화면).

@@ -252,6 +252,10 @@ class AuthService {
       interestCategories: List<String>.from(
         profile['interestCategories'] as List? ?? [],
       ),
+      seeds: profile['seeds'] as int? ?? 0,
+      ownedShopItemIds: List<String>.from(
+        profile['ownedShopItemIds'] as List? ?? [],
+      ),
     );
   }
 
@@ -269,5 +273,7 @@ class AuthService {
       (key, value) => MapEntry(key, value.toJson()),
     ),
     'interestCategories': profile.interestCategories,
+    'seeds': profile.seeds,
+    'ownedShopItemIds': profile.ownedShopItemIds,
   };
 }

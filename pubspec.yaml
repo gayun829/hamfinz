@@ -67,6 +67,16 @@ flutter:
     - assets/figma/home/
     - assets/figma/auth/
     - assets/figma/quiz/
+    - assets/figma/shop/seed_pouch.svg
+    - assets/figma/shop/hamster_headband.png
+    - assets/figma/calendar/hamster_peek.png
+    - assets/figma/calendar/drop_empty_1.svg
+    - assets/figma/calendar/drop_empty_2.svg
+    - assets/figma/calendar/drop_filled.svg
+    - assets/figma/calendar/podium_1.svg
+    - assets/figma/calendar/podium_2.svg
+    - assets/figma/calendar/podium_3.svg
+    - assets/figma/calendar/podium_4.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

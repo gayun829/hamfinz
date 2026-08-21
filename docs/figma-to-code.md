@@ -25,6 +25,9 @@ get_design_context(..., nodeId: 0:1)
 | 3 | 홈 | `83:2` | ⏳ FigmaCanvas (마이그레이션 예정) |
 | 4 | 퀴즈 객관식1 / OX | `1:242` / `1:376` | ✅ 위젯 + `figma_quiz_tokens` / `quiz_widgets` |
 | 5 | 설정 | `27:3` | ✅ 위젯 + `figma_settings_tokens` |
+| 6 | 아이템 상점 | `235:479` | ✅ 위젯 + `figma_shop_tokens` |
+| 7 | 햄핀이 옷장 | `235:382` | ✅ 위젯 + `figma_shop_tokens` |
+| 8 | 연속학습 캘린더 | `235:53` | ✅ 위젯 + `figma_calendar_tokens` |
 
 fileKey: `PLn1jwyOU2194plYlLdRkl`
 
