@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "535735125644",
+    "project_id": "hamfins-719b8",
+    "storage_bucket": "hamfins-719b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:535735125644:android:43efdb7022d3884c1f1da9",
+        "android_client_info": {
+          "package_name": "com.example.testapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjegrT2ZKH_739vuGTF8-buRwFUAmdskQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

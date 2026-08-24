@@ -18,6 +18,7 @@ class FigmaAuthField extends StatelessWidget {
     this.keyboardType,
     this.trailing,
     this.borderColor = FigmaAuthTokens.inputBorder,
+    this.enabled = true,
   });
 
   final String label;
@@ -27,6 +28,7 @@ class FigmaAuthField extends StatelessWidget {
   final TextInputType? keyboardType;
   final Widget? trailing;
   final Color borderColor;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +53,7 @@ class FigmaAuthField extends StatelessWidget {
                   controller: controller,
                   obscureText: obscureText,
                   keyboardType: keyboardType,
+                  enabled: enabled,
                   style: FigmaAuthTokens.bodyStyle(
                     figma.scale,
                     color: AppTheme.textPrimary,
@@ -429,9 +432,14 @@ class FigmaAuthPrimaryButton extends StatelessWidget {
 }
 
 class FigmaDuplicateCheckButton extends StatelessWidget {
-  const FigmaDuplicateCheckButton({super.key, required this.onPressed});
+  const FigmaDuplicateCheckButton({
+    super.key,
+    required this.onPressed,
+    this.label = '중복확인',
+  });
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -455,12 +463,15 @@ class FigmaDuplicateCheckButton extends StatelessWidget {
           side: const BorderSide(color: FigmaAuthTokens.duplicateAccent),
           foregroundColor: FigmaAuthTokens.duplicateAccent,
           backgroundColor: Colors.white,
+          disabledForegroundColor: FigmaAuthTokens.duplicateAccent.withValues(
+            alpha: 0.4,
+          ),
           textStyle: FigmaAuthTokens.bodyStyle(
             figma.scale,
             color: FigmaAuthTokens.duplicateAccent,
           ),
         ),
-        child: const Text('중복확인'),
+        child: Text(label),
       ),
     );
   }

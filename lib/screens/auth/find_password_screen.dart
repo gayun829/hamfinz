@@ -12,14 +12,12 @@ class FindPasswordScreen extends StatefulWidget {
 
 class _FindPasswordScreenState extends State<FindPasswordScreen> {
   final _emailController = TextEditingController();
-  final _newPasswordController = TextEditingController();
   String? _error;
   bool _loading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _newPasswordController.dispose();
     super.dispose();
   }
 
@@ -31,7 +29,6 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
 
     final error = await AuthService.instance.resetPassword(
       email: _emailController.text,
-      newPassword: _newPasswordController.text,
     );
 
     if (!mounted) return;
@@ -42,6 +39,9 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
       });
       return;
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('비밀번호 재설정 링크를 이메일로 보냈어요.')),
+    );
     Navigator.of(context).pop(true);
   }
 
@@ -59,12 +59,6 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(labelText: '이메일'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _newPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: '새 비밀번호'),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -88,7 +82,7 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('비밀번호 재설정'),
+                    : const Text('재설정 링크 보내기'),
               ),
             ],
           ),
