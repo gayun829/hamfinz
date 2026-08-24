@@ -7,7 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/settings_menu_button.dart';
-
+import '../legal/legal_document_screen.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
@@ -80,6 +80,53 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _openLegal(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                '규정 & 개인정보 처리 방침',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('이용약관'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.pop(context, 'terms'),
+              ),
+              ListTile(
+                title: const Text('개인정보 처리방침'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.pop(context, 'privacy'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!context.mounted || choice == null) return;
+    if (choice == 'terms') {
+      await LegalDocumentScreen.openTerms(context);
+    } else {
+      await LegalDocumentScreen.openPrivacy(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final figma = FigmaScale.ofContext(
@@ -92,7 +139,7 @@ class SettingsScreen extends StatelessWidget {
       ('연락처 연동', () => _showComingSoon(context, '연락처 연동')),
       ('학습과정', () => _showComingSoon(context, '학습과정')),
       ('개인정보 설정', () => _showComingSoon(context, '개인정보 설정')),
-      ('규정& 개인정보 처리 방침', () => _showComingSoon(context, '규정 및 개인정보 처리 방침')),
+      ('규정& 개인정보 처리 방침', () => _openLegal(context)),
       ('피드백', () => _showComingSoon(context, '피드백')),
       ('로그아웃', () => _logout(context)),
     ];

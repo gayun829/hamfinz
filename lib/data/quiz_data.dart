@@ -5,6 +5,16 @@ class QuizData {
   static const int correctXp = 10;
   static const int wrongXp = 2;
 
+  /// 에너지 최대치. 하루가 바뀌면 이 값으로 회복한다.
+  static const int maxEnergy = 100;
+
+  /// 문제 1개 풀 때 소모하는 에너지.
+  static const int energyCostPerQuestion = 10;
+
+  /// 한 학습 세션(7문제) 시작에 필요한 에너지.
+  static const int sessionEnergyCost =
+      dailyQuestionCount * energyCostPerQuestion;
+
   static final List<QuizQuestion> allQuestions = [
     const QuizQuestion(
       id: 'q1',

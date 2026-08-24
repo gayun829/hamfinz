@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/figma_auth_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/figma_auth_widgets.dart';
+import '../legal/legal_document_screen.dart';
 import 'category_select_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -27,6 +28,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _nicknameController = TextEditingController();
   String? _error;
   bool _loading = false;
+  bool _agreeTerms = false;
+  bool _agreePrivacy = false;
 
   // 이메일 인증 단계 상태. 인증 전에는 회원가입을 완료할 수 없다.
   bool _verificationSent = false;
@@ -97,6 +100,13 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _submit() async {
+    if (!_agreeTerms || !_agreePrivacy) {
+      setState(() {
+        _error = '이용약관과 개인정보 처리방침에 동의해 주세요.';
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -305,10 +315,33 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                     ],
+                    SizedBox(height: s(40)),
+                    _LegalAgreementRow(
+                      scale: figma.scale,
+                      value: _agreeTerms,
+                      onChanged: (value) =>
+                          setState(() => _agreeTerms = value ?? false),
+                      labelPrefix: '(필수) ',
+                      linkLabel: '이용약관',
+                      labelSuffix: '에 동의합니다',
+                      onOpenDocument: () => LegalDocumentScreen.openTerms(context),
+                    ),
+                    SizedBox(height: s(20)),
+                    _LegalAgreementRow(
+                      scale: figma.scale,
+                      value: _agreePrivacy,
+                      onChanged: (value) =>
+                          setState(() => _agreePrivacy = value ?? false),
+                      labelPrefix: '(필수) ',
+                      linkLabel: '개인정보 처리방침',
+                      labelSuffix: '에 동의합니다',
+                      onOpenDocument: () =>
+                          LegalDocumentScreen.openPrivacy(context),
+                    ),
                   ],
                 ),
               ),
-              SizedBox(height: s(FigmaAuthTokens.signupButtonTopGap)),
+              SizedBox(height: s(80)),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: buttonPad),
                 child: FigmaAuthPrimaryButton(
@@ -337,6 +370,88 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LegalAgreementRow extends StatelessWidget {
+  const _LegalAgreementRow({
+    required this.scale,
+    required this.value,
+    required this.onChanged,
+    required this.labelPrefix,
+    required this.linkLabel,
+    required this.labelSuffix,
+    required this.onOpenDocument,
+  });
+
+  final double scale;
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final String labelPrefix;
+  final String linkLabel;
+  final String labelSuffix;
+  final VoidCallback onOpenDocument;
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = 28 * scale;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 28 * scale,
+          height: 28 * scale,
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppTheme.figmaTeal,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+        SizedBox(width: 12 * scale),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(top: 4 * scale),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  labelPrefix,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: AppTheme.textPrimary,
+                    height: 1.35,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onOpenDocument,
+                  child: Text(
+                    linkLabel,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      color: AppTheme.figmaLink,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                Text(
+                  labelSuffix,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: AppTheme.textPrimary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

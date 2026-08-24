@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('FinQuiz app smoke placeholder', () {
+  test('Hamfinz app smoke placeholder', () {
     expect(true, isTrue);
   });
 }

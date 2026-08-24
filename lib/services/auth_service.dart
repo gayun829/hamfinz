@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
 
@@ -217,6 +218,8 @@ class AuthService {
     'streak': 0,
     'lastQuizCompletedDate': null,
     'todayQuizCompleted': false,
+    'energy': QuizData.maxEnergy,
+    'lastEnergyResetDate': DateHelper.todayKey(),
     'unlockedHamsterIds': ['hamster_basic'],
     'selectedHamsterId': 'hamster_basic',
     'learningHistory': <Map<String, dynamic>>[],
@@ -253,6 +256,15 @@ class AuthService {
       todayCompleted = false;
     }
 
+    final today = DateHelper.todayKey();
+    var energy = data['energy'] as int? ?? QuizData.maxEnergy;
+    var lastEnergyResetDate = data['lastEnergyResetDate'] as String?;
+    // 날짜가 바뀌면 에너지를 최대로 회복한다.
+    if (lastEnergyResetDate != today) {
+      energy = QuizData.maxEnergy;
+      lastEnergyResetDate = today;
+    }
+
     return UserProfile(
       email: email,
       nickname: data['nickname'] as String? ?? email,
@@ -260,6 +272,8 @@ class AuthService {
       streak: streak,
       lastQuizCompletedDate: lastDate,
       todayQuizCompleted: todayCompleted,
+      energy: energy.clamp(0, QuizData.maxEnergy),
+      lastEnergyResetDate: lastEnergyResetDate,
       unlockedHamsterIds: List<String>.from(
         data['unlockedHamsterIds'] as List? ?? ['hamster_basic'],
       ),
@@ -278,6 +292,8 @@ class AuthService {
     'streak': profile.streak,
     'lastQuizCompletedDate': profile.lastQuizCompletedDate,
     'todayQuizCompleted': profile.todayQuizCompleted,
+    'energy': profile.energy,
+    'lastEnergyResetDate': profile.lastEnergyResetDate,
     'unlockedHamsterIds': profile.unlockedHamsterIds,
     'selectedHamsterId': profile.selectedHamsterId,
     'learningHistory': profile.learningHistory.map((e) => e.toJson()).toList(),

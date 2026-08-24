@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
+import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
-import '../../services/quiz_service.dart';
-import '../../widgets/category_switcher_sheet.dart';
-import '../../widgets/figma/figma_asset_image.dart';
+import '../../widgets/category_switcher_sheet.dart';import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../quiz/quiz_screen.dart';
@@ -40,10 +39,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final profile = _profile;
     if (profile == null) return;
 
-    if (profile.todayQuizCompleted) {
+    if (profile.energy < QuizData.sessionEnergyCost) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('오늘의 퀴즈를 이미 완료했어요! 내일 다시 도전해보세요.')),
+        SnackBar(
+          content: Text(
+            '에너지가 부족해요. 학습 1회(${QuizData.dailyQuestionCount}문제)에 '
+            '${QuizData.sessionEnergyCost} 에너지가 필요해요. '
+            '(현재 ${profile.energy})',
+          ),
+        ),
       );
       return;
     }
@@ -52,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (_) => QuizScreen(profile: profile)),
     );
 
-    if (completed == true) {
+    if (completed == true || mounted) {
       await _loadProfile();
     }
   }
@@ -99,14 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final questionCount = QuizService.instance.getTodayQuestions().length;
-    final questCompleted = profile.todayQuizCompleted ? questionCount : 0;
-    final questProgress =
-        questionCount == 0 ? 0.0 : questCompleted / questionCount;
+    final canStart = profile.energy >= QuizData.sessionEnergyCost;
+    final energyProgress = profile.energy / QuizData.maxEnergy;
+    final progressFillWidth = 157.0 * energyProgress;
     final hamsterDisplayName =
         profile.nickname.isNotEmpty ? profile.nickname : '아깅햄핀';
-    final energyValue = 100 - profile.xpInCurrentLevel;
-    final progressFillWidth = 157.0 * questProgress;
 
     return RefreshIndicator(
       onRefresh: _loadProfile,
@@ -115,15 +117,15 @@ class _HomeScreenState extends State<HomeScreen> {
         designHeight: FigmaScale.homeContentHeight,
         builder: (context, figma) => _buildFigmaHomeLayers(
           figma: figma,
-          energy: energyValue,
+          energy: profile.energy,
           coin: profile.xp,
           streak: profile.streak,
           level: profile.level,
           hamsterName: hamsterDisplayName,
-          questCompleted: questCompleted,
-          questTotal: questionCount,
+          questCompleted: profile.energy,
+          questTotal: QuizData.maxEnergy,
           progressFillWidth: progressFillWidth,
-          todayCompleted: profile.todayQuizCompleted,
+          canStartLearning: canStart,
           onMenu: _openCategorySwitcher,
           onNews: _openNews,
           onDigging: _openDigging,
@@ -145,7 +147,7 @@ List<Widget> _buildFigmaHomeLayers({
   required int questCompleted,
   required int questTotal,
   required double progressFillWidth,
-  required bool todayCompleted,
+  required bool canStartLearning,
   required VoidCallback onMenu,
   required VoidCallback onNews,
   required VoidCallback onDigging,
@@ -440,7 +442,7 @@ List<Widget> _buildFigmaHomeLayers({
         figma: figma,
         left: 521.9,
         top: 1935,
-        text: '오늘의 퀘스트    $questCompleted / $questTotal',
+        text: '에너지    $questCompleted / $questTotal',
         fontSize: 28,
       ),
       FigmaBox(
@@ -497,7 +499,7 @@ List<Widget> _buildFigmaHomeLayers({
         figma: figma,
         left: 305.9,
         top: 2166,
-        text: todayCompleted ? '오늘 학습 완료' : '오늘의 학습',
+        text: canStartLearning ? '학습 시작' : '에너지 부족',
         fontSize: 34,
       ),
       FigmaBox(
@@ -514,7 +516,7 @@ List<Widget> _buildFigmaHomeLayers({
         top: 2114,
         width: 876,
         height: 141,
-        onTap: todayCompleted ? null : onStartLearning,
+        onTap: onStartLearning,
         child: const SizedBox.shrink(),
       ),
 

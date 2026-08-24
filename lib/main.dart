@@ -10,16 +10,16 @@ import 'widgets/mobile_viewport.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const FinQuizApp());
+  runApp(const HamfinzApp());
 }
 
-class FinQuizApp extends StatelessWidget {
-  const FinQuizApp({super.key});
+class HamfinzApp extends StatelessWidget {
+  const HamfinzApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '핀퀴즈',
+      title: '햄핀즈',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       builder: (context, child) => MobileViewport(child: child),
