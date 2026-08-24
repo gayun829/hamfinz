@@ -61,16 +61,54 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.of(context).pop(true);
   }
 
-  void _loginWithGoogle() {
-    // 나중에 추가: 구글 계정 로그인 연동
+  Future<void> _loginWithGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final error = await AuthService.instance.signInWithGoogle();
+
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+      return;
+    }
+    if (widget.onAuthenticated != null) {
+      widget.onAuthenticated!();
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   void _loginWithApple() {
     // 나중에 추가: Apple 로그인 연동
   }
 
-  void _loginWithKakao() {
-    // 나중에 추가: 카카오 로그인 연동
+  Future<void> _loginWithKakao() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final error = await AuthService.instance.signInWithKakao();
+
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+      return;
+    }
+    if (widget.onAuthenticated != null) {
+      widget.onAuthenticated!();
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   void _openForgotPassword() {

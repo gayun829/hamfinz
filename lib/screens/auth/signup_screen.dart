@@ -31,12 +31,72 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _agreeTerms = false;
   bool _agreePrivacy = false;
 
+  // 이메일 인증 단계 상태. 인증 전에는 회원가입을 완료할 수 없다.
+  bool _verificationSent = false;
+  bool _verified = false;
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _nicknameController.dispose();
     super.dispose();
+  }
+
+  /// 이메일 옆 "인증하기" 버튼. 계정을 만들고 인증 메일을 보낸다.
+  Future<void> _sendVerification() async {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.length < 6) {
+      setState(() => _error = '이메일과 6자 이상 비밀번호를 먼저 입력해주세요.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final error = await AuthService.instance.beginSignUp(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (error != null) {
+        _error = error;
+      } else {
+        _verificationSent = true;
+      }
+    });
+  }
+
+  /// 이메일 옆 "확인" 버튼. 인증 링크를 눌렀는지 서버에서 다시 확인한다.
+  Future<void> _checkVerification() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final verified = await AuthService.instance.checkEmailVerified();
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (verified) {
+        _verified = true;
+      } else {
+        _error = '아직 인증되지 않았어요. 메일함에서 링크를 눌러주세요.';
+      }
+    });
+  }
+
+  Future<void> _resendVerification() async {
+    final error = await AuthService.instance.resendVerificationEmail();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? '인증 메일을 다시 보냈어요.')),
+    );
   }
 
   Future<void> _submit() async {
@@ -52,9 +112,7 @@ class _SignupScreenState extends State<SignupScreen> {
       _error = null;
     });
 
-    final error = await AuthService.instance.signUp(
-      email: _emailController.text,
-      password: _passwordController.text,
+    final error = await AuthService.instance.completeSignUp(
       nickname: _nicknameController.text,
     );
 
@@ -83,16 +141,66 @@ class _SignupScreenState extends State<SignupScreen> {
     // 나중에 추가: 닉네임 중복 확인
   }
 
-  void _signUpWithGoogle() {
-    // 나중에 추가: 구글 계정 가입 연동
+  Future<void> _signUpWithGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final error = await AuthService.instance.signInWithGoogle();
+
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+      return;
+    }
+
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CategorySelectScreen()),
+    );
+
+    if (!mounted) return;
+    if (widget.onAuthenticated != null) {
+      widget.onAuthenticated!();
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   void _signUpWithApple() {
     // 나중에 추가: Apple 가입 연동
   }
 
-  void _signUpWithKakao() {
-    // 나중에 추가: 카카오 가입 연동
+  Future<void> _signUpWithKakao() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final error = await AuthService.instance.signInWithKakao();
+
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+      return;
+    }
+
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CategorySelectScreen()),
+    );
+
+    if (!mounted) return;
+    if (widget.onAuthenticated != null) {
+      widget.onAuthenticated!();
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   void _openLogin() {
@@ -152,7 +260,41 @@ class _SignupScreenState extends State<SignupScreen> {
                       placeholder: '아이디/ 이메일 주소를 입력하세요',
                       keyboardType: TextInputType.emailAddress,
                       borderColor: FigmaAuthTokens.inputBorderAlt,
+                      enabled: !_verificationSent,
+                      trailing: _verified
+                          ? const FigmaDuplicateCheckButton(
+                              onPressed: null,
+                              label: '인증완료',
+                            )
+                          : FigmaDuplicateCheckButton(
+                              onPressed: _loading
+                                  ? null
+                                  : (_verificationSent
+                                        ? _checkVerification
+                                        : _sendVerification),
+                              label: _verificationSent ? '확인' : '인증하기',
+                            ),
                     ),
+                    if (_verificationSent && !_verified) ...[
+                      SizedBox(height: s(8)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '인증 메일을 보냈어요. 메일함에서 링크를 눌러주세요.',
+                              style: FigmaAuthTokens.bodyStyle(
+                                figma.scale,
+                                color: FigmaAuthTokens.mutedText,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _resendVerification,
+                            child: const Text('다시 보내기'),
+                          ),
+                        ],
+                      ),
+                    ],
                     SizedBox(height: s(FigmaAuthTokens.signupFieldGap)),
                     FigmaAuthField(
                       label: '비밀번호',
@@ -160,6 +302,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       placeholder: '비밀번호를 입력하세요',
                       obscureText: true,
                       borderColor: FigmaAuthTokens.inputBorderAlt,
+                      enabled: !_verificationSent,
                     ),
                     if (_error != null) ...[
                       SizedBox(height: s(16)),
@@ -204,7 +347,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 child: FigmaAuthPrimaryButton(
                   label: '회원가입',
                   loading: _loading,
-                  onPressed: _submit,
+                  onPressed: _verified ? _submit : null,
                 ),
               ),
               SizedBox(height: s(FigmaAuthTokens.signupDividerTopGap)),

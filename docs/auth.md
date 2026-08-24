@@ -2,49 +2,38 @@
 
 관련 코드: `lib/services/auth_service.dart`, `lib/screens/auth/`
 
-## 저장 키
+**Firebase Auth + Firestore(`users/{uid}`)** 기반. 로컬 저장(SharedPreferences)은 더 이상 안 씀.
 
-| 키 | 내용 |
-|----|------|
-| `finquiz_users` | 이메일 → `{ passwordHash, salt, nickname, profile }` |
-| `finquiz_session` | 현재 로그인 이메일 |
+## 회원가입 (이메일)
 
-## 비밀번호
+2단계로 나뉜다 — 이메일 인증을 완료해야 가입이 끝난다.
 
-- salt: 16바이트 secure random → `base64Url`
-- hash: `sha256('$salt:$password')`
-- 평문 저장 없음
+1. 이메일·비밀번호 입력 후 "인증하기" → `AuthService.beginSignUp`이 계정을 만들고 인증 메일 발송 (Firestore 프로필은 아직 안 만듦)
+2. 메일함에서 링크 클릭 → 앱에서 "확인" → `AuthService.checkEmailVerified`로 서버 상태 재확인
+3. 인증 완료 + 닉네임 입력 + **(필수)** 이용약관/개인정보 처리방침 동의 → `AuthService.completeSignUp`이 `users/{uid}` 문서 생성
+4. `CategorySelectScreen`에서 관심 카테고리 저장
+5. `onAuthenticated` → MainShell
 
-## 회원가입
-
-1. 닉네임·이메일·비밀번호 입력  
-2. **(필수)** 이용약관 동의 + 개인정보 처리방침 동의  
-3. `AuthService.signUp`  
-4. `CategorySelectScreen`에서 관심 카테고리 저장  
-5. `onAuthenticated` → MainShell  
-
-동의하지 않으면 가입 불가.  
 약관 본문: `lib/data/legal_documents.dart` (임시, 추후 교체).
 
 ## 로그인
 
-- 이메일 소문자 trim  
-- 테스트 계정으로 로그인 시 `_ensureTestAccount`로 계정 자동 생성  
+- 이메일 소문자 trim
+- 이메일 인증이 안 된 계정은 로그인 거부 + 인증 메일 재발송 (`AuthService.login`)
 - 미가입 이메일은 오류 (자동 가입 없음)
 
-### 테스트 계정
+## 소셜 로그인
 
-| 항목 | 값 |
-|------|-----|
-| 이메일 | `test@finquiz.com` |
-| 비밀번호 | `test1234` |
-| 상수 | `AuthService.testEmail` / `testPassword` |
+Google, 카카오(OIDC) 연동 완료 — `AuthService.signInWithGoogle` / `signInWithKakao`.
+처음 로그인하는 계정이면 `users/{uid}` 문서를 자동 생성 (이메일 인증 절차 없음, 제공자가 이미 검증).
+Apple은 미구현 (Apple Developer Program 계정 필요).
+
+카카오는 Firebase의 OpenID Connect 커스텀 provider(`oidc.kakao`)로 연결 — Cloud Functions 없이 동작하지만 Blaze(종량제) 플랜 필요.
 
 ## 비밀번호 재설정
 
-`FindPasswordScreen` → `AuthService.resetPassword`  
-- 가입된 이메일만 가능  
-- 새 비밀번호 6자 이상  
+`FindPasswordScreen` → `AuthService.resetPassword`
+- Firebase Auth는 클라이언트에서 비밀번호를 직접 바꿀 수 없어서, 재설정 링크를 이메일로 발송하는 방식
 
 ## 관심 카테고리
 

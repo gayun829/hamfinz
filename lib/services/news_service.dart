@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 /// 뉴스 한 건. 제목 한 줄 + 원문 링크.
@@ -29,10 +30,12 @@ class NewsService {
   };
 
   /// 웹으로 띄웠을 때만 쓰는 우회로. 브라우저는 구글뉴스 응답에 CORS 헤더가
-  /// 없어서 막아버리므로, 개발 중에는 `tool/cors_proxy.dart`를 띄우고
-  /// `--dart-define=NEWS_PROXY=http://localhost:8766`으로 붙인다.
-  /// 값이 비어 있으면(=모바일 빌드) 구글뉴스를 그대로 호출한다.
-  static const _proxy = String.fromEnvironment('NEWS_PROXY');
+  /// 없어서 막아버린다. `--dart-define=NEWS_PROXY=...`로 직접 지정하지 않으면
+  /// (예: 로컬 `tool/cors_proxy.dart`) 웹에서는 공개 CORS 프록시로 자동 우회하고,
+  /// 모바일/데스크톱 빌드는 구글뉴스를 그대로 호출한다.
+  static const _definedProxy = String.fromEnvironment('NEWS_PROXY');
+  static String get _proxy =>
+      _definedProxy.isNotEmpty ? _definedProxy : (kIsWeb ? 'https://corsproxy.io/?url=' : '');
 
   /// '더보기'용 구글뉴스 검색 결과 페이지. RSS와 같은 질의라 목록도 같은 순서로 이어진다.
   /// 사람이 보는 페이지라 프록시를 태우지 않는다.
@@ -61,7 +64,16 @@ class NewsService {
         ? uri
         : Uri.parse(_proxy).replace(queryParameters: {'url': uri.toString()});
 
-    final res = await http.get(target).timeout(const Duration(seconds: 10));
+    // 무료 공개 프록시는 6개 카테고리를 동시에 때리면 순간 과부하로 502/503을
+    // 뱉을 때가 있다. 그런 일시 오류만 한 번 재시도한다.
+    http.Response res;
+    try {
+      res = await http.get(target).timeout(const Duration(seconds: 10));
+      if (res.statusCode >= 500) throw Exception('구글뉴스 응답 오류 (${res.statusCode})');
+    } catch (_) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      res = await http.get(target).timeout(const Duration(seconds: 10));
+    }
     if (res.statusCode != 200) {
       throw Exception('구글뉴스 응답 오류 (${res.statusCode})');
     }

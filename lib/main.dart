@@ -1,14 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'firebase_options.dart';
 import 'screens/auth/auth_gate.dart';
 import 'screens/home/main_shell.dart';
-import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/mobile_viewport.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await StorageService.instance.init();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const HamfinzApp());
 }
 
