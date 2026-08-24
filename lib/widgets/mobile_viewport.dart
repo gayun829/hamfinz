@@ -51,7 +51,15 @@ class MobileViewport extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: child,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    size: const Size(maxWidth, maxHeight),
+                    padding: EdgeInsets.zero,
+                    viewPadding: EdgeInsets.zero,
+                    viewInsets: EdgeInsets.zero,
+                  ),
+                  child: child!,
+                ),
               ),
             ),
           ),

@@ -13,6 +13,8 @@ class UserProfile {
     this.learningHistory = const [],
     this.categoryStats = const {},
     this.interestCategories = const [],
+    this.seeds = 0,
+    this.ownedShopItemIds = const [],
   });
 
   final String email;
@@ -35,6 +37,12 @@ class UserProfile {
   /// QuizCategory enum의 name과 동일한 문자열을 저장한다.
   /// (allowance / saving / stock / insurance / tax / credit)
   List<String> interestCategories;
+
+  /// 상점 해바라기씨 잔액.
+  int seeds;
+
+  /// 상점에서 구매한 아이템 id 목록.
+  List<String> ownedShopItemIds;
 
   int get level => LevelUtils.levelFromXp(xp);
   String get levelTitle => LevelUtils.titleForLevel(level);

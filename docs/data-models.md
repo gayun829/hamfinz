@@ -28,7 +28,9 @@
       "selectedHamsterId": "hamster_basic",
       "learningHistory": [],
       "categoryStats": {},
-      "interestCategories": ["saving", "credit"]
+      "interestCategories": ["saving", "credit"],
+      "seeds": 0,
+      "ownedShopItemIds": []
     }
   }
 }
@@ -52,6 +54,8 @@
 | `learningHistory` | `LearningRecord` 목록 (최신 앞) |
 | `categoryStats` | 카테고리 label → `CategoryStat` |
 | `interestCategories` | 관심 카테고리 id 목록 |
+| `seeds` | 상점 해바라기씨 잔액 |
+| `ownedShopItemIds` | 구매한 상점 아이템 id |
 
 ### LearningRecord
 

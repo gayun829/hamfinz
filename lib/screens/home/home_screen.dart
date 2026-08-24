@@ -4,10 +4,13 @@ import '../../constants/figma_assets.dart';
 import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/category_switcher_sheet.dart';import '../../widgets/figma/figma_asset_image.dart';
+import '../../widgets/category_switcher_sheet.dart';
+import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../calendar/streak_calendar_screen.dart';
 import '../quiz/quiz_screen.dart';
+import '../shop/shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,6 +91,25 @@ class _HomeScreenState extends State<HomeScreen> {
     // 나중에 추가: 북마크/학습 저장 기능
   }
 
+  Future<void> _openShop() async {
+    final profile = _profile;
+    if (profile == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ShopScreen(profile: profile)),
+    );
+    await _loadProfile();
+  }
+
+  void _openStreakCalendar() {
+    final profile = _profile;
+    if (profile == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StreakCalendarScreen(streak: profile.streak),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -118,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, figma) => _buildFigmaHomeLayers(
           figma: figma,
           energy: profile.energy,
-          coin: profile.xp,
+          coin: profile.seeds,
           streak: profile.streak,
           level: profile.level,
           hamsterName: hamsterDisplayName,
@@ -130,6 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
           onNews: _openNews,
           onDigging: _openDigging,
           onBookmark: _openBookmark,
+          onShop: _openShop,
+          onStreakCalendar: _openStreakCalendar,
           onStartLearning: _startQuiz,
         ),
       ),
@@ -152,6 +176,8 @@ List<Widget> _buildFigmaHomeLayers({
   required VoidCallback onNews,
   required VoidCallback onDigging,
   required VoidCallback onBookmark,
+  required VoidCallback onShop,
+  required VoidCallback onStreakCalendar,
   required VoidCallback onStartLearning,
 }) {
   final s = figma.s;
@@ -293,6 +319,15 @@ List<Widget> _buildFigmaHomeLayers({
         color: const Color(0xFFFFCA55),
         fontWeight: FontWeight.w600,
       ),
+      FigmaTapArea(
+        figma: figma,
+        left: 650,
+        top: 100,
+        width: 220,
+        height: 110,
+        onTap: onShop,
+        child: const SizedBox.expand(),
+      ),
       FigmaBox(
         figma: figma,
         left: 980,
@@ -309,6 +344,15 @@ List<Widget> _buildFigmaHomeLayers({
         fontSize: 37,
         color: const Color(0xFFFB8B3B),
         fontWeight: FontWeight.w600,
+      ),
+      FigmaTapArea(
+        figma: figma,
+        left: 960,
+        top: 100,
+        width: 220,
+        height: 110,
+        onTap: onStreakCalendar,
+        child: const SizedBox.expand(),
       ),
 
       // 83:19, 83:17, 83:67 뉴스
