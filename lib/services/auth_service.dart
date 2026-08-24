@@ -225,6 +225,8 @@ class AuthService {
     'learningHistory': <Map<String, dynamic>>[],
     'categoryStats': <String, dynamic>{},
     'interestCategories': <String>[],
+    'seeds': 0,
+    'ownedShopItemIds': <String>[],
   };
 
   UserProfile _profileFromJson(String email, Map<String, dynamic> data) {
@@ -283,9 +285,9 @@ class AuthService {
       interestCategories: List<String>.from(
         data['interestCategories'] as List? ?? [],
       ),
-      seeds: profile['seeds'] as int? ?? 0,
+      seeds: data['seeds'] as int? ?? 0,
       ownedShopItemIds: List<String>.from(
-        profile['ownedShopItemIds'] as List? ?? [],
+        data['ownedShopItemIds'] as List? ?? [],
       ),
     );
   }
