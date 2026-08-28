@@ -13,7 +13,7 @@
 | [quiz-energy.md](./quiz-energy.md) | 퀴즈 세션, 에너지, XP·streak·해금 |
 | [news.md](./news.md) | 뉴스 탭, RSS, 기사 WebView |
 | [data-models.md](./data-models.md) | 모델, 저장소 키, JSON 스키마 |
-| [backend-schema.md](./backend-schema.md) | Firestore 스키마 초안 (임시) |
+| [database/](./database/) | Firestore 스키마, 협업 가이드, 초안 |
 | [development-guide.md](./development-guide.md) | 실행, 테스트 계정, CORS 프록시, 테스트 |
 | [roadmap.md](./roadmap.md) | 미구현·예정 기능 |
 | [figma-to-code.md](./figma-to-code.md) | Figma → Flutter 변환 규칙 |
@@ -38,5 +38,5 @@ flowchart TD
 
 - **패키지명:** `testapp` (`pubspec.yaml`)
 - **앱 타이틀:** 햄핀즈
-- **백엔드 예정:** Cloud Firestore + Firebase Auth ([backend-schema.md](./backend-schema.md))
+- **백엔드 예정:** Cloud Firestore + Firebase Auth ([database/](./database/))
 - **플랫폼:** Android, iOS, Web, Windows
