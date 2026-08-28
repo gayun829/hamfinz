@@ -28,7 +28,7 @@
 
 | 원칙 | Firestore에서 |
 |------|----------------|
-| 앱 규칙 유지 | 에너지 100, 문제당 −10, 세션 7문제, XP 10/2 |
+| 앱 규칙 유지 | 에너지 100, 문제당 −5, 세션 10문제, XP 10/2 (에너지 수치 잠정) |
 | 레벨은 저장하지 않음 | `xp`만. 레벨 = `min(xp ~/ 100 + 1, 10)` |
 | 작은 목록은 배열 | 관심 카테고리, 해금 햄스터 id (개수 고정·적음) |
 | 늘어나는 기록은 서브컬렉션 | 퀴즈 세션, 답안, 뉴스 퀴즈 기록 |
@@ -39,9 +39,9 @@
 
 ```
 MAX_ENERGY = 100
-ENERGY_PER_QUESTION = 10
-QUESTIONS_PER_SESSION = 7
-SESSION_ENERGY_COST = 70
+ENERGY_PER_QUESTION = 5
+QUESTIONS_PER_SESSION = 10
+SESSION_ENERGY_COST = 50
 XP_CORRECT = 10
 XP_WRONG = 2
 XP_PER_LEVEL = 100
@@ -133,7 +133,7 @@ id: `allowance` | `saving` | `stock` | `insurance` | `tax` | `credit`
 
 ### `quizQuestions/{id}`
 
-현재 `q1`~`q12`.
+현재 `q1`~`q15` (하드코딩, DB 전환 예정).
 
 ```json
 {
@@ -235,7 +235,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 ---
 
-## 3. 학습 세션 (에너지 7문제)
+## 3. 학습 세션 (에너지 10문제)
 
 로컬 `learningHistory`는 세션 요약만 있었다. Firestore에서는 세션 + 문항 답을 남긴다.
 
@@ -268,15 +268,15 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 {
   "selectedIndex": 1,
   "isCorrect": true,
-  "energySpent": 10,
+  "energySpent": 5,
   "answeredAt": "<timestamp>"
 }
 ```
 
 **쓰기 권장 경로 (Cloud Function)**
 
-1. `startSession`: `energy >= 70` 확인, 세션 문서 생성 (에너지 아직 안 깎음 또는 예약)  
-2. `submitAnswer`: 트랜잭션으로 `users.energy -= 10`, answers 문서 생성  
+1. `startSession`: `energy >= 50` 확인, 세션 문서 생성 (에너지 아직 안 깎음 또는 예약)  
+2. `submitAnswer`: 트랜잭션으로 `users.energy -= 5`, answers 문서 생성  
 3. `completeSession`: XP·categoryStats·streak·해금 배열 갱신, `status: completed`
 
 클라이언트가 energy/xp를 직접 쓰면 치트가 되므로 Functions + Admin SDK가 맞다.
@@ -491,9 +491,9 @@ service cloud.firestore {
 1. **프로필 get**  
    `energyResetOn != today`이면 `energy = 100`, `energyResetOn = today` (트랜잭션).
 2. **세션 시작**  
-   `energy < 70`이면 거부.
+   `energy < 50`이면 거부.
 3. **답 제출**  
-   `energy >= 10`일 때만 −10 + answers 문서.
+   `energy >= 5`일 때만 −5 + answers 문서.
 4. **세션 완료**  
    XP 합산, `categoryStats`, 당일 첫 완료면 streak, 해금 id 배열에 추가.
 5. **관심 카테고리**  
@@ -508,7 +508,7 @@ service cloud.firestore {
 ## 아직 안 정한 것
 
 - 뉴스 퀴즈가 에너지를 쓰는지
-- 세션 시작 시 70을 한 번에 깎을지, 문제마다 10씩 깎을지 (앱은 **문제 제출 시 −10**)
+- 세션 시작 시 50을 한 번에 깎을지, 문제마다 5씩 깎을지 (앱은 **문제 제출 시 −5**, 수치 잠정)
 - 닉네임 예약 컬렉션 사용 여부
 - LLM 팩 TTL·재생성
 - Kakao는 Firebase 커스텀 토큰 필요

@@ -1,17 +1,20 @@
 import '../models/quiz_question.dart';
 
 class QuizData {
-  static const int dailyQuestionCount = 7;
+  static const int dailyQuestionCount = 10;
   static const int correctXp = 10;
   static const int wrongXp = 2;
+
+  /// 정답 1개당 지급하는 해바라기씨.
+  static const int seedsPerCorrect = 5;
 
   /// 에너지 최대치. 하루가 바뀌면 이 값으로 회복한다.
   static const int maxEnergy = 100;
 
-  /// 문제 1개 풀 때 소모하는 에너지.
-  static const int energyCostPerQuestion = 10;
+  /// 문제 1개 풀 때 소모하는 에너지. (잠정 — 변동 가능)
+  static const int energyCostPerQuestion = 5;
 
-  /// 한 학습 세션(7문제) 시작에 필요한 에너지.
+  /// 한 학습 세션(10문제) 시작에 필요한 에너지.
   static const int sessionEnergyCost =
       dailyQuestionCount * energyCostPerQuestion;
 
@@ -133,6 +136,43 @@ class QuizData {
       ],
       correctIndex: 0,
       explanation: '기한 내 상환은 신용관리의 기본이며, 이용률 관리도 중요합니다.',
+    ),
+    const QuizQuestion(
+      id: 'q13',
+      type: QuizType.multipleChoice,
+      category: QuizCategory.allowance,
+      question: '용돈 기록을 꾸준히 하면 좋은 점은?',
+      options: [
+        '소비 패턴을 파악할 수 있다',
+        '용돈이 자동으로 늘어난다',
+        '세금이 면제된다',
+        '카드 한도가 올라간다',
+      ],
+      correctIndex: 0,
+      explanation: '가계부·기록 습관은 어디에 쓰는지 보며 예산을 조절하는 데 도움이 됩니다.',
+    ),
+    const QuizQuestion(
+      id: 'q14',
+      type: QuizType.ox,
+      category: QuizCategory.saving,
+      question: '복리 이자는 이자에도 이자가 붙는 구조이다.',
+      options: ['O', 'X'],
+      correctIndex: 0,
+      explanation: '복리는 원금뿐 아니라 쌓인 이자에도 이자가 적용되어 장기 저축·투자에서 차이가 큽니다.',
+    ),
+    const QuizQuestion(
+      id: 'q15',
+      type: QuizType.multipleChoice,
+      category: QuizCategory.insurance,
+      question: '보험 가입 전 꼭 확인해야 할 것은?',
+      options: [
+        '보장 내용과 면책·해지 조건',
+        '보험사 로고 색깔',
+        '지인 추천만으로 가입',
+        '보험료만 보고 즉시 가입',
+      ],
+      correctIndex: 0,
+      explanation: '무엇이 보장되는지, 어떤 경우 보장되지 않는지 약관을 확인하는 것이 중요합니다.',
     ),
   ];
 

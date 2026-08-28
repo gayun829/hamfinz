@@ -50,6 +50,7 @@ class QuizSessionResult {
   const QuizSessionResult({
     required this.answers,
     required this.xpEarned,
+    required this.seedsEarned,
     required this.leveledUp,
     required this.newLevel,
     required this.previousLevel,
@@ -59,6 +60,7 @@ class QuizSessionResult {
 
   final List<QuizAnswer> answers;
   final int xpEarned;
+  final int seedsEarned;
   final bool leveledUp;
   final int newLevel;
   final int previousLevel;

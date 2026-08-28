@@ -31,7 +31,7 @@ flowchart TD
   shell --> news[뉴스]
   shell --> home[홈]
   shell --> settings[설정]
-  home --> quiz[퀴즈 7문제]
+  home --> quiz[퀴즈 10문제]
   quiz --> result[결과]
   news --> article[기사 WebView]
 ```

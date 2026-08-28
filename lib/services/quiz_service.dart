@@ -46,6 +46,9 @@ class QuizService {
     }
 
     final correctCount = answers.where((a) => a.isCorrect).length;
+    final seedsEarned = correctCount * QuizData.seedsPerCorrect;
+    profile.seeds += seedsEarned;
+
     profile.learningHistory.insert(
       0,
       LearningRecord(
@@ -76,6 +79,7 @@ class QuizService {
     return QuizSessionResult(
       answers: answers,
       xpEarned: xpEarned,
+      seedsEarned: seedsEarned,
       leveledUp: profile.level > previousLevel,
       newLevel: profile.level,
       previousLevel: previousLevel,
