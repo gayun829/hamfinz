@@ -5,7 +5,7 @@
 
 > 확정 전. 필드명·서브컬렉션 깊이는 구현하면서 바꿀 수 있다.
 
-관련: [data-models.md](./data-models.md), [quiz-energy.md](./quiz-energy.md), [roadmap.md](./roadmap.md)
+관련: [data-models.md](../data-models.md), [quiz-energy.md](../quiz-energy.md), [roadmap.md](../roadmap.md)
 
 ---
 

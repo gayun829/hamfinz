@@ -1,5 +1,7 @@
 # 데이터베이스 스키마 — 팀 협업 가이드
 
+> **팀원 안내:** DB 스키마 작업·리뷰에 참여하기 전 **이 문서부터** 읽어 주세요.
+
 파트가 나뉜 팀에서 Firestore 스키마를 **같이** 정리할 때 쓰는 작업 순서다.  
 스키마 내용(컬렉션·필드)은 이 문서에 적지 않는다. **누가, 어디에, 어떤 순서로** 쓰는지만 정한다.
 
@@ -10,16 +12,16 @@
 | [database-schema.md](./database-schema.md) | **팀 공식 SSOT** — 합의·확정된 스키마만 |
 | [backend-schema.md](./backend-schema.md) | **초안·탐색** — 아이디어, 대안, TODO |
 | `.local/*.md` | **개인 작업 메모** — gitignore, GitHub에 올리지 않음 |
-| [data-models.md](./data-models.md) | 현재 앱 모델·SharedPreferences 구조 (마이그레이션 참고) |
+| [data-models.md](../data-models.md) | 현재 앱 모델·SharedPreferences 구조 (마이그레이션 참고) |
 
 ---
 
 ## 문서 3층 구조
 
 ```
-.local/          →  조사·질문·실험 (개인)
-backend-schema   →  제안 PR (파트 owner)
-database-schema  →  확정 반영 (팀 합의 후)
+.local/                              →  조사·질문·실험 (개인)
+docs/database/backend-schema.md      →  제안 PR (파트 owner)
+docs/database/database-schema.md     →  확정 반영 (팀 합의 후)
 ```
 
 - `.local/`에서 생각하고, `backend-schema.md`에서 제안하고, `database-schema.md`에만 **합의 완료**를 올린다.
@@ -33,10 +35,10 @@ database-schema  →  확정 반영 (팀 합의 후)
 
 | Owner (예시) | 담당 영역 | 참고 문서 |
 |--------------|-----------|-----------|
-| Auth | Firebase Auth, `users/{uid}` 프로필 | [auth.md](./auth.md) |
-| Quiz | `quizQuestions`, 세션·채점·XP | [quiz-energy.md](./quiz-energy.md) |
-| News | `newsArticles`, 북마크 | [news.md](./news.md) |
-| Shop | 상점, 햄스터 해금, `hamsters` | [features.md](./features.md) |
+| Auth | Firebase Auth, `users/{uid}` 프로필 | [auth.md](../auth.md) |
+| Quiz | `quizQuestions`, 세션·채점·XP | [quiz-energy.md](../quiz-energy.md) |
+| News | `newsArticles`, 북마크 | [news.md](../news.md) |
+| Shop | 상점, 햄스터 해금, `hamsters` | [features.md](../features.md) |
 
 규칙:
 
@@ -92,7 +94,7 @@ PR 리뷰 체크리스트:
 - [ ] 다른 컬렉션과 **같은 uid·날짜 필드**를 쓰는가?
 - [ ] `users/{uid}` 문서가 **1MB**를 넘을 가능성은 없는가? (기록은 서브컬렉션?)
 - [ ] **Security Rules**로 읽기/쓰기를 막을 수 있는 구조인가?
-- [ ] [data-models.md](./data-models.md) 기존 앱 모델과 **필드명이 호환**되는가?
+- [ ] [data-models.md](../data-models.md) 기존 앱 모델과 **필드명이 호환**되는가?
 - [ ] [접점 표](#접점-표-단일-소스-ssot)와 **쓰기 owner**가 일치하는가?
 
 ### 4. 확정 → `database-schema.md` PR
