@@ -15,6 +15,9 @@ class UserProfile {
     this.interestCategories = const [],
     this.seeds = 0,
     this.ownedShopItemIds = const [],
+    this.equippedSkinId,
+    this.equippedPatternId,
+    this.equippedAccessoryIds = const [],
   });
 
   final String email;
@@ -43,6 +46,11 @@ class UserProfile {
 
   /// 상점에서 구매한 아이템 id 목록.
   List<String> ownedShopItemIds;
+
+  /// 현재 프로필에 장착된 스킨/패턴/악세서리 id들 (저장된 상태)
+  String? equippedSkinId;
+  String? equippedPatternId;
+  List<String> equippedAccessoryIds;
 
   int get level => LevelUtils.levelFromXp(xp);
   String get levelTitle => LevelUtils.titleForLevel(level);

@@ -67,6 +67,16 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() => _profile = latest);
   }
 
+  Future<void> _openClosetWithPreview(ShopItem item) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ClosetScreen(profile: _profile, initialPreview: item)),
+    );
+    if (!mounted) return;
+    final latest = await AuthService.instance.getCurrentUser();
+    if (!mounted || latest == null) return;
+    setState(() => _profile = latest);
+  }
+
   @override
   Widget build(BuildContext context) {
     final featured = ShopData.featured;
@@ -146,7 +156,7 @@ class _ShopScreenState extends State<ShopScreen> {
                               figma: figma,
                               item: item,
                               owned: _profile.ownedShopItemIds.contains(item.id),
-                              onTap: () => _buy(item),
+                              onTap: () => _openClosetWithPreview(item),
                             );
                           },
                         ),

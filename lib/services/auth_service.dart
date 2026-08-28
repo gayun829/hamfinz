@@ -289,6 +289,11 @@ class AuthService {
       ownedShopItemIds: List<String>.from(
         data['ownedShopItemIds'] as List? ?? [],
       ),
+      equippedSkinId: data['equippedSkinId'] as String?,
+      equippedPatternId: data['equippedPatternId'] as String?,
+      equippedAccessoryIds: List<String>.from(
+        data['equippedAccessoryIds'] as List? ?? [],
+      ),
     );
   }
 
@@ -309,5 +314,8 @@ class AuthService {
     'interestCategories': profile.interestCategories,
     'seeds': profile.seeds,
     'ownedShopItemIds': profile.ownedShopItemIds,
+    'equippedSkinId': profile.equippedSkinId,
+    'equippedPatternId': profile.equippedPatternId,
+    'equippedAccessoryIds': profile.equippedAccessoryIds,
   };
 }

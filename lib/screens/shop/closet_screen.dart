@@ -12,9 +12,14 @@ import '../../widgets/shop/shop_widgets.dart';
 enum _ClosetTab { my, skin, pattern, accessory, background }
 
 class ClosetScreen extends StatefulWidget {
-  const ClosetScreen({super.key, required this.profile});
+  const ClosetScreen({
+    super.key,
+    required this.profile,
+    this.initialPreview,
+  });
 
   final UserProfile profile;
+  final ShopItem? initialPreview;
 
   @override
   State<ClosetScreen> createState() => _ClosetScreenState();
@@ -24,11 +29,24 @@ class _ClosetScreenState extends State<ClosetScreen> {
   late UserProfile _profile;
   _ClosetTab _tab = _ClosetTab.accessory;
   ShopItem? _preview;
+  // Staged selections (미리보기에 적용되는 임시 선택)
+  String? _stagedSkinId;
+  String? _stagedPatternId;
+  final List<String> _stagedAccessoryIds = [];
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
+    // 초기 미리보기 아이템이 있으면 설정
+    if (widget.initialPreview != null) {
+      _preview = widget.initialPreview;
+    }
+    // staged 초기값을 현재 프로필의 장착 상태로 초기화
+    _stagedSkinId = _profile.equippedSkinId;
+    _stagedPatternId = _profile.equippedPatternId;
+    _stagedAccessoryIds.clear();
+    _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
   }
 
   List<ShopItem> get _visibleItems {
@@ -49,29 +67,120 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   Future<void> _onItemTap(ShopItem item) async {
-    final owned = _profile.ownedShopItemIds.contains(item.id);
-    if (owned) {
-      setState(() => _preview = item);
-      return;
-    }
-    if (_profile.seeds < item.price) {
+    // 탭은 미리보기 전용으로 동작: 아이템을 staged(임시)로 추가/토글합니다.
+    // 카테고리별 동작: skin/pattern은 1개만, accessory는 다중 선택 허용.
+    setState(() {
+      _preview = item;
+      switch (item.category) {
+        case ShopCategory.skin:
+          _stagedSkinId = _stagedSkinId == item.id ? null : item.id;
+          break;
+        case ShopCategory.pattern:
+          _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+          break;
+        case ShopCategory.accessory:
+          if (_stagedAccessoryIds.contains(item.id)) {
+            _stagedAccessoryIds.remove(item.id);
+          } else {
+            _stagedAccessoryIds.add(item.id);
+          }
+          break;
+        case ShopCategory.background:
+          // treat background like skin (single)
+          _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+          break;
+      }
+    });
+  }
+
+  Future<void> _purchasePreview() async {
+    // 구매는 staged된 모든 아이템(현재 소유하지 않은 것들)을 대상으로 합니다.
+    final stagedIds = <String>[];
+    if (_stagedSkinId != null) stagedIds.add(_stagedSkinId!);
+    if (_stagedPatternId != null) stagedIds.add(_stagedPatternId!);
+    stagedIds.addAll(_stagedAccessoryIds);
+
+    // 구매 대상만 필터링
+    final toBuy = stagedIds.where((id) => !_profile.ownedShopItemIds.contains(id)).toList();
+    if (toBuy.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '씨앗이 부족해요. ${item.name}은(는) ${item.price}씨앗이 필요해요.',
-          ),
-        ),
+        const SnackBar(content: Text('구매할 새 아이템이 없습니다.')),
       );
       return;
     }
-    _profile.seeds -= item.price;
-    _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, item.id];
+
+    final itemsToBuy = toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id)).toList();
+    final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
+
+    if (_profile.seeds < total) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})')),
+      );
+      return;
+    }
+
+    _profile.seeds -= total;
+    _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, ...toBuy];
     await AuthService.instance.saveProfile(_profile);
     if (!mounted) return;
-    setState(() => _preview = item);
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${item.name}을(를) 구매했어요!')),
+      SnackBar(content: Text('아이템 ${toBuy.length}개를 구매했습니다.')),
     );
+  }
+
+  ShopItem? _itemById(String? id) {
+    if (id == null) return null;
+    try {
+      return ShopData.items.firstWhere((i) => i.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  int get _stagedTotalPrice {
+    final ids = <String>[];
+    if (_stagedSkinId != null) ids.add(_stagedSkinId!);
+    if (_stagedPatternId != null) ids.add(_stagedPatternId!);
+    ids.addAll(_stagedAccessoryIds);
+    final toBuy = ids.where((id) => !_profile.ownedShopItemIds.contains(id)).toList();
+    return toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id).price).fold<int>(0, (s, p) => s + p);
+  }
+
+  Widget _buildCompositePreview(double width, double height) {
+    // Order: base hamster -> background -> skin -> pattern -> accessories
+    final List<Widget> layers = [];
+
+    // base
+    layers.add(Image.asset(
+      FigmaAssets.hamsterAuth,
+      width: width,
+      height: height,
+      fit: BoxFit.contain,
+      errorBuilder: (c, e, s) => const SizedBox.shrink(),
+    ));
+
+    final background = _itemById(_stagedPatternId);
+    final skin = _itemById(_stagedSkinId);
+    final pattern = _itemById(_stagedPatternId);
+
+    if (background != null) {
+      layers.add(ShopHamsterSprite(column: background.spriteCol, row: background.spriteRow));
+    }
+    if (skin != null) {
+      layers.add(ShopHamsterSprite(column: skin.spriteCol, row: skin.spriteRow));
+    }
+    if (pattern != null) {
+      layers.add(ShopHamsterSprite(column: pattern.spriteCol, row: pattern.spriteRow));
+    }
+    for (final accId in _stagedAccessoryIds) {
+      final acc = _itemById(accId);
+      if (acc != null) {
+        layers.add(ShopHamsterSprite(column: acc.spriteCol, row: acc.spriteRow));
+      }
+    }
+
+    return Stack(children: layers.map((w) => SizedBox(width: width, height: height, child: w)).toList());
   }
 
   @override
@@ -118,24 +227,21 @@ class _ClosetScreenState extends State<ClosetScreen> {
                           child: SizedBox(
                             width: hamsterSize,
                             height: hamsterSize,
-                            child: _preview == null
-                                ? FigmaPng(
-                                    FigmaAssets.hamsterAuth,
-                                    width: hamsterSize,
-                                    height: hamsterSize,
-                                    fit: BoxFit.contain,
-                                  )
-                                : ShopHamsterSprite(
-                                    column: _preview!.spriteCol,
-                                    row: _preview!.spriteRow,
-                                  ),
+                            child: _buildCompositePreview(hamsterSize, hamsterSize),
                           ),
                         ),
                         Positioned(
                           right: s(14),
                           bottom: s(16),
                           child: GestureDetector(
-                            onTap: () => setState(() => _preview = null),
+                            onTap: () => setState(() {
+                              // 초기화: 임시 선택을 저장된 장착 상태로 되돌립니다.
+                              _preview = null;
+                              _stagedSkinId = _profile.equippedSkinId;
+                              _stagedPatternId = _profile.equippedPatternId;
+                              _stagedAccessoryIds.clear();
+                              _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
+                            }),
                             child: Container(
                               width: s(FigmaShopTokens.resetButton)
                                   .clamp(36, 48),
@@ -154,6 +260,85 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                   height: 1,
                                 ),
                               ),
+                            ),
+                          ),
+                        ),
+                        // 구매 버튼: staged 총 가격을 보여주고 구매 실행
+                        if ((_stagedSkinId != null || _stagedPatternId != null || _stagedAccessoryIds.isNotEmpty))
+                          Positioned(
+                            left: s(14),
+                            bottom: s(16),
+                            child: GestureDetector(
+                              onTap: _purchasePreview,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: s(12)),
+                                constraints: BoxConstraints(minHeight: s(40)),
+                                decoration: BoxDecoration(
+                                  color: FigmaShopTokens.chip,
+                                  borderRadius: BorderRadius.circular(s(8)),
+                                ),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '구매',
+                                      style: FigmaShopTokens.sectionTitle(figma.scale),
+                                    ),
+                                    SizedBox(width: s(8)),
+                                    ShopSeedChip(figma: figma, seeds: _stagedTotalPrice, iconSize: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        // 저장 버튼: 구매가 필요하면 구매 후 장착 상태까지 저장.
+                        Positioned(
+                          bottom: s(16),
+                          right: s(80),
+                          child: GestureDetector(
+                            onTap: () async {
+                              // Determine staged ids and toBuy
+                              final ids = <String>[];
+                              if (_stagedSkinId != null) ids.add(_stagedSkinId!);
+                              if (_stagedPatternId != null) ids.add(_stagedPatternId!);
+                              ids.addAll(_stagedAccessoryIds);
+                              final toBuy = ids.where((id) => !_profile.ownedShopItemIds.contains(id)).toList();
+
+                              // Purchase if needed
+                              if (toBuy.isNotEmpty) {
+                                final itemsToBuy = toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id)).toList();
+                                final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
+                                if (_profile.seeds < total) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})')),
+                                  );
+                                  return;
+                                }
+                                _profile.seeds -= total;
+                                _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, ...toBuy];
+                              }
+
+                              // Save equipped fields to profile and persist
+                              _profile.equippedSkinId = _stagedSkinId;
+                              _profile.equippedPatternId = _stagedPatternId;
+                              _profile.equippedAccessoryIds = List<String>.from(_stagedAccessoryIds);
+
+                              await AuthService.instance.saveProfile(_profile);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('저장되었습니다.')),
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: s(12)),
+                              constraints: BoxConstraints(minHeight: s(40)),
+                              decoration: BoxDecoration(
+                                color: FigmaShopTokens.chip,
+                                borderRadius: BorderRadius.circular(s(8)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text('저장', style: FigmaShopTokens.sectionTitle(figma.scale)),
                             ),
                           ),
                         ),
@@ -205,13 +390,69 @@ class _ClosetScreenState extends State<ClosetScreen> {
                             ),
                             itemBuilder: (context, index) {
                               final item = items[index];
-                              return ShopItemCard(
+                              final owned = _profile.ownedShopItemIds.contains(item.id);
+                              Widget card = ShopItemCard(
                                 figma: figma,
                                 item: item,
-                                owned: _profile.ownedShopItemIds
-                                    .contains(item.id),
+                                owned: owned,
                                 onTap: () => _onItemTap(item),
                               );
+
+                              // MY 탭에서는 소유한 아이템에 대해 '장착' 토글 버튼을 보여줍니다.
+                              if (_tab == _ClosetTab.my && owned) {
+                                bool isEquipped() {
+                                  return _stagedSkinId == item.id ||
+                                      _stagedPatternId == item.id ||
+                                      _stagedAccessoryIds.contains(item.id);
+                                }
+
+                                void toggleEquip() {
+                                  setState(() {
+                                    switch (item.category) {
+                                      case ShopCategory.skin:
+                                        _stagedSkinId = _stagedSkinId == item.id ? null : item.id;
+                                        break;
+                                      case ShopCategory.pattern:
+                                        _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+                                        break;
+                                      case ShopCategory.accessory:
+                                        if (_stagedAccessoryIds.contains(item.id)) {
+                                          _stagedAccessoryIds.remove(item.id);
+                                        } else {
+                                          _stagedAccessoryIds.add(item.id);
+                                        }
+                                        break;
+                                      case ShopCategory.background:
+                                        _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+                                        break;
+                                    }
+                                    _preview = item;
+                                  });
+                                }
+
+                                return Column(
+                                  children: [
+                                    card,
+                                    SizedBox(height: s(8)),
+                                    GestureDetector(
+                                      onTap: toggleEquip,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(8)),
+                                        decoration: BoxDecoration(
+                                          color: isEquipped() ? Colors.green.shade600 : FigmaShopTokens.chip,
+                                          borderRadius: BorderRadius.circular(s(8)),
+                                        ),
+                                        child: Text(
+                                          isEquipped() ? '장착 해제' : '장착',
+                                          style: FigmaShopTokens.sectionTitle(figma.scale),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+
+                              return card;
                             },
                           ),
                   ),
