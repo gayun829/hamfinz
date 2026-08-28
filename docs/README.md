@@ -13,6 +13,7 @@
 | [quiz-energy.md](./quiz-energy.md) | 퀴즈 세션, 에너지, XP·streak·해금 |
 | [news.md](./news.md) | 뉴스 탭, RSS, 기사 WebView |
 | [data-models.md](./data-models.md) | 모델, 저장소 키, JSON 스키마 |
+| [database-schema.md](./database-schema.md) | 데이터베이스 스키마 (미작성) |
 | [backend-schema.md](./backend-schema.md) | Firestore 스키마 초안 (임시) |
 | [development-guide.md](./development-guide.md) | 실행, 테스트 계정, CORS 프록시, 테스트 |
 | [roadmap.md](./roadmap.md) | 미구현·예정 기능 |

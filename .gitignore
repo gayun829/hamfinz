@@ -1,3 +1,6 @@
+# Local working notes (not for GitHub)
+.local/
+
 # Miscellaneous
 *.class
 *.log
