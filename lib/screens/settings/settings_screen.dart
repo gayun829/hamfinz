@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/settings_menu_button.dart';
+import '../friends/add_friend_screen.dart';
 import '../legal/legal_document_screen.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
@@ -136,6 +137,14 @@ class SettingsScreen extends StatelessWidget {
     final s = figma.s;
 
     final menuItems = [
+      (
+        '친구',
+        () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+          );
+        },
+      ),
       ('연락처 연동', () => _showComingSoon(context, '연락처 연동')),
       ('학습과정', () => _showComingSoon(context, '학습과정')),
       ('개인정보 설정', () => _showComingSoon(context, '개인정보 설정')),

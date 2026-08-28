@@ -7,6 +7,7 @@ import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
+import '../friends/add_friend_screen.dart';
 
 class StreakCalendarScreen extends StatefulWidget {
   const StreakCalendarScreen({super.key, this.streak = 0});
@@ -746,12 +747,32 @@ class _FriendsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '이번 달 친구와의 경쟁!',
-            style: TextStyle(
-              fontSize: s(12).clamp(11, 14),
-              color: Colors.black,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '이번 달 친구와의 경쟁!',
+                  style: TextStyle(
+                    fontSize: s(12).clamp(11, 14),
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(s(14)),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(s(4)),
+                  child: Icon(
+                    Icons.person_add_alt_1,
+                    size: s(18).clamp(16, 22),
+                    color: FigmaCalendarTokens.streakTeal,
+                  ),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: s(12)),
           Row(
