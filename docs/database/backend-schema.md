@@ -386,6 +386,68 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 ---
 
+## 6. 친구 (Friends) — 제안 (초안)
+
+> 상태: 제안. `database-schema.md` 미반영. 프론트: `lib/screens/friends/`(현재는 목업 데이터로 동작).  
+> 영향 범위: `users/{uid}` 읽기 권한(§2 초안은 본인만 read)과 겹친다 — Auth owner 리뷰 필요.
+
+닉네임/이메일로 다른 유저를 검색하려면 상대 `users/{uid}` 문서를 읽어야 하는데, 이 문서 아래쪽 "Security Rules 초안"은 `users`를 **본인만 read** 하도록 막아뒀다. 그래서 `users` 자체를 공개하는 대신, §2에서 이미 언급된 `nicknames/{nicknameLower}` 예약 문서를 검색 인덱스로 겸용하는 안을 제안한다.
+
+### `nicknames/{nicknameLower}`
+
+§2 "닉네임 중복 예약" 문서와 동일한 문서를 재사용한다. 닉네임 변경 시 이전 id는 지우고 새 id로 다시 만든다.
+
+```json
+{
+  "uid": "<auth uid>",
+  "nickname": "닉네임"
+}
+```
+
+- write: `users/{uid}` 생성·닉네임 변경 시에만 (Auth owner 영역, 클라이언트는 자기 uid로만 생성)
+- read: `if request.auth != null` — PII 없이 uid·닉네임만 있어 공개 read 해도 `users` 원본을 열 필요가 없다
+
+### `friendships/{uidA}_{uidB}`
+
+두 uid를 정렬해 이어붙인 id로 관계당 문서 하나. 요청 → 수락 상태를 한 문서에서 관리한다.
+
+```json
+{
+  "uids": ["<uidA>", "<uidB>"],
+  "requestedBy": "<uid>",
+  "status": "pending",
+  "createdAt": "<timestamp>"
+}
+```
+
+`status`: `pending` | `accepted`
+
+- create: `request.auth.uid`가 `uids`에 포함, `requestedBy == request.auth.uid`, `status == 'pending'`
+- update: `requestedBy`가 아닌 상대방만 `pending → accepted`
+- read/delete: `request.auth.uid in resource.data.uids`인 당사자만
+- `users/{uid}` 문서는 전혀 건드리지 않아 §2 규칙과 충돌하지 않는다
+
+### 컬렉션 트리 추가
+
+```
+nicknames/{nicknameLower}        # §2 예약 패턴과 겸용, 공개 read
+friendships/{uidA}_{uidB}
+```
+
+### 인덱스 추가
+
+| 쿼리 | 인덱스 |
+|------|--------|
+| 내가 받은/보낸 친구 요청 | `friendships`: `uids`(array-contains) + `status` |
+
+### 아직 안 정한 것 (친구)
+
+- `nicknames` 도입 전까지 검색을 어떻게 할지 (임시로 이메일 exact match만 열지)
+- 친구 삭제(unfriend) — 문서 삭제 vs `status: removed` 유지
+- 캘린더 "친구와의 경쟁" 랭킹처럼 진행률을 보여주려면 `users`의 일부 필드(streak 등) 노출이 필요 — §2 owner(Auth)와 범위 논의 필요
+
+---
+
 ## 로컬 JSON → Firestore
 
 | 로컬 | Firestore |
