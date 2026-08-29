@@ -391,7 +391,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 > 상태: 제안. `database-schema.md` 미반영. 프론트: `lib/screens/friends/`(현재는 목업 데이터로 동작).  
 > 영향 범위: `users/{uid}` 읽기 권한(§2 초안은 본인만 read)과 겹친다 — Auth owner 리뷰 필요.
 
-닉네임/이메일로 다른 유저를 검색하려면 상대 `users/{uid}` 문서를 읽어야 하는데, 이 문서 아래쪽 "Security Rules 초안"은 `users`를 **본인만 read** 하도록 막아뒀다. 그래서 `users` 자체를 공개하는 대신, §2에서 이미 언급된 `nicknames/{nicknameLower}` 예약 문서를 검색 인덱스로 겸용하는 안을 제안한다.
+닉네임/이메일로 다른 유저를 검색하려면 상대 `users/{uid}` 문서를 읽어야 하는데, 이 문서 아래쪽 "Security Rules 초안"은 `users`를 **본인만 read** 하도록 막아뒀다. 그래서 `users` 자체를 공개하는 대신, §2에서 이미 언급된 `nicknames/{nicknameLower}` 예약 문서를 검색 인덱스로 겸용하고, 이메일 검색용으로 `emails/{emailLower}` 문서를 같은 방식으로 하나 더 두는 안을 제안한다.
 
 ### `nicknames/{nicknameLower}`
 
@@ -406,6 +406,20 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 - write: `users/{uid}` 생성·닉네임 변경 시에만 (Auth owner 영역, 클라이언트는 자기 uid로만 생성)
 - read: `if request.auth != null` — PII 없이 uid·닉네임만 있어 공개 read 해도 `users` 원본을 열 필요가 없다
+
+### `emails/{emailLower}`
+
+`nicknames`와 같은 목적 · 같은 구조. 이메일로 찾을 때도 `users`를 열 필요 없이 이 문서만 본다.
+
+```json
+{
+  "uid": "<auth uid>",
+  "nickname": "닉네임"
+}
+```
+
+- write: 본인 이메일로만 생성 가능. `emailLower == request.auth.token.email.lower()` 로 Auth ID 토큰의 이메일 클레임과 대조해 타인 이메일 도용을 막는다 (`users/{uid}` 생성 시 같이 만든다)
+- read: `if request.auth != null` — 이메일 자체는 노출하지 않고, 검색 결과로는 uid·닉네임만 보여준다
 
 ### `friendships/{uidA}_{uidB}`
 
@@ -431,6 +445,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 ```
 nicknames/{nicknameLower}        # §2 예약 패턴과 겸용, 공개 read
+emails/{emailLower}              # 이메일 검색용, 공개 read
 friendships/{uidA}_{uidB}
 ```
 
@@ -442,7 +457,6 @@ friendships/{uidA}_{uidB}
 
 ### 아직 안 정한 것 (친구)
 
-- `nicknames` 도입 전까지 검색을 어떻게 할지 (임시로 이메일 exact match만 열지)
 - 친구 삭제(unfriend) — 문서 삭제 vs `status: removed` 유지
 - 캘린더 "친구와의 경쟁" 랭킹처럼 진행률을 보여주려면 `users`의 일부 필드(streak 등) 노출이 필요 — §2 owner(Auth)와 범위 논의 필요
 
