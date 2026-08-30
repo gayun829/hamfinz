@@ -483,7 +483,7 @@ friendships/{uidA}_{uidB}
 ### 아직 안 정한 것 (친구)
 
 - **닉네임 유일성**: Rules가 `nicknames/{nicknameLower}` 문서를 본인 uid로 딱 1번만 `create`하게 막아둬서(같은 닉네임으로 두 번째 `create`는 자동으로 거부됨) 데이터 레이어에서는 유일성이 지켜진다. 다만 회원가입 화면(`signup_screen.dart`)의 "중복 확인" 버튼(`_checkNicknameDuplicate()`)은 아직 빈 함수라, 유저 입장에선 가입 마지막 단계에서야 "이미 있는 닉네임"으로 실패하는 게 지금 흐름이다 — 가입 중간에 미리 확인시켜줄지는 §2 owner와 UX 상의 필요.
-- **기존 유저 마이그레이션**: 이미 가입한 유저는 `nicknames`/`emails` 인덱스 문서가 없다. 로그인 시 lazy하게 만들지, 1회성 스크립트로 백필할지 정한다. (`scripts/init_friends_collections.mjs`는 신규 예시용이고 백필용은 아직 없음)
+- ~~**기존 유저 마이그레이션**~~ 결정함 — lazy 백필. `AuthService`의 `login`/`signInWithGoogle`/`signInWithKakao` 성공 시마다 `_backfillSearchIndexes(user)`를 호출해서, 내 uid로 된 인덱스가 없으면 그때 만든다(있으면 조회 1번으로 끝나 저렴). 별도 1회성 스크립트는 필요 없음.
 - **이메일 검색 남용**: `emails/{emailLower}`는 로그인한 사용자면 누구나 특정 이메일의 가입 여부·닉네임을 확인할 수 있게 된다 (이메일 존재 확인/enumeration). 우선은 로그인 필요 조건만 걸어두고, 문제 되면 요청 빈도 제한 등을 나중에 추가한다.
 - **친구 삭제(unfriend)**: 결정함 — `friendships` 문서를 그냥 삭제한다 (`allow delete`는 이미 당사자 누구에게나 열려 있어서 별도 작업 불필요, `status: removed` 같은 이력은 안 남긴다).
 - 캘린더 "친구와의 경쟁" 랭킹처럼 진행률을 보여주려면 `users`의 일부 필드(streak 등) 노출이 필요 — §2 owner(Auth)와 범위 논의 필요

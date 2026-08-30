@@ -34,10 +34,9 @@
 
 ## 테스트할 때 알아둘 것
 
-- `nicknames`/`emails` 인덱스는 가입 시점부터 생성된다. **이미 가입된 기존 테스트 계정은 인덱스가 없어서 검색이 안 된다** — 새로 가입하거나, `scripts/init_friends_collections.mjs`의 uid를 실제 테스트 계정 uid로 바꿔서 수동 실행
+- `nicknames`/`emails` 인덱스는 **로그인할 때마다 자동 백필**된다(`AuthService._backfillSearchIndexes`) — 기존 테스트 계정도 한 번만 다시 로그인하면 검색에 걸린다. 수동으로 만들고 싶으면 `scripts/init_friends_collections.mjs`도 여전히 쓸 수 있다.
 
 ## 열린 질문 (`backend-schema.md`에 상세)
 
 - 닉네임 유일성 UX (가입 마지막 단계에서야 중복 에러가 뜸)
-- 기존 유저 인덱스 백필 — 아직 스크립트 없음
 - 이메일 검색 enumeration 남용 가능성

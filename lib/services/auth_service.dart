@@ -114,6 +114,7 @@ class AuthService {
         await _auth.signOut();
         return '이메일 인증 후 로그인할 수 있어요. 인증 메일을 다시 보냈어요.';
       }
+      await _backfillSearchIndexes(credential.user!);
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e);
@@ -131,6 +132,7 @@ class AuthService {
         credential.user!,
         nickname: credential.user!.displayName,
       );
+      await _backfillSearchIndexes(credential.user!);
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e);
@@ -151,6 +153,7 @@ class AuthService {
         credential.user!,
         nickname: credential.user!.displayName ?? profile?['nickname'] as String?,
       );
+      await _backfillSearchIndexes(credential.user!);
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e);
@@ -198,6 +201,33 @@ class AuthService {
     final emailLower = (email ?? '').toLowerCase();
     if (emailLower.isEmpty) return;
     await _emails.doc(emailLower).set({'uid': uid, 'nickname': nickname});
+  }
+
+  /// nicknames/emails 인덱스가 생기기 전에 가입한 기존 계정을 위한 백필.
+  /// 로그인할 때마다 호출하되, 내 uid로 인덱스가 이미 있으면 아무 것도 안 해서 저렴하다.
+  Future<void> _backfillSearchIndexes(User user) async {
+    final profileDoc = await _users.doc(user.uid).get();
+    final nickname = profileDoc.data()?['nickname'] as String?;
+    if (nickname == null || nickname.isEmpty) return;
+
+    final hasNickname = await _nicknames
+        .where('uid', isEqualTo: user.uid)
+        .limit(1)
+        .get();
+    if (hasNickname.docs.isEmpty) {
+      try {
+        await _reserveNickname(user.uid, nickname);
+      } on FirebaseException catch (e) {
+        if (e.code != 'permission-denied') rethrow;
+        // 그 닉네임이 이미 다른 uid로 예약돼 있음(기존 데이터라 흔함) — uid 뒷자리를 붙여 재시도.
+        await _reserveNickname(user.uid, '$nickname${user.uid.substring(0, 4)}');
+      }
+    }
+
+    final hasEmail = await _emails.where('uid', isEqualTo: user.uid).limit(1).get();
+    if (hasEmail.docs.isEmpty) {
+      await _reserveEmail(user.uid, nickname, user.email);
+    }
   }
 
   Future<void> logout() async {
