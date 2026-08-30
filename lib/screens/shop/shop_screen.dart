@@ -28,35 +28,6 @@ class _ShopScreenState extends State<ShopScreen> {
     _profile = widget.profile;
   }
 
-  Future<void> _buy(ShopItem item) async {
-    if (_profile.ownedShopItemIds.contains(item.id)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${item.name}은(는) 이미 가지고 있어요.')),
-      );
-      return;
-    }
-    if (_profile.seeds < item.price) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '씨앗이 부족해요. ${item.name}은(는) ${item.price}씨앗이 필요해요. '
-            '(현재 ${_profile.seeds})',
-          ),
-        ),
-      );
-      return;
-    }
-
-    _profile.seeds -= item.price;
-    _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, item.id];
-    await AuthService.instance.saveProfile(_profile);
-    if (!mounted) return;
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${item.name}을(를) 구매했어요!')),
-    );
-  }
-
   Future<void> _buyStudyGuard() async {
     const maxCount = 3;
     if (_profile.studyGuardCount >= maxCount) {

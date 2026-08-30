@@ -89,6 +89,13 @@ class _ClosetScreenState extends State<ClosetScreen> {
     });
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _purchasePreview() async {
     final stagedIds = <String>[];
     if (_stagedSkinId != null) stagedIds.add(_stagedSkinId!);
@@ -99,9 +106,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     // 구매 대상만 필터링
     final toBuy = stagedIds.where((id) => !_profile.ownedShopItemIds.contains(id)).toList();
     if (toBuy.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('구매할 새 아이템이 없습니다.')),
-      );
+      _showSnackBar('구매할 새 아이템이 없습니다.');
       return;
     }
 
@@ -109,9 +114,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
 
     if (_profile.seeds < total) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})')),
-      );
+      _showSnackBar('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})');
       return;
     }
 
@@ -120,9 +123,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     await AuthService.instance.saveProfile(_profile);
     if (!mounted) return;
     setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('아이템 ${toBuy.length}개를 구매했습니다.')),
-    );
+    _showSnackBar('아이템 ${toBuy.length}개를 구매했습니다.');
   }
 
   ShopItem? _itemById(String? id) {
@@ -274,9 +275,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                     final itemsToBuy = toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id)).toList();
                                     final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
                                     if (_profile.seeds < total) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})')),
-                                      );
+                                      _showSnackBar('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})');
                                       return;
                                     }
                                     _profile.seeds -= total;
@@ -290,9 +289,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
                                   await AuthService.instance.saveProfile(_profile);
                                   if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('저장되었습니다.')),
-                                  );
+                                  _showSnackBar('저장되었습니다.');
                                 },
                                 child: Container(
                                   width: s(44).clamp(40, 48),
