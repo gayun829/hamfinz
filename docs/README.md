@@ -11,6 +11,8 @@
 | [screens-and-navigation.md](./screens-and-navigation.md) | 화면·탭·네비게이션 흐름 |
 | [auth.md](./auth.md) | 인증, 약관 동의, 관심 카테고리 |
 | [quiz-energy.md](./quiz-energy.md) | 퀴즈 세션, 에너지, XP·streak·해금 |
+| [quiz-session-api.md](./quiz-session-api.md) | 세션 출제·제출 API (startSession · Firestore) |
+| [quiz-production-deployment.md](./quiz-production-deployment.md) | 퀴즈 Functions 프로덕션 배포 체크리스트 |
 | [news.md](./news.md) | 뉴스 탭, RSS, 기사 WebView |
 | [data-models.md](./data-models.md) | 모델, 저장소 키, JSON 스키마 |
 | [database/](./database/) | Firestore 스키마, 협업 가이드, 초안 |

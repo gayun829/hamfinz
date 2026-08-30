@@ -1,122 +1,85 @@
-import '../data/hamster_data.dart';
+import '../config/quiz_backend_config.dart';
 import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
+import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
-import '../utils/date_helper.dart';
 import 'auth_service.dart';
+import 'quiz_functions_repository.dart';
+import 'quiz_session_repository.dart';
 
 class QuizService {
   QuizService._();
   static final instance = QuizService._();
 
-  List<QuizQuestion> getTodayQuestions() => QuizData.dailyQuestions();
-
-  /// 문제 1개를 풀었을 때 에너지를 차감하고 저장한다.
-  Future<bool> consumeEnergyForQuestion(UserProfile profile) async {
-    if (profile.energy < QuizData.energyCostPerQuestion) return false;
-    profile.energy =
-        (profile.energy - QuizData.energyCostPerQuestion).clamp(0, QuizData.maxEnergy);
-    await AuthService.instance.saveProfile(profile);
-    return true;
+  /// Firestore `quizQuestions` + `mastered` 기반 유저별 10문항 세션.
+  Future<QuizSession> startSession({required UserProfile profile}) {
+    return QuizSessionRepository.instance.startSession(profile: profile);
   }
 
+  /// 채점 · answers · mastered · energy 차감.
+  /// 백엔드: [QuizBackendConfig.submitBackend]
+  Future<SubmitAnswerResult> submitAnswer({
+    required String sessionId,
+    required String questionId,
+    required int selectedIndex,
+    required UserProfile profile,
+  }) async {
+    final SubmitAnswerResult result;
+    if (QuizBackendConfig.usesCloudFunctions) {
+      result = await QuizFunctionsRepository.instance.submitAnswer(
+        sessionId: sessionId,
+        questionId: questionId,
+        selectedIndex: selectedIndex,
+      );
+    } else {
+      result = await QuizSessionRepository.instance.submitAnswer(
+        sessionId: sessionId,
+        questionId: questionId,
+        selectedIndex: selectedIndex,
+      );
+    }
+    profile.energy = result.energyRemaining.clamp(0, QuizData.maxEnergy);
+    return result;
+  }
+
+  /// XP · 씨앗 · streak · categoryStats · 세션 completed.
+  /// 백엔드: [QuizBackendConfig.submitBackend]
   Future<QuizSessionResult> completeSession({
     required UserProfile profile,
-    required List<QuizAnswer> answers,
+    required String sessionId,
   }) async {
-    final previousLevel = profile.level;
-    var xpEarned = 0;
-
-    for (final answer in answers) {
-      xpEarned += answer.isCorrect ? QuizData.correctXp : QuizData.wrongXp;
-    }
-
-    profile.xp += xpEarned;
-
-    for (final answer in answers) {
-      final question = QuizData.allQuestions.firstWhere(
-        (q) => q.id == answer.questionId,
+    final QuizSessionResult result;
+    if (QuizBackendConfig.usesCloudFunctions) {
+      result = await QuizFunctionsRepository.instance.completeSession(
+        sessionId: sessionId,
       );
-      final key = question.category.label;
-      profile.categoryStats.putIfAbsent(key, CategoryStat.new);
-      profile.categoryStats[key]!.total += 1;
-      if (answer.isCorrect) {
-        profile.categoryStats[key]!.correct += 1;
-      }
+    } else {
+      result = await QuizSessionRepository.instance.completeSession(
+        sessionId: sessionId,
+      );
     }
 
-    final correctCount = answers.where((a) => a.isCorrect).length;
-    final seedsEarned = correctCount * QuizData.seedsPerCorrect;
-    profile.seeds += seedsEarned;
-
-    profile.learningHistory.insert(
-      0,
-      LearningRecord(
-        date: DateHelper.todayKey(),
-        correctCount: correctCount,
-        totalCount: answers.length,
-        xpEarned: xpEarned,
-      ),
-    );
-
-    // streak만 하루 1회 갱신. 학습 횟수 제한은 에너지로 대체.
-    if (!profile.todayQuizCompleted) {
-      profile.todayQuizCompleted = true;
-      final lastDate = profile.lastQuizCompletedDate;
-      if (lastDate == null) {
-        profile.streak = 1;
-      } else if (DateHelper.isYesterday(lastDate)) {
-        profile.streak += 1;
-      } else if (!DateHelper.isToday(lastDate)) {
-        profile.streak = 1;
-      }
-      profile.lastQuizCompletedDate = DateHelper.todayKey();
+    final refreshed = await AuthService.instance.getCurrentUser();
+    if (refreshed != null) {
+      _syncProfile(profile, refreshed);
+    } else if (result.energyRemaining != null) {
+      profile.energy = result.energyRemaining!.clamp(0, QuizData.maxEnergy);
     }
 
-    final unlockedItems = _unlockItems(profile);
-    await AuthService.instance.saveProfile(profile);
-
-    return QuizSessionResult(
-      answers: answers,
-      xpEarned: xpEarned,
-      seedsEarned: seedsEarned,
-      leveledUp: profile.level > previousLevel,
-      newLevel: profile.level,
-      previousLevel: previousLevel,
-      unlockedItems: unlockedItems,
-      newStreak: profile.streak,
-    );
+    return result;
   }
 
-  List<String> _unlockItems(UserProfile profile) {
-    final unlocked = <String>[];
-    void unlock(String id) {
-      if (!profile.unlockedHamsterIds.contains(id)) {
-        profile.unlockedHamsterIds.add(id);
-        unlocked.add(id);
-      }
-    }
-
-    if (profile.learningHistory.isNotEmpty) {
-      unlock('hamster_study');
-    }
-    if (profile.streak >= 3) {
-      unlock('hamster_streak');
-    }
-    if (profile.level >= 3) {
-      unlock('hamster_level3');
-    }
-    if (profile.level >= 5) {
-      unlock('hamster_level5');
-    }
-    if (profile.level >= 10) {
-      unlock('hamster_master');
-    }
-
-    for (final id in unlocked) {
-      HamsterData.findById(id);
-    }
-
-    return unlocked;
+  void _syncProfile(UserProfile target, UserProfile source) {
+    target.xp = source.xp;
+    target.streak = source.streak;
+    target.lastQuizCompletedDate = source.lastQuizCompletedDate;
+    target.todayQuizCompleted = source.todayQuizCompleted;
+    target.energy = source.energy;
+    target.lastEnergyResetDate = source.lastEnergyResetDate;
+    target.unlockedHamsterIds = List<String>.from(source.unlockedHamsterIds);
+    target.selectedHamsterId = source.selectedHamsterId;
+    target.learningHistory = List<LearningRecord>.from(source.learningHistory);
+    target.categoryStats = Map<String, CategoryStat>.from(source.categoryStats);
+    target.seeds = source.seeds;
   }
 }

@@ -1,44 +1,37 @@
 rules_version = '2';
 
-// 개발 Rules — quiz mastered/answers/sessions 클라이언트 write 허용.
-// 프로덕션: firestore.rules.production · docs/quiz-production-deployment.md
+// 프로덕션: quiz mastered / answers / sessions update — Cloud Functions(Admin SDK) 전용.
+// 배포: node scripts/deploy_firestore_rules.mjs --production
+// 개발 Rules: firestore.rules
 
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
 
-      // 퀴즈: 맞춘 문제 id. 개발 — 클라이언트 write · 배포 — Functions 전환 예정.
+      // 퀴즈: 맞춘 문제 id — 읽기만. 쓰기는 submitAnswer Functions.
       match /mastered/{questionId} {
         allow read: if request.auth != null && request.auth.uid == uid;
-        allow create, update: if request.auth != null && request.auth.uid == uid;
-        allow delete: if false;
+        allow write: if false;
       }
 
-      // 퀴즈: 세션 · answers. inProgress 생성/갱신 — 클라이언트(개발) · Functions(배포) 예정.
+      // 퀴즈: startSession 시 inProgress 생성만 클라이언트. answers·완료는 Functions.
       match /sessions/{sessionId} {
         allow read, create: if request.auth != null && request.auth.uid == uid;
-        allow update: if request.auth != null && request.auth.uid == uid
-          && resource.data.status == 'inProgress';
-        allow delete: if false;
+        allow update, delete: if false;
 
         match /answers/{questionId} {
           allow read: if request.auth != null && request.auth.uid == uid;
-          allow create: if request.auth != null && request.auth.uid == uid;
-          allow update, delete: if false;
+          allow write: if false;
         }
       }
     }
 
-    // quizQuestions: 앱은 isActive 문제만 읽기. 등록·수정은 Console / Admin SDK.
     match /quizQuestions/{questionId} {
       allow read: if request.auth != null && resource.data.isActive == true;
       allow write: if false;
     }
 
-    // nicknames/emails: 친구 검색용 공개 인덱스. users 문서는 본인만 읽을 수 있어서
-    // 검색에 필요한 uid+nickname만 담은 문서를 별도로 둔다. 본인 uid로 1회만 생성 —
-    // 수정·삭제는 막아서 예약을 유지한다 (닉네임 변경·탈퇴 정책은 추후 정한다).
     match /nicknames/{nicknameLower} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
@@ -56,12 +49,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // friendships: 두 uid를 정렬해 이어붙인 id(`uidA_uidB`) 문서 하나로 관계를 관리한다.
-    // users 문서는 건드리지 않아 위 users 규칙과 충돌하지 않는다.
     match /friendships/{friendshipId} {
-      // 문서가 아직 없으면 resource == null이라 resource.data 참조가 그대로 에러 →
-      // false 취급돼서 "친구 요청했는지 확인" get()이 permission-denied로 막힌다.
-      // 없는 문서는 어차피 새어나갈 데이터가 없으니 read를 허용해 존재 확인을 가능하게 한다.
       allow read: if request.auth != null
         && (resource == null || request.auth.uid in resource.data.uids);
 
@@ -75,7 +63,6 @@ service cloud.firestore {
              ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt']
            );
 
-      // 요청받은 쪽만 pending -> accepted 로 바꿀 수 있다.
       allow update: if request.auth != null
         && request.auth.uid in resource.data.uids
         && request.auth.uid != resource.data.requestedBy
@@ -84,7 +71,6 @@ service cloud.firestore {
         && request.resource.data.uids == resource.data.uids
         && request.resource.data.requestedBy == resource.data.requestedBy;
 
-      // 요청 취소/거절/친구 끊기: 관계 당사자 누구나.
       allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
     }
   }
