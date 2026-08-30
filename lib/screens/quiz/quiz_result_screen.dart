@@ -54,6 +54,8 @@ class QuizResultScreen extends StatelessWidget {
                               const SizedBox(height: 12),
                               _ResultRow(label: '획득 XP', value: '+${result.xpEarned}'),
                               const SizedBox(height: 12),
+                              _ResultRow(label: '획득 씨앗', value: '+${result.seedsEarned}'),
+                              const SizedBox(height: 12),
                               _ResultRow(
                                 label: '남은 에너지',
                                 value: '${profile.energy}',

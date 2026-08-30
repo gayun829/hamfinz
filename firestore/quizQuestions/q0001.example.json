@@ -1,0 +1,10 @@
+{
+  "categoryId": "allowance",
+  "difficulty": 1,
+  "type": "ox",
+  "question": "예산은 돈을 쓰기 전에 수입과 지출 계획을 세운 것을 뜻한다. (1번째 사례)",
+  "options": ["O", "X"],
+  "correctIndex": 0,
+  "explanation": "예산은 돈을 쓰기 전에 수입과 지출 계획을 세운 것이다.",
+  "isActive": true
+}

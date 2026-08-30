@@ -1,6 +1,9 @@
 # Local working notes (not for GitHub)
 .local/
 
+# Node (Firestore seed/deploy scripts)
+node_modules/
+
 # Miscellaneous
 *.class
 *.log

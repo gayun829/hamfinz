@@ -62,7 +62,7 @@ HomeScreen
 
 ```
 HomeScreen
-  → QuizScreen (7문제)
+  → QuizScreen (10문제)
   → QuizResultScreen (pushReplacement)
   → pop(true) → HomeScreen 프로필 새로고침
 ```
