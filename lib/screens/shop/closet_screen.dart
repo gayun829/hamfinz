@@ -29,22 +29,21 @@ class _ClosetScreenState extends State<ClosetScreen> {
   late UserProfile _profile;
   _ClosetTab _tab = _ClosetTab.accessory;
   ShopItem? _preview;
-  // Staged selections (미리보기에 적용되는 임시 선택)
   String? _stagedSkinId;
   String? _stagedPatternId;
+  String? _stagedBackgroundId;
   final List<String> _stagedAccessoryIds = [];
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
-    // 초기 미리보기 아이템이 있으면 설정
     if (widget.initialPreview != null) {
       _preview = widget.initialPreview;
     }
-    // staged 초기값을 현재 프로필의 장착 상태로 초기화
     _stagedSkinId = _profile.equippedSkinId;
     _stagedPatternId = _profile.equippedPatternId;
+    _stagedBackgroundId = _profile.equippedBackgroundId;
     _stagedAccessoryIds.clear();
     _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
   }
@@ -53,7 +52,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     switch (_tab) {
       case _ClosetTab.my:
         return ShopData.items
-            .where((item) => _profile.ownedShopItemIds.contains(item.id))
+            .where((item) => !item.hideFromCloset && _profile.ownedShopItemIds.contains(item.id))
             .toList();
       case _ClosetTab.skin:
         return ShopData.byCategory(ShopCategory.skin);
@@ -67,8 +66,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   Future<void> _onItemTap(ShopItem item) async {
-    // 탭은 미리보기 전용으로 동작: 아이템을 staged(임시)로 추가/토글합니다.
-    // 카테고리별 동작: skin/pattern은 1개만, accessory는 다중 선택 허용.
     setState(() {
       _preview = item;
       switch (item.category) {
@@ -86,18 +83,17 @@ class _ClosetScreenState extends State<ClosetScreen> {
           }
           break;
         case ShopCategory.background:
-          // treat background like skin (single)
-          _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+          _stagedBackgroundId = _stagedBackgroundId == item.id ? null : item.id;
           break;
       }
     });
   }
 
   Future<void> _purchasePreview() async {
-    // 구매는 staged된 모든 아이템(현재 소유하지 않은 것들)을 대상으로 합니다.
     final stagedIds = <String>[];
     if (_stagedSkinId != null) stagedIds.add(_stagedSkinId!);
     if (_stagedPatternId != null) stagedIds.add(_stagedPatternId!);
+    if (_stagedBackgroundId != null) stagedIds.add(_stagedBackgroundId!);
     stagedIds.addAll(_stagedAccessoryIds);
 
     // 구매 대상만 필터링
@@ -233,34 +229,91 @@ class _ClosetScreenState extends State<ClosetScreen> {
                         Positioned(
                           right: s(14),
                           bottom: s(16),
-                          child: GestureDetector(
-                            onTap: () => setState(() {
-                              // 초기화: 임시 선택을 저장된 장착 상태로 되돌립니다.
-                              _preview = null;
-                              _stagedSkinId = _profile.equippedSkinId;
-                              _stagedPatternId = _profile.equippedPatternId;
-                              _stagedAccessoryIds.clear();
-                              _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
-                            }),
-                            child: Container(
-                              width: s(FigmaShopTokens.resetButton)
-                                  .clamp(36, 48),
-                              height: s(FigmaShopTokens.resetButton)
-                                  .clamp(36, 48),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '↺',
-                                style: TextStyle(
-                                  fontSize: s(22),
-                                  fontWeight: FontWeight.w600,
-                                  height: 1,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              GestureDetector(
+                                onTap: () => setState(() {
+                                  _preview = null;
+                                  _stagedSkinId = _profile.equippedSkinId;
+                                  _stagedPatternId = _profile.equippedPatternId;
+                                  _stagedBackgroundId = _profile.equippedBackgroundId;
+                                  _stagedAccessoryIds.clear();
+                                  _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
+                                }),
+                                child: Container(
+                                  width: s(44).clamp(40, 48),
+                                  height: s(44).clamp(40, 48),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '↺',
+                                    style: TextStyle(
+                                      fontSize: s(18),
+                                      fontWeight: FontWeight.w700,
+                                      height: 1,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                              SizedBox(height: s(8)),
+                              GestureDetector(
+                                onTap: () async {
+                                  final ids = <String>[];
+                                  if (_stagedSkinId != null) ids.add(_stagedSkinId!);
+                                  if (_stagedPatternId != null) ids.add(_stagedPatternId!);
+                                  if (_stagedBackgroundId != null) ids.add(_stagedBackgroundId!);
+                                  ids.addAll(_stagedAccessoryIds);
+                                  final toBuy = ids.where((id) => !_profile.ownedShopItemIds.contains(id)).toList();
+
+                                  if (toBuy.isNotEmpty) {
+                                    final itemsToBuy = toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id)).toList();
+                                    final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
+                                    if (_profile.seeds < total) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})')),
+                                      );
+                                      return;
+                                    }
+                                    _profile.seeds -= total;
+                                    _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, ...toBuy];
+                                  }
+
+                                  _profile.equippedSkinId = _stagedSkinId;
+                                  _profile.equippedPatternId = _stagedPatternId;
+                                  _profile.equippedBackgroundId = _stagedBackgroundId;
+                                  _profile.equippedAccessoryIds = List<String>.from(_stagedAccessoryIds);
+
+                                  await AuthService.instance.saveProfile(_profile);
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('저장되었습니다.')),
+                                  );
+                                },
+                                child: Container(
+                                  width: s(44).clamp(40, 48),
+                                  height: s(44).clamp(40, 48),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '저장',
+                                    style: TextStyle(
+                                      fontSize: s(10),
+                                      fontWeight: FontWeight.w700,
+                                      height: 1,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         // 구매 버튼: staged 총 가격을 보여주고 구매 실행
@@ -286,62 +339,16 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                       style: FigmaShopTokens.sectionTitle(figma.scale),
                                     ),
                                     SizedBox(width: s(8)),
-                                    ShopSeedChip(figma: figma, seeds: _stagedTotalPrice, iconSize: 16),
+                                    ShopSeedChip(
+                                      figma: figma,
+                                      seeds: _stagedTotalPrice,
+                                      iconSize: const Size(16, 16),
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                        // 저장 버튼: 구매가 필요하면 구매 후 장착 상태까지 저장.
-                        Positioned(
-                          bottom: s(16),
-                          right: s(80),
-                          child: GestureDetector(
-                            onTap: () async {
-                              // Determine staged ids and toBuy
-                              final ids = <String>[];
-                              if (_stagedSkinId != null) ids.add(_stagedSkinId!);
-                              if (_stagedPatternId != null) ids.add(_stagedPatternId!);
-                              ids.addAll(_stagedAccessoryIds);
-                              final toBuy = ids.where((id) => !_profile.ownedShopItemIds.contains(id)).toList();
-
-                              // Purchase if needed
-                              if (toBuy.isNotEmpty) {
-                                final itemsToBuy = toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id)).toList();
-                                final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
-                                if (_profile.seeds < total) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})')),
-                                  );
-                                  return;
-                                }
-                                _profile.seeds -= total;
-                                _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, ...toBuy];
-                              }
-
-                              // Save equipped fields to profile and persist
-                              _profile.equippedSkinId = _stagedSkinId;
-                              _profile.equippedPatternId = _stagedPatternId;
-                              _profile.equippedAccessoryIds = List<String>.from(_stagedAccessoryIds);
-
-                              await AuthService.instance.saveProfile(_profile);
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('저장되었습니다.')),
-                              );
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: s(12)),
-                              constraints: BoxConstraints(minHeight: s(40)),
-                              decoration: BoxDecoration(
-                                color: FigmaShopTokens.chip,
-                                borderRadius: BorderRadius.circular(s(8)),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text('저장', style: FigmaShopTokens.sectionTitle(figma.scale)),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

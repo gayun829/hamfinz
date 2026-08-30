@@ -15,8 +15,10 @@ class UserProfile {
     this.interestCategories = const [],
     this.seeds = 0,
     this.ownedShopItemIds = const [],
+    this.studyGuardCount = 0,
     this.equippedSkinId,
     this.equippedPatternId,
+    this.equippedBackgroundId,
     this.equippedAccessoryIds = const [],
   });
 
@@ -47,9 +49,13 @@ class UserProfile {
   /// 상점에서 구매한 아이템 id 목록.
   List<String> ownedShopItemIds;
 
-  /// 현재 프로필에 장착된 스킨/패턴/악세서리 id들 (저장된 상태)
+  /// 연속 학습 방어권 보유 개수 (최대 3)
+  int studyGuardCount;
+
+  /// 현재 프로필에 장착된 스킨/패턴/배경/악세서리 id들 (저장된 상태)
   String? equippedSkinId;
   String? equippedPatternId;
+  String? equippedBackgroundId;
   List<String> equippedAccessoryIds;
 
   int get level => LevelUtils.levelFromXp(xp);
