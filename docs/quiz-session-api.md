@@ -11,14 +11,17 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 
 | 단계 | 진입점 | 구현 |
 |------|--------|------|
-| **출제** | `QuizService.startSession(profile)` | `lib/services/quiz_session_repository.dart` (클라이언트) |
-| **제출·채점** | `QuizService.submitAnswer(...)` | Cloud Function `submitAnswer` |
-| **세션 완료** | `QuizService.completeSession(...)` | Cloud Function `completeSession` |
+| **출제** | `QuizService.startSession(profile)` | `QuizSessionRepository.startSession` (클라이언트) |
+| **제출·채점** | `QuizService.submitAnswer(...)` | `QuizSessionRepository.submitAnswer` (클라이언트 트랜잭션) |
+| **세션 완료** | `QuizService.completeSession(...)` | `QuizSessionRepository.completeSession` (클라이언트 트랜잭션) |
+
+> **개발(현재):** Blaze 없이 동작 — `QuizBackendConfig.submitBackend = clientTransaction` + `firestore.rules`  
+> **배포(추후):** [quiz-production-deployment.md](./quiz-production-deployment.md) 체크리스트
 
 | 모델 | 파일 |
 |------|------|
 | `QuizSession`, `QuizQuestionLearning`, `SubmitAnswerResult` | `lib/models/quiz_session.dart` |
-| Callable 래퍼 | `lib/services/quiz_functions_repository.dart` |
+| Callable (배포용, 현재 미사용) | `lib/services/quiz_functions_repository.dart` |
 
 ---
 
@@ -36,7 +39,8 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 
 ## 2. submitAnswer (제출 · 채점)
 
-**Cloud Function** `submitAnswer` · region `asia-northeast3`
+**구현:** `QuizSessionRepository.submitAnswer` — Firestore 트랜잭션  
+(배포 시 동일 로직이 Cloud Function `submitAnswer` · region `asia-northeast3`)
 
 ### 요청
 
@@ -72,7 +76,8 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 
 ## 3. completeSession (세션 완료)
 
-**Cloud Function** `completeSession`
+**구현:** `QuizSessionRepository.completeSession` — Firestore 트랜잭션  
+(배포 시 Cloud Function `completeSession`)
 
 ### 요청
 
@@ -94,25 +99,24 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 
 ---
 
-## Firestore Rules · Functions
+## Firestore Rules
 
-| 경로 | 클라이언트 |
-|------|-----------|
+| 경로 | 클라이언트 (개발) |
+|------|-------------------|
 | `quizQuestions` | read (`isActive`) |
-| `mastered` | read |
-| `sessions` | read · create (inProgress) |
-| `sessions/.../answers` | read · **write: Functions only** |
-| `mastered` write | **Functions only** |
-| `users` xp/energy/seeds | **completeSession**이 서버 갱신 |
+| `mastered` | read · create · update |
+| `sessions` | read · create · update (`inProgress`만) |
+| `sessions/.../answers` | read · create |
+| `users` | read · write (본인) — energy/xp/seeds 등 트랜잭션 갱신 |
 
-### 배포
+### 배포 (Blaze 후)
 
 ```bash
 cd functions && npm install && cd ..
 firebase deploy --only functions,firestore:rules,firestore:indexes
 ```
 
-Functions 미배포 시 앱 제출 단계에서 오류 (SnackBar 안내).
+배포 시 Rules에서 `mastered`/`answers` 클라이언트 write를 막고 Functions Admin SDK로 전환.
 
 ---
 
@@ -121,8 +125,8 @@ Functions 미배포 시 앱 제출 단계에서 오류 (SnackBar 안내).
 ```
 startSession (로딩)
   → 문제 표시 (correctIndex 없음)
-  → [정답 제출] → submitAnswer (서버 채점)
-  → 정·오답 UI (서버가 준 correctIndex)
+  → [정답 제출] → submitAnswer (Firestore 트랜잭션)
+  → 정·오답 UI (채점 결과 correctIndex)
   → [다음] × 9
   → [결과 보기] → completeSession → QuizResultScreen
 ```
@@ -144,16 +148,18 @@ startSession (로딩)
 
 | 파일 | § |
 |------|---|
-| `functions/index.js` | submitAnswer · completeSession |
-| `lib/services/quiz_functions_repository.dart` | Callable |
+| `lib/config/quiz_backend_config.dart` | **개발/배포 전환 스위치** |
+| `lib/services/quiz_session_repository.dart` | startSession · submitAnswer · completeSession (클라이언트) |
+| `functions/index.js` | 배포용 Callable (동일 로직 참고) |
+| `lib/services/quiz_functions_repository.dart` | 배포용 Callable 래퍼 |
 | `lib/services/quiz_service.dart` | Facade |
-| `lib/screens/quiz/quiz_screen.dart` | 서버 제출 UI |
+| `lib/screens/quiz/quiz_screen.dart` | 제출 UI |
 | `lib/models/quiz_session.dart` | correctIndex 클라이언트 제거 |
 
 ---
 
 ## 추후
 
+- [ ] Blaze 전환 후 Functions 배포 · Rules에서 클라이언트 quiz write 제한
 - [ ] `startSession` callable 이전 (선택)
-- [ ] `users` Rules — xp/energy 클라이언트 write 차단 강화
 - [ ] Emulator 로컬 테스트 (`firebase emulators:start`)

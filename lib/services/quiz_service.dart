@@ -1,3 +1,4 @@
+import '../config/quiz_backend_config.dart';
 import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
@@ -15,30 +16,48 @@ class QuizService {
     return QuizSessionRepository.instance.startSession(profile: profile);
   }
 
-  /// 서버 채점 · answers · mastered · energy 차감.
+  /// 채점 · answers · mastered · energy 차감.
+  /// 백엔드: [QuizBackendConfig.submitBackend]
   Future<SubmitAnswerResult> submitAnswer({
     required String sessionId,
     required String questionId,
     required int selectedIndex,
     required UserProfile profile,
   }) async {
-    final result = await QuizFunctionsRepository.instance.submitAnswer(
-      sessionId: sessionId,
-      questionId: questionId,
-      selectedIndex: selectedIndex,
-    );
+    final SubmitAnswerResult result;
+    if (QuizBackendConfig.usesCloudFunctions) {
+      result = await QuizFunctionsRepository.instance.submitAnswer(
+        sessionId: sessionId,
+        questionId: questionId,
+        selectedIndex: selectedIndex,
+      );
+    } else {
+      result = await QuizSessionRepository.instance.submitAnswer(
+        sessionId: sessionId,
+        questionId: questionId,
+        selectedIndex: selectedIndex,
+      );
+    }
     profile.energy = result.energyRemaining.clamp(0, QuizData.maxEnergy);
     return result;
   }
 
-  /// 서버에서 XP · 씨앗 · streak · categoryStats 갱신 후 프로필 동기화.
+  /// XP · 씨앗 · streak · categoryStats · 세션 completed.
+  /// 백엔드: [QuizBackendConfig.submitBackend]
   Future<QuizSessionResult> completeSession({
     required UserProfile profile,
     required String sessionId,
   }) async {
-    final result = await QuizFunctionsRepository.instance.completeSession(
-      sessionId: sessionId,
-    );
+    final QuizSessionResult result;
+    if (QuizBackendConfig.usesCloudFunctions) {
+      result = await QuizFunctionsRepository.instance.completeSession(
+        sessionId: sessionId,
+      );
+    } else {
+      result = await QuizSessionRepository.instance.completeSession(
+        sessionId: sessionId,
+      );
+    }
 
     final refreshed = await AuthService.instance.getCurrentUser();
     if (refreshed != null) {

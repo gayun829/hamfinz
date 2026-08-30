@@ -103,7 +103,7 @@ class _QuizScreenState extends State<QuizScreen> {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('답안 제출에 실패했어요. Functions 배포를 확인해 주세요.')),
+        const SnackBar(content: Text('답안 제출에 실패했어요. 다시 시도해 주세요.')),
       );
     }
   }
