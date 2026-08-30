@@ -14,6 +14,7 @@
 | [news.md](./news.md) | 뉴스 탭, RSS, 기사 WebView |
 | [data-models.md](./data-models.md) | 모델, 저장소 키, JSON 스키마 |
 | [database/](./database/) | Firestore 스키마, 협업 가이드, 초안 |
+| [status/](./status/) | 기능별 작업 상태 — 브랜치·PR·배포 여부·남은 일 (진행 중일 때만, 스키마 내용은 없음) |
 | [development-guide.md](./development-guide.md) | 실행, 테스트 계정, CORS 프록시, 테스트 |
 | [roadmap.md](./roadmap.md) | 미구현·예정 기능 |
 | [figma-to-code.md](./figma-to-code.md) | Figma → Flutter 변환 규칙 |

@@ -1,0 +1,7 @@
+{
+  "uids": ["uid_example_1", "uid_example_2"],
+  "requestedBy": "uid_example_1",
+  "requestedByNickname": "김기니니",
+  "status": "pending",
+  "createdAt": "<serverTimestamp>"
+}

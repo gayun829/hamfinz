@@ -27,14 +27,17 @@ class FriendRequestInfo {
   final String nickname;
 }
 
-/// 친구 관계는 `friendships/{uidA}_{uidB}` (정렬된 uid 쌍) 문서 하나로 관리한다.
-/// 어느 한쪽 유저 문서도 건드리지 않아 Firestore 보안 규칙이 단순해진다.
+/// 친구 검색은 `nicknames`/`emails` 공개 인덱스로, 관계는 `friendships/{uidA}_{uidB}`
+/// 문서 하나로 관리한다. `users/{uid}`는 본인만 read라 다른 유저의 `users` 문서는
+/// 이 서비스 어디에서도 읽지 않는다 — 필요한 닉네임은 인덱스/요청 문서에 있는 걸 쓴다.
 class FriendService {
   FriendService._();
   static final instance = FriendService._();
 
   final _auth = FirebaseAuth.instance;
   final _users = FirebaseFirestore.instance.collection('users');
+  final _nicknames = FirebaseFirestore.instance.collection('nicknames');
+  final _emails = FirebaseFirestore.instance.collection('emails');
   final _friendships = FirebaseFirestore.instance.collection('friendships');
 
   String get _myUid => _auth.currentUser!.uid;
@@ -48,40 +51,40 @@ class FriendService {
   Future<List<FriendSearchResult>> searchUsers(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return [];
+    final normalized = trimmed.toLowerCase();
 
     final myUid = _myUid;
-    final nicknames = <String, String>{};
+    final found = <String, String>{}; // uid -> nickname
 
-    final byNickname = await _users
-        .orderBy('nickname')
-        .startAt([trimmed])
-        .endAt(['$trimmed'])
+    final byNickname = await _nicknames
+        .orderBy(FieldPath.documentId)
+        .startAt([normalized])
+        .endAt(['$normalized'])
         .limit(20)
         .get();
     for (final doc in byNickname.docs) {
-      nicknames[doc.id] = doc.data()['nickname'] as String? ?? '';
+      final uid = doc.data()['uid'] as String?;
+      final nickname = doc.data()['nickname'] as String?;
+      if (uid != null && nickname != null) found[uid] = nickname;
     }
 
     if (trimmed.contains('@')) {
-      final byEmail = await _users
-          .where('email', isEqualTo: trimmed.toLowerCase())
-          .limit(5)
-          .get();
-      for (final doc in byEmail.docs) {
-        nicknames[doc.id] = doc.data()['nickname'] as String? ?? '';
-      }
+      final emailDoc = await _emails.doc(normalized).get();
+      final uid = emailDoc.data()?['uid'] as String?;
+      final nickname = emailDoc.data()?['nickname'] as String?;
+      if (uid != null && nickname != null) found[uid] = nickname;
     }
 
-    nicknames.remove(myUid);
-    if (nicknames.isEmpty) return [];
+    found.remove(myUid);
+    if (found.isEmpty) return [];
 
-    final statuses = await _statusesFor(nicknames.keys, myUid);
+    final statuses = await _statusesFor(found.keys, myUid);
 
-    return nicknames.entries
+    return found.entries
         .map(
           (e) => FriendSearchResult(
             uid: e.key,
-            nickname: e.value.isEmpty ? '(닉네임 없음)' : e.value,
+            nickname: e.value,
             status: statuses[e.key] ?? FriendStatus.none,
           ),
         )
@@ -121,15 +124,20 @@ class FriendService {
     final existing = await ref.get();
     if (existing.exists) return;
 
+    final myDoc = await _users.doc(myUid).get();
+    final myNickname = myDoc.data()?['nickname'] as String? ?? '';
+
     await ref.set({
       'uids': [myUid, targetUid],
       'requestedBy': myUid,
+      'requestedByNickname': myNickname,
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
   /// 내가 받은(상대가 보낸) 대기 중인 친구 요청 목록.
+  /// 상대 닉네임은 요청 문서에 스냅샷된 `requestedByNickname`을 쓴다(상대 `users` 문서는 못 읽음).
   Future<List<FriendRequestInfo>> getIncomingRequests() async {
     final myUid = _myUid;
     final snap = await _friendships
@@ -137,19 +145,18 @@ class FriendService {
         .where('status', isEqualTo: 'pending')
         .get();
 
-    final incoming = snap.docs.where((d) => d.data()['requestedBy'] != myUid);
-
     final result = <FriendRequestInfo>[];
-    for (final doc in incoming) {
-      final uids = List<String>.from(doc.data()['uids'] as List);
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      if (data['requestedBy'] == myUid) continue;
+      final uids = List<String>.from(data['uids'] as List);
       final otherUid = uids.firstWhere((u) => u != myUid, orElse: () => '');
       if (otherUid.isEmpty) continue;
-      final userDoc = await _users.doc(otherUid).get();
       result.add(
         FriendRequestInfo(
           friendshipId: doc.id,
           uid: otherUid,
-          nickname: userDoc.data()?['nickname'] as String? ?? '알 수 없음',
+          nickname: data['requestedByNickname'] as String? ?? '알 수 없음',
         ),
       );
     }

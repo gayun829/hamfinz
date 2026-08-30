@@ -11,5 +11,53 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.isActive == true;
       allow write: if false;
     }
+
+    // nicknames/emails: 친구 검색용 공개 인덱스. users 문서는 본인만 읽을 수 있어서
+    // 검색에 필요한 uid+nickname만 담은 문서를 별도로 둔다. 본인 uid로 1회만 생성 —
+    // 수정·삭제는 막아서 예약을 유지한다 (닉네임 변경·탈퇴 정책은 추후 정한다).
+    match /nicknames/{nicknameLower} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nickname']);
+      allow update, delete: if false;
+    }
+
+    match /emails/{emailLower} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nickname'])
+        && emailLower == request.auth.token.email;
+      allow update, delete: if false;
+    }
+
+    // friendships: 두 uid를 정렬해 이어붙인 id(`uidA_uidB`) 문서 하나로 관계를 관리한다.
+    // users 문서는 건드리지 않아 위 users 규칙과 충돌하지 않는다.
+    match /friendships/{friendshipId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.uids;
+
+      allow create: if request.auth != null
+        && request.resource.data.uids is list
+        && request.resource.data.uids.size() == 2
+        && request.auth.uid in request.resource.data.uids
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(
+             ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt']
+           );
+
+      // 요청받은 쪽만 pending -> accepted 로 바꿀 수 있다.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.uids
+        && request.auth.uid != resource.data.requestedBy
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.uids == resource.data.uids
+        && request.resource.data.requestedBy == resource.data.requestedBy;
+
+      // 요청 취소/거절/친구 끊기: 관계 당사자 누구나.
+      allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
+    }
   }
 }
