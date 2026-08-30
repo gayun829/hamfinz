@@ -5,7 +5,6 @@ import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/figma_shop_tokens.dart';
-import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 
