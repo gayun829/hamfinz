@@ -9,6 +9,7 @@ import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../calendar/streak_calendar_screen.dart';
+import '../friends/add_friend_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
@@ -83,8 +84,10 @@ class _HomeScreenState extends State<HomeScreen> {
     // 나중에 추가: HOT 뉴스/공지 화면
   }
 
-  void _openDigging() {
-    // 나중에 추가: 땅 파기(캐릭터 특기) 기능
+  void _openFriends() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+    );
   }
 
   void _openBookmark() {
@@ -150,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
           canStartLearning: canStart,
           onMenu: _openCategorySwitcher,
           onNews: _openNews,
-          onDigging: _openDigging,
+          onFriends: _openFriends,
           onBookmark: _openBookmark,
           onShop: _openShop,
           onStreakCalendar: _openStreakCalendar,
@@ -174,7 +177,7 @@ List<Widget> _buildFigmaHomeLayers({
   required bool canStartLearning,
   required VoidCallback onMenu,
   required VoidCallback onNews,
-  required VoidCallback onDigging,
+  required VoidCallback onFriends,
   required VoidCallback onBookmark,
   required VoidCallback onShop,
   required VoidCallback onStreakCalendar,
@@ -435,9 +438,9 @@ List<Widget> _buildFigmaHomeLayers({
         top: 1496,
         width: 121,
         height: 46,
-        onTap: onDigging,
+        onTap: onFriends,
         child: Text(
-          '땅 파기',
+          '친구',
           style: TextStyle(
             fontSize: s(37),
             color: Colors.black,

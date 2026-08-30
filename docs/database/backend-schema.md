@@ -386,6 +386,87 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 ---
 
+## 6. 친구 (Friends) — 제안 (초안)
+
+> 상태: 제안. `database-schema.md` 미반영. 프론트: `lib/screens/friends/`(현재는 목업 데이터로 동작).  
+> 영향 범위: `users/{uid}` 읽기 권한(§2 초안은 본인만 read)과 겹친다 — Auth owner 리뷰 필요.
+
+닉네임/이메일로 다른 유저를 검색하려면 상대 `users/{uid}` 문서를 읽어야 하는데, 이 문서 아래쪽 "Security Rules 초안"은 `users`를 **본인만 read** 하도록 막아뒀다. 그래서 `users` 자체를 공개하는 대신, §2에서 이미 언급된 `nicknames/{nicknameLower}` 예약 문서를 검색 인덱스로 겸용하고, 이메일 검색용으로 `emails/{emailLower}` 문서를 같은 방식으로 하나 더 두는 안을 제안한다.
+
+**검색 → 요청 흐름**: 검색창 입력 → `nicknames`(접두어) 또는 `emails`(정확히 일치) 조회 → uid 확보 → 결과에 닉네임 표시 + 이미 친구/요청 상태 있으면 `friendships/{uidA}_{uidB}` 확인 후 표시 → "추가" 누르면 `friendships` 문서 생성. `users` 원본 필드(레벨·streak 등)는 이 흐름에서 한 번도 읽지 않는다.
+
+### `nicknames/{nicknameLower}`
+
+§2 "닉네임 중복 예약" 문서와 동일한 문서를 재사용한다. 닉네임 변경 시 이전 id는 지우고 새 id로 다시 만든다.
+
+```json
+{
+  "uid": "<auth uid>",
+  "nickname": "닉네임"
+}
+```
+
+- write: `users/{uid}` 생성·닉네임 변경 시에만 (Auth owner 영역, 클라이언트는 자기 uid로만 생성)
+- read: `if request.auth != null` — PII 없이 uid·닉네임만 있어 공개 read 해도 `users` 원본을 열 필요가 없다
+
+### `emails/{emailLower}`
+
+`nicknames`와 같은 목적 · 같은 구조. 이메일로 찾을 때도 `users`를 열 필요 없이 이 문서만 본다.
+
+```json
+{
+  "uid": "<auth uid>",
+  "nickname": "닉네임"
+}
+```
+
+- write: 본인 이메일로만 생성 가능. `emailLower == request.auth.token.email.lower()` 로 Auth ID 토큰의 이메일 클레임과 대조해 타인 이메일 도용을 막는다 (`users/{uid}` 생성 시 같이 만든다)
+- read: `if request.auth != null` — 이메일 자체는 노출하지 않고, 검색 결과로는 uid·닉네임만 보여준다
+
+### `friendships/{uidA}_{uidB}`
+
+두 uid를 정렬해 이어붙인 id로 관계당 문서 하나. 요청 → 수락 상태를 한 문서에서 관리한다.
+
+```json
+{
+  "uids": ["<uidA>", "<uidB>"],
+  "requestedBy": "<uid>",
+  "status": "pending",
+  "createdAt": "<timestamp>"
+}
+```
+
+`status`: `pending` | `accepted`
+
+- create: `request.auth.uid`가 `uids`에 포함, `requestedBy == request.auth.uid`, `status == 'pending'`
+- update: `requestedBy`가 아닌 상대방만 `pending → accepted`
+- read/delete: `request.auth.uid in resource.data.uids`인 당사자만
+- `users/{uid}` 문서는 전혀 건드리지 않아 §2 규칙과 충돌하지 않는다
+
+### 컬렉션 트리 추가
+
+```
+nicknames/{nicknameLower}        # §2 예약 패턴과 겸용, 공개 read
+emails/{emailLower}              # 이메일 검색용, 공개 read
+friendships/{uidA}_{uidB}
+```
+
+### 인덱스 추가
+
+| 쿼리 | 인덱스 |
+|------|--------|
+| 내가 받은/보낸 친구 요청 | `friendships`: `uids`(array-contains) + `status` |
+
+### 아직 안 정한 것 (친구)
+
+- **닉네임 유일성**: `nicknames/{nicknameLower}` 예약 패턴을 쓰려면 닉네임이 유일해야 하는데, 지금 앱은 중복 닉네임을 막지 않는다. 회원가입 화면(`signup_screen.dart`)에 "중복 확인" 버튼은 이미 있지만 `_checkNicknameDuplicate()`가 빈 함수라 실제로는 검사하지 않는다 — 이 인덱스를 도입하면 그 버튼이 `nicknames/{nicknameLower}` 문서 존재 여부를 조회하는 식으로 채워질 수 있다. 새로 중복 검사를 넣을지, 유일하지 않아도 되게(예: 인덱스 문서에 uid 배열) 설계를 바꿀지는 §2 owner와 정해야 한다.
+- **기존 유저 마이그레이션**: 이미 가입한 유저는 `nicknames`/`emails` 인덱스 문서가 없다. 로그인 시 lazy하게 만들지, 1회성 스크립트로 백필할지 정한다.
+- **이메일 검색 남용**: `emails/{emailLower}`는 로그인한 사용자면 누구나 특정 이메일의 가입 여부·닉네임을 확인할 수 있게 된다 (이메일 존재 확인/enumeration). 우선은 로그인 필요 조건만 걸어두고, 문제 되면 요청 빈도 제한 등을 나중에 추가한다.
+- 친구 삭제(unfriend) — 문서 삭제 vs `status: removed` 유지
+- 캘린더 "친구와의 경쟁" 랭킹처럼 진행률을 보여주려면 `users`의 일부 필드(streak 등) 노출이 필요 — §2 owner(Auth)와 범위 논의 필요
+
+---
+
 ## 로컬 JSON → Firestore
 
 | 로컬 | Firestore |
