@@ -131,20 +131,35 @@ id: `allowance` | `saving` | `stock` | `insurance` | `tax` | `credit`
 | `hamster_level5` | `level` | 5 |
 | `hamster_master` | `level` | 10 |
 
-### `quizQuestions/{id}`
+### `quizQuestions/{questionId}`
 
-현재 `q1`~`q15` (하드코딩, DB 전환 예정).
+문서 id 예: `q0001`, `q0002` … (의미 있는 id 권장)
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `categoryId` | string | `allowance` \| `saving` \| `stock` \| `insurance` \| `tax` \| `credit` |
+| `difficulty` | number | **1~10** (클수록 어려움) |
+| `type` | string | `ox` \| `multipleChoice` |
+| `question` | string | 지문 |
+| `options` | array\<string\> | 보기 (`ox`: `["O","X"]`, 4지선다: 4개) |
+| `correctIndex` | number | 정답 보기 인덱스 (0부터) |
+| `explanation` | string | 해설 |
+| `isActive` | boolean | `true` = 출제 풀 포함 · `false` = soft delete(비공개) |
+
+**CRUD (현재):** Firebase Console / Admin SDK. 클라이언트 `write: false` (Rules).
+
+**시드 예시** (`quizQuestions/q0001`):
 
 ```json
 {
-  "type": "ox",
   "categoryId": "allowance",
-  "question": "용돈을 받으면 전부 소비해도 괜찮다.",
+  "difficulty": 1,
+  "type": "ox",
+  "question": "예산은 돈을 쓰기 전에 수입과 지출 계획을 세운 것을 뜻한다. (1번째 사례)",
   "options": ["O", "X"],
-  "correctIndex": 1,
-  "explanation": "...",
-  "isActive": true,
-  "createdAt": "<timestamp>"
+  "correctIndex": 0,
+  "explanation": "예산은 돈을 쓰기 전에 수입과 지출 계획을 세운 것이다.",
+  "isActive": true
 }
 ```
 
