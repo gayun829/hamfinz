@@ -33,7 +33,7 @@ void main() {
 
   testWidgets('shop fits a large phone', (tester) async {
     await pumpShop(tester, const Size(430, 932));
-    expect(find.text('이번 주 추천 아이템'), findsOneWidget);
+    expect(find.text('아이템 상점'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

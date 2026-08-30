@@ -28,32 +28,21 @@ class _ShopScreenState extends State<ShopScreen> {
     _profile = widget.profile;
   }
 
-  Future<void> _buy(ShopItem item) async {
-    if (_profile.ownedShopItemIds.contains(item.id)) {
+  Future<void> _buyStudyGuard() async {
+    const maxCount = 3;
+    if (_profile.studyGuardCount >= maxCount) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${item.name}은(는) 이미 가지고 있어요.')),
-      );
-      return;
-    }
-    if (_profile.seeds < item.price) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '씨앗이 부족해요. ${item.name}은(는) ${item.price}씨앗이 필요해요. '
-            '(현재 ${_profile.seeds})',
-          ),
-        ),
+        const SnackBar(content: Text('방어권은 최대 3개까지 보유할 수 있어요.')),
       );
       return;
     }
 
-    _profile.seeds -= item.price;
-    _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, item.id];
+    _profile.studyGuardCount += 1;
     await AuthService.instance.saveProfile(_profile);
     if (!mounted) return;
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${item.name}을(를) 구매했어요!')),
+      const SnackBar(content: Text('연속 학습 방어권을 1개 구매했어요.')),
     );
   }
 
@@ -69,9 +58,11 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final featured = ShopData.featured;
-    final catalog = ShopData.catalogWithoutFeatured();
-    final ownedFeatured = _profile.ownedShopItemIds.contains(featured.id);
+    final learningItem = ShopData.items.firstWhere(
+      (item) => item.id == 'study_guard',
+      orElse: () => ShopData.items.first,
+    );
+    final currentGuardCount = _profile.studyGuardCount;
     final textScaler = MediaQuery.textScalerOf(context);
     final clampedScaler = TextScaler.linear(
       textScaler.scale(1).clamp(0.9, 1.1),
@@ -89,10 +80,6 @@ class _ShopScreenState extends State<ShopScreen> {
                 designWidth: FigmaShopTokens.designWidth,
               );
               final s = figma.s;
-              final gridWidth =
-                  constraints.maxWidth - s(FigmaShopTokens.pagePadding) * 2;
-              final cellWidth = (gridWidth - s(13)) / 2;
-              final cellHeight = cellWidth + s(52);
               return Column(
                 children: [
                   ShopHeader(
@@ -113,42 +100,68 @@ class _ShopScreenState extends State<ShopScreen> {
                         _ClosetBanner(figma: figma, onTap: _openCloset),
                         SizedBox(height: s(16)),
                         Text(
-                          '이번 주 추천 아이템',
+                          '학습 아이템',
                           style: FigmaShopTokens.sectionTitle(figma.scale),
                         ),
                         SizedBox(height: s(8)),
-                        _FeaturedCard(
-                          figma: figma,
-                          item: featured,
-                          owned: ownedFeatured,
-                          onBuy: () => _buy(featured),
-                        ),
-                        SizedBox(height: s(16)),
-                        Text(
-                          '아이템 목록',
-                          style: FigmaShopTokens.sectionTitle(figma.scale),
-                        ),
-                        SizedBox(height: s(8)),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: catalog.length,
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: s(13),
-                            mainAxisSpacing: s(13),
-                            childAspectRatio: cellWidth / cellHeight,
+                        GestureDetector(
+                          onTap: currentGuardCount >= 3 ? null : _buyStudyGuard,
+                          child: Container(
+                            padding: EdgeInsets.fromLTRB(s(16), s(16), s(12), s(14)),
+                            decoration: BoxDecoration(
+                              color: FigmaShopTokens.card,
+                              borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        learningItem.name,
+                                        style: FigmaShopTokens.cardTitle(figma.scale),
+                                      ),
+                                      SizedBox(height: s(4)),
+                                      Text(
+                                        learningItem.description,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: FigmaShopTokens.body(figma.scale),
+                                      ),
+                                      SizedBox(height: s(8)),
+                                      Text(
+                                        '현재 보유: $currentGuardCount / 3',
+                                        style: FigmaShopTokens.body(figma.scale),
+                                      ),
+                                      SizedBox(height: s(8)),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(8)),
+                                        decoration: BoxDecoration(
+                                          color: currentGuardCount >= 3 ? Colors.grey.shade300 : FigmaShopTokens.chip,
+                                          borderRadius: BorderRadius.circular(s(8)),
+                                        ),
+                                        child: Text(
+                                          currentGuardCount >= 3 ? '최대 보유' : '구매하기',
+                                          style: FigmaShopTokens.sectionTitle(figma.scale),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: s(8)),
+                                SizedBox(
+                                  width: s(96),
+                                  height: s(112),
+                                  child: ShopHamsterSprite(
+                                    column: learningItem.spriteCol,
+                                    row: learningItem.spriteRow,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          itemBuilder: (context, index) {
-                            final item = catalog[index];
-                            return ShopItemCard(
-                              figma: figma,
-                              item: item,
-                              owned: _profile.ownedShopItemIds.contains(item.id),
-                              onTap: () => _buy(item),
-                            );
-                          },
                         ),
                       ],
                     ),
@@ -233,89 +246,3 @@ class _ClosetBanner extends StatelessWidget {
   }
 }
 
-class _FeaturedCard extends StatelessWidget {
-  const _FeaturedCard({
-    required this.figma,
-    required this.item,
-    required this.owned,
-    required this.onBuy,
-  });
-
-  final FigmaScale figma;
-  final ShopItem item;
-  final bool owned;
-  final VoidCallback onBuy;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return Container(
-      padding: EdgeInsets.fromLTRB(s(16), s(16), s(12), s(14)),
-      decoration: BoxDecoration(
-        color: FigmaShopTokens.card,
-        borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: FigmaShopTokens.cardTitle(figma.scale),
-                ),
-                SizedBox(height: s(4)),
-                Text(
-                  item.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: FigmaShopTokens.body(figma.scale),
-                ),
-                SizedBox(height: s(8)),
-                ShopSeedChip(
-                  figma: figma,
-                  seeds: item.price,
-                  iconSize: FigmaShopTokens.seedIconFeatured,
-                ),
-                SizedBox(height: s(12)),
-                GestureDetector(
-                  onTap: onBuy,
-                  child: Container(
-                    width: double.infinity,
-                    constraints: BoxConstraints(maxWidth: s(173), minHeight: s(40)),
-                    padding: EdgeInsets.symmetric(vertical: s(10)),
-                    decoration: BoxDecoration(
-                      color: FigmaShopTokens.chip,
-                      borderRadius: BorderRadius.circular(
-                        s(FigmaShopTokens.purchaseRadius),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      owned ? 'Owned' : '구매하기',
-                      style: FigmaShopTokens.sectionTitle(figma.scale),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: s(8)),
-          SizedBox(
-            width: s(96),
-            height: s(112),
-            child: ShopHamsterSprite(
-              column: item.spriteCol,
-              row: item.spriteRow,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

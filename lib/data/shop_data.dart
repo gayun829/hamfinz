@@ -15,6 +15,7 @@ class ShopItem {
     required this.spriteCol,
     required this.spriteRow,
     this.featured = false,
+    this.hideFromCloset = false,
   });
 
   final String id;
@@ -25,6 +26,7 @@ class ShopItem {
   final int spriteCol;
   final int spriteRow;
   final bool featured;
+  final bool hideFromCloset;
 }
 
 abstract final class ShopData {
@@ -88,6 +90,16 @@ abstract final class ShopData {
       spriteCol: 0,
       spriteRow: 0,
     ),
+    ShopItem(
+      id: 'study_guard',
+      name: '연속 학습 방어권',
+      description: '연속 학습을 지켜주는 보호 아이템',
+      price: 123,
+      category: ShopCategory.accessory,
+      spriteCol: 4,
+      spriteRow: 2,
+      hideFromCloset: true,
+    ),
   ];
 
   static ShopItem get featured =>
@@ -97,5 +109,5 @@ abstract final class ShopData {
       items.where((item) => !item.featured).toList();
 
   static List<ShopItem> byCategory(ShopCategory category) =>
-      items.where((item) => item.category == category).toList();
+      items.where((item) => item.category == category && !item.hideFromCloset).toList();
 }
