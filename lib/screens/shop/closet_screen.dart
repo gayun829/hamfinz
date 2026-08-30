@@ -96,6 +96,10 @@ class _ClosetScreenState extends State<ClosetScreen> {
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _seedShortageMessage(int total) {
+    return '씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})';
+  }
+
   Future<void> _purchasePreview() async {
     final stagedIds = <String>[];
     if (_stagedSkinId != null) stagedIds.add(_stagedSkinId!);
@@ -114,7 +118,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
 
     if (_profile.seeds < total) {
-      _showSnackBar('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})');
+      _showSnackBar(_seedShortageMessage(total));
       return;
     }
 
@@ -275,7 +279,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                     final itemsToBuy = toBuy.map((id) => ShopData.items.firstWhere((i) => i.id == id)).toList();
                                     final total = itemsToBuy.fold<int>(0, (s, it) => s + it.price);
                                     if (_profile.seeds < total) {
-                                      _showSnackBar('씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})');
+                                      _showSnackBar(_seedShortageMessage(total));
                                       return;
                                     }
                                     _profile.seeds -= total;
