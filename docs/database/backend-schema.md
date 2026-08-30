@@ -59,6 +59,7 @@ quizQuestions/{questionId}
 legalDocuments/{docType}_{version}
 
 users/{uid}                          # Auth uid
+  ├── mastered/{questionId}          # 맞춘 문제 id (출제 제외용, 희소)
   └── sessions/{sessionId}
         └── answers/{questionId}
 
@@ -78,6 +79,7 @@ announcements/{autoId}               # 예정
 flowchart TB
   auth[Firebase Auth]
   auth --> users["users/{uid}"]
+  users --> mastered["mastered/{questionId}"]
   users --> sessions["sessions/{sessionId}"]
   sessions --> answers["answers/{questionId}"]
 
@@ -288,10 +290,30 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 }
 ```
 
+세션마다 같은 `questionId`를 다시 풀면 **해당 세션**에 answer 문서가 생김 (세션별 히스토리).
+
+### `users/{uid}/mastered/{questionId}`
+
+**맞춘 문제 id만** 희소 저장 — 출제 API가 제외할 집합. 문제 본문(`quizQuestions`)은 유저마다 복사하지 않음.
+
+문서 id = `questionId` (예: `q0042`). 최대 ~풀 크기(예: 12,000)건/유저.
+
+```json
+{
+  "answeredAt": "<timestamp>"
+}
+```
+
+| 규칙 | 내용 |
+|------|------|
+| 생성 | `submitAnswer`에서 `isCorrect == true`일 때만 upsert |
+| 오답 | `mastered`에 **쓰지 않음** → 다음 세션 재출제 가능 |
+| 출제 | `startSession` / 추천 API가 `mastered` 문서 id 목록을 빼고 `quizQuestions`에서 랜덤 |
+
 **쓰기 권장 경로 (Cloud Function)**
 
-1. `startSession`: `energy >= 50` 확인, 세션 문서 생성 (에너지 아직 안 깎음 또는 예약)  
-2. `submitAnswer`: 트랜잭션으로 `users.energy -= 5`, answers 문서 생성  
+1. `startSession`: `energy >= 50` 확인, `mastered` id 제외 후 `quizQuestions`에서 10문항 선정, 세션 문서 생성  
+2. `submitAnswer`: 트랜잭션으로 `users.energy -= 5`, `answers` 문서 생성, 정답이면 `mastered/{questionId}` upsert  
 3. `completeSession`: XP·categoryStats·streak·해금 배열 갱신, `status: completed`
 
 클라이언트가 energy/xp를 직접 쓰면 치트가 되므로 Functions + Admin SDK가 맞다.
@@ -563,6 +585,10 @@ service cloud.firestore {
         allow read: if request.auth.uid == uid;
         allow write: if false;
       }
+      match /mastered/{qid} {
+        allow read: if request.auth.uid == uid;
+        allow write: if false;  // Functions
+      }
       match /bookmarks/{id} {
         allow read, write: if request.auth.uid == uid;
       }
@@ -595,15 +621,15 @@ service cloud.firestore {
 1. **프로필 get**  
    `energyResetOn != today`이면 `energy = 100`, `energyResetOn = today` (트랜잭션).
 2. **세션 시작**  
-   `energy < 50`이면 거부.
+   `energy < 50`이면 거부. `mastered` id를 제외한 `quizQuestions`에서 10문항 선정.
 3. **답 제출**  
-   `energy >= 5`일 때만 −5 + answers 문서.
+   `energy >= 5`일 때만 −5 + `answers` 문서 + 정답이면 `mastered/{questionId}` upsert.
 4. **세션 완료**  
    XP 합산, `categoryStats`, 당일 첫 완료면 streak, 해금 id 배열에 추가.
 5. **관심 카테고리**  
    배열 길이가 1이면 마지막 id 제거 거부.
 6. **탈퇴**  
-   Auth disable + `status: withdrawn` + 개인정보 마스킹. 실제 삭제  Retention은 추후.
+   Auth disable + `status: withdrawn` + 개인정보 마스킹. 실제 삭제 Retention은 추후.
 
 뉴스 퀴즈 생성은 Functions에서 본문 요약 → LLM → `newsQuizPacks` 쓰기. API 키는 클라이언트에 두지 않는다.
 
