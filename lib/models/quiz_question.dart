@@ -56,6 +56,7 @@ class QuizSessionResult {
     required this.previousLevel,
     required this.unlockedItems,
     required this.newStreak,
+    this.energyRemaining,
   });
 
   final List<QuizAnswer> answers;
@@ -66,4 +67,5 @@ class QuizSessionResult {
   final int previousLevel;
   final List<String> unlockedItems;
   final int newStreak;
+  final int? energyRemaining;
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/quiz_data.dart';
 import '../../models/quiz_question.dart';
+import '../../models/quiz_session.dart';
 import '../../models/user_profile.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
@@ -11,28 +12,64 @@ import '../../widgets/quiz_widgets.dart';
 import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key, required this.profile});
+  const QuizScreen({super.key, required this.profile, this.session});
 
   final UserProfile profile;
+  final QuizSession? session;
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  late final List<QuizQuestion> _questions;
+  QuizSession? _session;
+  bool _loading = true;
+  String? _loadError;
   final List<QuizAnswer> _answers = [];
   int _currentIndex = 0;
   int? _selectedIndex;
   bool _showResult = false;
+  SubmitAnswerResult? _submitResult;
+  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-    _questions = QuizService.instance.getTodayQuestions();
+    if (widget.session != null) {
+      _session = widget.session;
+      _loading = false;
+    } else {
+      _loadSession();
+    }
   }
 
-  QuizQuestion get _currentQuestion => _questions[_currentIndex];
+  Future<void> _loadSession() async {
+    try {
+      final session =
+          await QuizService.instance.startSession(profile: widget.profile);
+      if (!mounted) return;
+      setState(() {
+        _session = session;
+        _loading = false;
+      });
+    } on QuizSessionException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = '문제를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+        _loading = false;
+      });
+    }
+  }
+
+  List<QuizQuestionLearning> get _questions => _session!.questions;
+
+  QuizQuestionLearning get _currentQuestion => _questions[_currentIndex];
 
   void _selectAnswer(int index) {
     if (_showResult) return;
@@ -40,23 +77,38 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _confirmAnswer() async {
-    if (_selectedIndex == null || _showResult) return;
+    if (_selectedIndex == null || _showResult || _submitting) return;
 
-    final consumed = await QuizService.instance.consumeEnergyForQuestion(
-      widget.profile,
-    );
-    if (!mounted) return;
-    if (!consumed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('에너지가 부족해 더 이상 풀 수 없어요.')),
+    setState(() => _submitting = true);
+    try {
+      final result = await QuizService.instance.submitAnswer(
+        sessionId: _session!.sessionId,
+        questionId: _currentQuestion.id,
+        selectedIndex: _selectedIndex!,
+        profile: widget.profile,
       );
-      return;
+      if (!mounted) return;
+      setState(() {
+        _submitResult = result;
+        _showResult = true;
+        _submitting = false;
+      });
+    } on QuizSessionException catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('답안 제출에 실패했어요. Functions 배포를 확인해 주세요.')),
+      );
     }
-
-    setState(() => _showResult = true);
   }
 
-  void _showExplanationDialog(QuizQuestion question) {
+  void _showExplanationDialog(QuizQuestionLearning question) {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -87,27 +139,36 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _next() async {
     final selected = _selectedIndex;
-    if (selected == null) return;
+    final submitResult = _submitResult;
+    if (selected == null || submitResult == null) return;
 
     _answers.add(
       QuizAnswer(
         questionId: _currentQuestion.id,
         selectedIndex: selected,
-        isCorrect: _currentQuestion.isCorrect(selected),
+        isCorrect: submitResult.isCorrect,
       ),
     );
 
     if (_currentIndex >= _questions.length - 1) {
-      final result = await QuizService.instance.completeSession(
-        profile: widget.profile,
-        answers: _answers,
-      );
-      if (!mounted) return;
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => QuizResultScreen(result: result, profile: widget.profile),
-        ),
-      );
+      try {
+        final result = await QuizService.instance.completeSession(
+          profile: widget.profile,
+          sessionId: _session!.sessionId,
+        );
+        if (!mounted) return;
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) =>
+                QuizResultScreen(result: result, profile: widget.profile),
+          ),
+        );
+      } on QuizSessionException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
       return;
     }
 
@@ -115,25 +176,54 @@ class _QuizScreenState extends State<QuizScreen> {
       _currentIndex += 1;
       _selectedIndex = null;
       _showResult = false;
+      _submitResult = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final question = _currentQuestion;
-    final isCorrect =
-        _selectedIndex != null && question.isCorrect(_selectedIndex!);
-
-    if (question.type == QuizType.multipleChoice) {
-      return _buildMcQuizScreen(question, isCorrect);
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    return _buildOxQuizScreen(question, isCorrect);
+    if (_loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('학습')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_loadError!, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('돌아가기'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final question = _currentQuestion;
+    final isCorrect = _submitResult?.isCorrect ?? false;
+    final correctIndex = _showResult ? _submitResult?.correctIndex : null;
+
+    if (question.type == QuizType.multipleChoice) {
+      return _buildMcQuizScreen(question, isCorrect, correctIndex);
+    }
+
+    return _buildOxQuizScreen(question, isCorrect, correctIndex);
   }
 
   Widget _buildQuizFooter({
     required FigmaScale figma,
-    required QuizQuestion question,
+    required QuizQuestionLearning question,
     required bool isLast,
   }) {
     final s = figma.s;
@@ -166,15 +256,19 @@ class _QuizScreenState extends State<QuizScreen> {
                 ],
               )
             : QuizFooterPrimaryButton(
-                label: '정답 제출',
-                enabled: _selectedIndex != null,
+                label: _submitting ? '제출 중…' : '정답 제출',
+                enabled: _selectedIndex != null && !_submitting,
                 onPressed: _confirmAnswer,
               ),
       ),
     );
   }
 
-  Widget _buildMcQuizScreen(QuizQuestion question, bool isCorrect) {
+  Widget _buildMcQuizScreen(
+    QuizQuestionLearning question,
+    bool isCorrect,
+    int? correctIndex,
+  ) {
     final figma = FigmaScale.ofContext(
       context,
       designWidth: FigmaQuizTokens.designWidth,
@@ -212,7 +306,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         child: QuizOptionButton(
                           label: question.options[index],
                           isSelected: _selectedIndex == index,
-                          isCorrectOption: question.correctIndex == index,
+                          isCorrectOption: correctIndex == index,
                           showResult: _showResult,
                           onTap: _showResult ? null : () => _selectAnswer(index),
                         ),
@@ -239,7 +333,11 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
-  Widget _buildOxQuizScreen(QuizQuestion question, bool isCorrect) {
+  Widget _buildOxQuizScreen(
+    QuizQuestionLearning question,
+    bool isCorrect,
+    int? correctIndex,
+  ) {
     final figma = FigmaScale.ofContext(
       context,
       designWidth: FigmaQuizTokens.designWidth,
@@ -268,6 +366,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             child: _buildOxVerticalBody(
                               figma: figma,
                               question: question,
+                              correctIndex: correctIndex ?? 0,
                             ),
                           )
                         : Padding(
@@ -276,7 +375,7 @@ class _QuizScreenState extends State<QuizScreen> {
                               question: question.question,
                               options: question.options,
                               selectedIndex: _selectedIndex,
-                              correctIndex: question.correctIndex,
+                              correctIndex: correctIndex ?? 0,
                               showResult: _showResult,
                               onSelect: _selectAnswer,
                             ),
@@ -294,7 +393,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Widget _buildOxVerticalBody({
     required FigmaScale figma,
-    required QuizQuestion question,
+    required QuizQuestionLearning question,
+    required int? correctIndex,
   }) {
     final s = figma.s;
 
@@ -326,7 +426,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     child: QuizOxChoiceButton(
                       label: question.options[i],
                       isSelected: _selectedIndex == i,
-                      isCorrectOption: question.correctIndex == i,
+                      isCorrectOption: correctIndex == i,
                       showResult: _showResult,
                       onTap: _showResult ? null : () => _selectAnswer(i),
                     ),

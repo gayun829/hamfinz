@@ -4,6 +4,23 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // 퀴즈: 맞춘 문제 id (출제 제외). 읽기만 — 쓰기는 submitAnswer Functions.
+      match /mastered/{questionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+
+      // 퀴즈: startSession 시 inProgress 생성. answers/mastered 쓰기는 Functions.
+      match /sessions/{sessionId} {
+        allow read, create: if request.auth != null && request.auth.uid == uid;
+        allow update, delete: if false;
+
+        match /answers/{questionId} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow write: if false;
+        }
+      }
     }
 
     // quizQuestions: 앱은 isActive 문제만 읽기. 등록·수정은 Console / Admin SDK.
