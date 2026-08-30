@@ -35,7 +35,11 @@ service cloud.firestore {
     // friendships: 두 uid를 정렬해 이어붙인 id(`uidA_uidB`) 문서 하나로 관계를 관리한다.
     // users 문서는 건드리지 않아 위 users 규칙과 충돌하지 않는다.
     match /friendships/{friendshipId} {
-      allow read: if request.auth != null && request.auth.uid in resource.data.uids;
+      // 문서가 아직 없으면 resource == null이라 resource.data 참조가 그대로 에러 →
+      // false 취급돼서 "친구 요청했는지 확인" get()이 permission-denied로 막힌다.
+      // 없는 문서는 어차피 새어나갈 데이터가 없으니 read를 허용해 존재 확인을 가능하게 한다.
+      allow read: if request.auth != null
+        && (resource == null || request.auth.uid in resource.data.uids);
 
       allow create: if request.auth != null
         && request.resource.data.uids is list

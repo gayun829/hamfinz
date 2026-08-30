@@ -29,8 +29,13 @@
 ## 남은 일
 
 - [ ] 팀원 리뷰 (특히 Auth owner)
-- [ ] 실기기에서 검색 → 요청 → 수락 흐름 테스트
+- [x] 실기기에서 검색 → 요청 흐름 테스트 — 버그 발견·수정 (아래)
+- [ ] 수락 흐름까지 실기기 테스트
 - [ ] 캘린더 "친구와의 경쟁" 랭킹은 여전히 목업(`StreakCalendarMock`) — 이번 범위 밖
+
+## 발견된 버그 (수정 완료)
+
+- **친구 추가 시 permission-denied**: `friendships` 문서가 아직 없을 때 "이미 요청했는지" 확인하는 `get()`이 막혔다. Firestore 규칙에서 문서가 없으면 `resource == null`인데, `allow read`가 `resource.data.uids`를 바로 참조해서 에러 → 거부로 처리됨. `resource == null`이면 (샐 데이터가 없으니) read를 허용하도록 고치고 재배포함.
 
 ## 테스트할 때 알아둘 것
 
