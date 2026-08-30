@@ -85,16 +85,6 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() => _profile = latest);
   }
 
-  Future<void> _openClosetWithPreview(ShopItem item) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ClosetScreen(profile: _profile, initialPreview: item)),
-    );
-    if (!mounted) return;
-    final latest = await AuthService.instance.getCurrentUser();
-    if (!mounted || latest == null) return;
-    setState(() => _profile = latest);
-  }
-
   @override
   Widget build(BuildContext context) {
     final learningItem = ShopData.items.firstWhere(
@@ -285,89 +275,3 @@ class _ClosetBanner extends StatelessWidget {
   }
 }
 
-class _FeaturedCard extends StatelessWidget {
-  const _FeaturedCard({
-    required this.figma,
-    required this.item,
-    required this.owned,
-    required this.onBuy,
-  });
-
-  final FigmaScale figma;
-  final ShopItem item;
-  final bool owned;
-  final VoidCallback onBuy;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return Container(
-      padding: EdgeInsets.fromLTRB(s(16), s(16), s(12), s(14)),
-      decoration: BoxDecoration(
-        color: FigmaShopTokens.card,
-        borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: FigmaShopTokens.cardTitle(figma.scale),
-                ),
-                SizedBox(height: s(4)),
-                Text(
-                  item.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: FigmaShopTokens.body(figma.scale),
-                ),
-                SizedBox(height: s(8)),
-                ShopSeedChip(
-                  figma: figma,
-                  seeds: item.price,
-                  iconSize: FigmaShopTokens.seedIconFeatured,
-                ),
-                SizedBox(height: s(12)),
-                GestureDetector(
-                  onTap: onBuy,
-                  child: Container(
-                    width: double.infinity,
-                    constraints: BoxConstraints(maxWidth: s(173), minHeight: s(40)),
-                    padding: EdgeInsets.symmetric(vertical: s(10)),
-                    decoration: BoxDecoration(
-                      color: FigmaShopTokens.chip,
-                      borderRadius: BorderRadius.circular(
-                        s(FigmaShopTokens.purchaseRadius),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      owned ? 'Owned' : '구매하기',
-                      style: FigmaShopTokens.sectionTitle(figma.scale),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: s(8)),
-          SizedBox(
-            width: s(96),
-            height: s(112),
-            child: ShopHamsterSprite(
-              column: item.spriteCol,
-              row: item.spriteRow,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
