@@ -28,7 +28,6 @@ class ClosetScreen extends StatefulWidget {
 class _ClosetScreenState extends State<ClosetScreen> {
   late UserProfile _profile;
   _ClosetTab _tab = _ClosetTab.accessory;
-  ShopItem? _preview;
   String? _stagedSkinId;
   String? _stagedPatternId;
   String? _stagedBackgroundId;
@@ -38,9 +37,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
   void initState() {
     super.initState();
     _profile = widget.profile;
-    if (widget.initialPreview != null) {
-      _preview = widget.initialPreview;
-    }
     _stagedSkinId = _profile.equippedSkinId;
     _stagedPatternId = _profile.equippedPatternId;
     _stagedBackgroundId = _profile.equippedBackgroundId;
@@ -67,7 +63,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
   Future<void> _onItemTap(ShopItem item) async {
     setState(() {
-      _preview = item;
       switch (item.category) {
         case ShopCategory.skin:
           _stagedSkinId = _stagedSkinId == item.id ? null : item.id;
@@ -97,7 +92,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   String _seedShortageMessage(int total) {
-    return '씨앗이 부족해요. 총 ${total}씨앗이 필요합니다. (현재 ${_profile.seeds})';
+    return '씨앗이 부족해요. 총 $total씨앗이 필요합니다. (현재 $_profile.seeds)';
   }
 
   Future<void> _purchasePreview() async {
@@ -240,7 +235,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
                             children: [
                               GestureDetector(
                                 onTap: () => setState(() {
-                                  _preview = null;
                                   _stagedSkinId = _profile.equippedSkinId;
                                   _stagedPatternId = _profile.equippedPatternId;
                                   _stagedBackgroundId = _profile.equippedBackgroundId;
@@ -434,7 +428,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                         _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
                                         break;
                                     }
-                                    _preview = item;
                                   });
                                 }
 
