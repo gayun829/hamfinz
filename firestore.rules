@@ -44,7 +44,9 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nickname']);
-      allow update, delete: if false;
+      allow update: if false;
+      // 탈퇴 시 본인 예약만 해제한다 (닉네임을 다시 쓸 수 있게).
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     match /emails/{emailLower} {
@@ -53,7 +55,8 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nickname'])
         && emailLower == request.auth.token.email;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     // friendships: 두 uid를 정렬해 이어붙인 id(`uidA_uidB`) 문서 하나로 관계를 관리한다.

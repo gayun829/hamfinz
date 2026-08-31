@@ -1,6 +1,10 @@
 /// 이용약관·개인정보 처리방침 임시 본문.
 /// 세부 내용은 추후 확정 후 이 파일만 교체하면 된다.
 abstract final class LegalDocuments {
+  /// 동의 기록(`users/{uid}.consents`)에 남기는 문서 버전.
+  /// 본문을 고치면 이 값도 올려서, 재동의가 필요한 유저를 가려낼 수 있게 한다.
+  static const version = 'draft-1';
+
   static const termsTitle = '이용약관';
   static const privacyTitle = '개인정보 처리방침';
 
