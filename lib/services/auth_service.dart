@@ -280,6 +280,14 @@ class AuthService {
       return null;
     } on FirebaseAuthException catch (e) {
       return _authErrorMessage(e);
+    } on FirebaseException catch (e) {
+      // 위 정리는 전부 Firestore 호출이라 FirebaseAuthException이 아니라
+      // FirebaseException으로 떨어진다. 안 잡으면 화면에 아무 것도 안 뜬다.
+      if (e.code == 'permission-denied') {
+        return '탈퇴 권한이 없어요. Firestore 규칙 배포를 확인해주세요 '
+            '(firebase deploy --only firestore:rules).';
+      }
+      return '탈퇴 처리에 실패했어요. (${e.code})';
     }
   }
 
