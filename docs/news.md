@@ -32,11 +32,11 @@
 
 ```bash
 dart run tool/cors_proxy.dart
-flutter run -d chrome --dart-define=NEWS_PROXY=http://localhost:8766
+flutter run -d chrome
 ```
 
 - 프록시: `tool/cors_proxy.dart` (포트 **8766**)  
-- 앱: `String.fromEnvironment('NEWS_PROXY')` — 비어 있으면(모바일) 직접 RSS 호출  
+- 앱: 웹이면 기본 `http://localhost:8766`, `--dart-define=NEWS_PROXY=`로 덮어쓰기 / 모바일·데스크톱은 직접 RSS 호출  
 
 ## NewsScreen
 

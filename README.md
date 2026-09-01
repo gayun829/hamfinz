@@ -38,7 +38,7 @@ flutter run
 
 ```bash
 dart run tool/cors_proxy.dart
-flutter run -d chrome --dart-define=NEWS_PROXY=http://localhost:8766
+flutter run -d chrome
 ```
 
 ## 앱 흐름 (요약)

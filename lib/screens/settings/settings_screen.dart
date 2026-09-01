@@ -70,8 +70,47 @@ class SettingsScreen extends StatelessWidget {
     );
 
     if (confirmed != true || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('회원 탈퇴 기능은 준비 중이에요.')),
+
+    String? password;
+    if (AuthService.instance.requiresPasswordToWithdraw) {
+      password = await _askPassword(context);
+      if (password == null || password.isEmpty || !context.mounted) return;
+    }
+
+    final error = await AuthService.instance.withdraw(password: password);
+    if (!context.mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    onLogout();
+  }
+
+  /// 이메일 계정은 계정 삭제 직전에 Firebase가 재인증을 요구한다.
+  Future<String?> _askPassword(BuildContext context) {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('비밀번호 확인'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '비밀번호'),
+          onSubmitted: (value) => Navigator.pop(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('확인', style: TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
     );
   }
 

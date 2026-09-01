@@ -43,7 +43,7 @@ dart run tool/cors_proxy.dart
 터미널 2:
 
 ```bash
-flutter run -d chrome --dart-define=NEWS_PROXY=http://localhost:8766
+flutter run -d chrome
 ```
 
 - 프록시 포트: **8766**  

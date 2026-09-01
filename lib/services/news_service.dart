@@ -30,12 +30,12 @@ class NewsService {
   };
 
   /// 웹으로 띄웠을 때만 쓰는 우회로. 브라우저는 구글뉴스 응답에 CORS 헤더가
-  /// 없어서 막아버린다. `--dart-define=NEWS_PROXY=...`로 직접 지정하지 않으면
-  /// (예: 로컬 `tool/cors_proxy.dart`) 웹에서는 공개 CORS 프록시로 자동 우회하고,
-  /// 모바일/데스크톱 빌드는 구글뉴스를 그대로 호출한다.
+  /// 없어서 막아버린다. 기본값은 로컬 `dart run tool/cors_proxy.dart`이고,
+  /// 다른 주소를 쓰려면 `--dart-define=NEWS_PROXY=...`로 덮어쓴다.
+  /// 모바일/데스크톱 빌드는 CORS가 없으므로 구글뉴스를 그대로 호출한다.
   static const _definedProxy = String.fromEnvironment('NEWS_PROXY');
   static String get _proxy =>
-      _definedProxy.isNotEmpty ? _definedProxy : (kIsWeb ? 'https://corsproxy.io/?url=' : '');
+      _definedProxy.isNotEmpty ? _definedProxy : (kIsWeb ? 'http://localhost:8766?url=' : '');
 
   /// '더보기'용 구글뉴스 검색 결과 페이지. RSS와 같은 질의라 목록도 같은 순서로 이어진다.
   /// 사람이 보는 페이지라 프록시를 태우지 않는다.
