@@ -8,6 +8,7 @@ import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
+import '../utils/quiz_text_helper.dart';
 
 /// Firestore `quizQuestions` + `mastered` — 출제 · 제출 · 세션 완료.
 /// 개발: 클라이언트 트랜잭션. 배포: `functions/index.js` Callable로 전환 예정.
@@ -230,6 +231,9 @@ class QuizSessionRepository {
     } on QuizSessionException {
       rethrow;
     } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw QuizSessionException(firestorePermissionDeniedMessage());
+      }
       throw QuizSessionException(e.message ?? '답안 제출에 실패했어요.');
     }
   }
@@ -402,6 +406,9 @@ class QuizSessionRepository {
     } on QuizSessionException {
       rethrow;
     } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw QuizSessionException(firestorePermissionDeniedMessage());
+      }
       throw QuizSessionException(e.message ?? '세션 완료 처리에 실패했어요.');
     }
   }
@@ -501,10 +508,12 @@ class QuizSessionRepository {
         type: _parseType(typeRaw),
         category: _parseCategory(categoryId),
         difficulty: (data['difficulty'] as num?)?.toInt() ?? 1,
-        question: data['question'] as String? ?? '',
+        question: stripQuizMetadataPrefix(data['question'] as String? ?? ''),
         options: options,
         correctIndex: (data['correctIndex'] as num?)?.toInt() ?? 0,
-        explanation: data['explanation'] as String? ?? '',
+        explanation: stripQuizMetadataPrefix(
+          data['explanation'] as String? ?? '',
+        ),
       );
     } catch (_) {
       return null;
