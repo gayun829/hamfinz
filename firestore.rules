@@ -76,13 +76,20 @@ service cloud.firestore {
            );
 
       // 요청받은 쪽만 pending -> accepted 로 바꿀 수 있다.
+      // 이때 수락자 닉네임(accepterNickname)도 같이 적어서, 친구 목록을 보여줄 때
+      // 상대가 requestedBy든 아니든 users 문서를 열지 않고 닉네임을 알 수 있게 한다.
       allow update: if request.auth != null
         && request.auth.uid in resource.data.uids
         && request.auth.uid != resource.data.requestedBy
         && resource.data.status == 'pending'
         && request.resource.data.status == 'accepted'
         && request.resource.data.uids == resource.data.uids
-        && request.resource.data.requestedBy == resource.data.requestedBy;
+        && request.resource.data.requestedBy == resource.data.requestedBy
+        && request.resource.data.requestedByNickname == resource.data.requestedByNickname
+        && request.resource.data.keys().hasOnly(
+             ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt',
+              'accepterNickname', 'acceptedAt']
+           );
 
       // 요청 취소/거절/친구 끊기: 관계 당사자 누구나.
       allow delete: if request.auth != null && request.auth.uid in resource.data.uids;

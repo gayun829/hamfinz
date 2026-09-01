@@ -69,7 +69,12 @@ service cloud.firestore {
         && resource.data.status == 'pending'
         && request.resource.data.status == 'accepted'
         && request.resource.data.uids == resource.data.uids
-        && request.resource.data.requestedBy == resource.data.requestedBy;
+        && request.resource.data.requestedBy == resource.data.requestedBy
+        && request.resource.data.requestedByNickname == resource.data.requestedByNickname
+        && request.resource.data.keys().hasOnly(
+             ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt',
+              'accepterNickname', 'acceptedAt']
+           );
 
       allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
     }

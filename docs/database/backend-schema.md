@@ -424,7 +424,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 - write: `users/{uid}` 생성·닉네임 변경 시에만 (Auth owner 영역, 클라이언트는 자기 uid로만 생성)
 - read: `if request.auth != null` — PII 없이 uid·닉네임만 있어 공개 read 해도 `users` 원본을 열 필요가 없다
 
-**CRUD (현재):** 클라이언트가 본인 uid로 1회 `create`만 가능 (Rules `allow update, delete: if false`). 예시: `[firestore/nicknames/gini.example.json](../../firestore/nicknames/gini.example.json)`
+**CRUD (현재):** 클라이언트가 본인 uid로 1회 `create`만 가능 (Rules `allow update, delete: if false`). 예시: [`firestore/nicknames/gini.example.json`](../../firestore/nicknames/gini.example.json)
 
 ### `emails/{emailLower}`
 
@@ -440,7 +440,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 - write: 본인 이메일로만 생성 가능. `emailLower == request.auth.token.email` 로 Auth ID 토큰의 이메일 클레임과 대조해 타인 이메일 도용을 막는다 (`users/{uid}` 생성 시 같이 만든다). 토큰 이메일과 대소문자까지 정확히 일치해야 해서, 가입 시 이메일을 소문자로 저장하는 지금 방식(이메일/비번 가입)에서만 우선 보장되고 소셜 로그인이 대문자 섞인 이메일을 주면 생성이 막힐 수 있다 — 필요해지면 다시 본다
 - read: `if request.auth != null` — 이메일 자체는 노출하지 않고, 검색 결과로는 uid·닉네임만 보여준다
 
-**CRUD (현재):** `nicknames`와 동일 — 본인만 1회 `create`. 예시: `[firestore/emails/gini@example.com.example.json](../../firestore/emails/gini@example.com.example.json)`
+**CRUD (현재):** `nicknames`와 동일 — 본인만 1회 `create`. 예시: [`firestore/emails/gini@example.com.example.json`](../../firestore/emails/gini@example.com.example.json)
 
 ### `friendships/{uidA}_{uidB}`
 
@@ -452,19 +452,23 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
   "requestedBy": "<uid>",
   "requestedByNickname": "<요청 시점 닉네임>",
   "status": "pending",
-  "createdAt": "<timestamp>"
+  "createdAt": "<timestamp>",
+  "accepterNickname": "<수락 시점 닉네임>",
+  "acceptedAt": "<timestamp>"
 }
 ```
 
-`status`: `pending` | `accepted`
+`status`: `pending` | `accepted`. `accepterNickname`/`acceptedAt`은 수락(`pending → accepted`) 시에만 생긴다.
 
-- create: `request.auth.uid`가 `uids`에 포함, `requestedBy == request.auth.uid`, `status == 'pending'`, 필드는 위 5개만 허용
-- update: `requestedBy`가 아닌 상대방만 `pending → accepted`
+- create: `request.auth.uid`가 `uids`에 포함, `requestedBy == request.auth.uid`, `status == 'pending'`, 필드는 `uids`/`requestedBy`/`requestedByNickname`/`status`/`createdAt` 5개만 허용
+- update: `requestedBy`가 아닌 상대방만 `pending → accepted`로 바꿀 수 있고, 이때 `accepterNickname`/`acceptedAt`을 추가로 적는다. `uids`/`requestedBy`/`requestedByNickname`은 못 바꾸고, 필드는 위 5개 + `accepterNickname`/`acceptedAt` 총 7개만 허용
 - read/delete: `request.auth.uid in resource.data.uids`인 당사자만
 - `users/{uid}` 문서는 전혀 건드리지 않아 §2 규칙과 충돌하지 않는다
-- `requestedByNickname`을 문서에 그대로 박아두는 이유: "받은 요청" 목록에 보낸 사람 닉네임을 보여줘야 하는데, `users/{상대uid}`는 본인만 read라 열어볼 수 없다. 매번 `nicknames` 인덱스를 역으로 훑는 대신 요청 시점 닉네임을 복사해둔다 (그 이후 닉네임이 바뀌어도 요청 문서엔 옛 닉네임이 남는다 — 스냅샷)
+- `requestedByNickname`/`accepterNickname`을 문서에 그대로 박아두는 이유: "받은 요청"·"내 친구" 목록에 상대 닉네임을 보여줘야 하는데, `users/{상대uid}`는 본인만 read라 열어볼 수 없다. 매번 `nicknames` 인덱스를 역으로 훑는 대신 요청/수락 시점 닉네임을 복사해둔다 (그 이후 닉네임이 바뀌어도 문서엔 그때 닉네임이 남는다 — 스냅샷)
+- **내 친구 목록**: `friendships`에서 `uids` array-contains 내 uid, `status == 'accepted'`로 쿼리한다. 상대 닉네임은 내가 `requestedBy`면 `accepterNickname`, 아니면 `requestedByNickname`. 친구 요청 조회와 같은 복합 인덱스를 그대로 쓴다(값만 다른 equality라 인덱스 추가 불필요)
+- **친구 끊기**: `friendships` 문서를 그냥 삭제한다. `allow delete`가 당사자 누구에게나 이미 열려 있어서 별도 규칙 불필요
 
-**CRUD (현재):** create/update/delete 모두 당사자만 (위 규칙). 예시: `[firestore/friendships/uid_example_1_uid_example_2.example.json](../../firestore/friendships/uid_example_1_uid_example_2.example.json)`
+**CRUD (현재):** create/update/delete 모두 당사자만 (위 규칙). 예시: [`firestore/friendships/uid_example_1_uid_example_2.example.json`](../../firestore/friendships/uid_example_1_uid_example_2.example.json)
 
 ### 컬렉션 트리 추가
 
