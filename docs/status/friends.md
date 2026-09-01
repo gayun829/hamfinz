@@ -19,6 +19,7 @@
 
 - `firestore.rules` / `firestore.rules.production` — `friendships` update 규칙에 `accepterNickname`/`acceptedAt` 필드 추가 허용 (수락한 사람 닉네임도 스냅샷)
 - `lib/services/friend_service.dart` — `Friend` 모델, `getFriends()`, `removeFriend()` 추가. `acceptFriendRequest()`가 수락자 닉네임도 같이 기록하도록 변경
+- `lib/services/friend_service.dart` — `getIncomingRequests`/`getFriends`에 fallback 추가: 닉네임 스냅샷이 없는 옛날 문서(필드 추가 전에 만들어짐)는 `nicknames` 인덱스에서 uid로 현재 닉네임을 찾아온다. 실기기 테스트 중 "알 수 없음" 뜨던 것 해결
 - `lib/screens/friends/add_friend_screen.dart` — 탭 2개(검색/받은 요청) → 3개(검색/받은 요청/내 친구). 화면 타이틀도 "친구 추가" → "친구"로 변경 (더는 추가만 하는 화면이 아니라서)
 
 ## 검증

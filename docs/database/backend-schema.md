@@ -465,6 +465,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 - read/delete: `request.auth.uid in resource.data.uids`인 당사자만
 - `users/{uid}` 문서는 전혀 건드리지 않아 §2 규칙과 충돌하지 않는다
 - `requestedByNickname`/`accepterNickname`을 문서에 그대로 박아두는 이유: "받은 요청"·"내 친구" 목록에 상대 닉네임을 보여줘야 하는데, `users/{상대uid}`는 본인만 read라 열어볼 수 없다. 매번 `nicknames` 인덱스를 역으로 훑는 대신 요청/수락 시점 닉네임을 복사해둔다 (그 이후 닉네임이 바뀌어도 문서엔 그때 닉네임이 남는다 — 스냅샷)
+- 이 필드들이 없는 옛날 문서(필드 추가 전에 만들어진 문서) 대비: `friend_service.dart`의 `getIncomingRequests`/`getFriends`는 스냅샷이 null이면 `nicknames`에서 `uid`로 현재 닉네임을 찾는 fallback을 탄다(`_lookupNicknameByUid`). 상대가 한 번도 로그인 안 해서 `nicknames` 인덱스 자체가 없으면 그래도 "알 수 없음"
 - **내 친구 목록**: `friendships`에서 `uids` array-contains 내 uid, `status == 'accepted'`로 쿼리한다. 상대 닉네임은 내가 `requestedBy`면 `accepterNickname`, 아니면 `requestedByNickname`. 친구 요청 조회와 같은 복합 인덱스를 그대로 쓴다(값만 다른 equality라 인덱스 추가 불필요)
 - **친구 끊기**: `friendships` 문서를 그냥 삭제한다. `allow delete`가 당사자 누구에게나 이미 열려 있어서 별도 규칙 불필요
 
