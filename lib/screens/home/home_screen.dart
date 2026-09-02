@@ -1,15 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/news_service.dart';
 import '../../widgets/category_switcher_sheet.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../calendar/streak_calendar_screen.dart';
 import '../friends/add_friend_screen.dart';
+import '../news/article_screen.dart';
+import '../news/term_quiz_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
@@ -24,10 +29,30 @@ class _HomeScreenState extends State<HomeScreen> {
   UserProfile? _profile;
   bool _loading = true;
 
+  /// 뉴스바에 돌릴 TOP 10. 뉴스 탭과 같은 캐시를 쓴다(1시간 TTL).
+  List<NewsItem> _news = const [];
+  int _newsIndex = 0;
+  Timer? _newsTimer;
+
+  /// 뉴스바가 한 건을 보여주는 시간.
+  static const _newsSlideInterval = Duration(seconds: 10);
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadNews();
+    _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
+  }
+
+  @override
+  void dispose() {
+    _newsTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshHome() async {
+    await Future.wait([_loadProfile(), _loadNews()]);
   }
 
   Future<void> _loadProfile() async {
@@ -80,8 +105,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// 뉴스바에 지금 떠 있는 기사를 연다 — 뉴스 탭에서 누른 것과 같은 경로다.
+  /// 아직 못 불러왔으면 구글뉴스 비즈니스 섹션으로 보낸다(빈 탭 방지).
   void _openNews() {
-    // 나중에 추가: HOT 뉴스/공지 화면
+    if (_news.isEmpty) {
+      ArticleScreen.open(context, NewsService.morePageUri, '금융 뉴스');
+      return;
+    }
+    final item = _news[_newsIndex];
+    ArticleScreen.open(
+      context,
+      Uri.parse(item.url),
+      item.title,
+      onStartQuiz: item.term.hasLesson
+          ? (_, _) => TermQuizScreen.open(context, item.term, item.title)
+          : null,
+    );
+  }
+
+  /// 뉴스바에 보여줄 제목. 못 불러왔을 때도 배너가 비어 보이지 않게 한다.
+  String get _newsBarTitle =>
+      _news.isEmpty ? '오늘의 금융 뉴스 보러가기' : _news[_newsIndex].title;
+
+  Future<void> _loadNews() async {
+    try {
+      final items = await NewsService.topFinance();
+      if (!mounted) return;
+      setState(() {
+        _news = items;
+        _newsIndex = 0;
+      });
+    } catch (_) {
+      // 뉴스는 홈의 곁다리라, 실패해도 홈 전체를 오류로 만들지 않는다.
+    }
+  }
+
+  void _rotateNews() {
+    if (!mounted || _news.length < 2) return;
+    setState(() => _newsIndex = (_newsIndex + 1) % _news.length);
   }
 
   void _openFriends() {
@@ -136,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
         profile.nickname.isNotEmpty ? profile.nickname : '아깅햄핀';
 
     return RefreshIndicator(
-      onRefresh: _loadProfile,
+      onRefresh: _refreshHome,
       child: FigmaCanvas(
         designWidth: FigmaScale.homeDesignWidth,
         designHeight: FigmaScale.homeContentHeight,
@@ -151,6 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
           questTotal: QuizData.maxEnergy,
           progressFillWidth: progressFillWidth,
           canStartLearning: canStart,
+          newsTitle: _newsBarTitle,
           onMenu: _openCategorySwitcher,
           onNews: _openNews,
           onFriends: _openFriends,
@@ -175,6 +237,7 @@ List<Widget> _buildFigmaHomeLayers({
   required int questTotal,
   required double progressFillWidth,
   required bool canStartLearning,
+  required String newsTitle,
   required VoidCallback onMenu,
   required VoidCallback onNews,
   required VoidCallback onFriends,
@@ -367,13 +430,39 @@ List<Widget> _buildFigmaHomeLayers({
         height: 42.222,
         child: const FigmaSvg(FigmaAssets.megaphone, fit: BoxFit.fill),
       ),
-      FigmaLabel(
+      // 10초마다 TOP 10을 한 건씩 넘긴다. 제목이 길어서 한 줄로 자른다.
+      FigmaBox(
         figma: figma,
         left: 224,
-        top: 300,
-        text: 'HOT 뉴스 / 기사 제목 ~',
-        fontSize: 34,
+        top: 296,
         width: 867,
+        height: 48,
+        child: ClipRect(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            transitionBuilder: (child, animation) => SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+            child: Align(
+              key: ValueKey(newsTitle),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                newsTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: s(34),
+                  height: 1.1,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       FigmaBox(
         figma: figma,

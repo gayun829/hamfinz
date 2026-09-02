@@ -1,32 +1,64 @@
 # 뉴스
 
-관련 코드: `lib/services/news_service.dart`, `lib/screens/news/`
+관련 코드: `lib/services/news_service.dart`, `lib/data/finance_terms.dart`, `lib/screens/news/`, `lib/screens/home/home_screen.dart`
 
 ## 목적
 
-관심 주제별 **최근 인기 금융 뉴스 TOP 3**를 보여 주고, 원문을 읽게 한다.  
-(기사 기반 LLM 퀴즈는 별도 로드맵.)
+**지금 가장 큰 금융 뉴스 TOP 10**을 보여 주고, 기사에 나온 금융 용어를 학습으로 이어 준다.
 
-## NewsService
+## 소스
 
-- 소스: Google News RSS (`news.google.com/rss/search`)  
-- 파라미터: `hl=ko`, `gl=KR`, `ceid=KR:ko`  
-- 질의에 `when:7d`로 최근 1주일 제한  
-- `topFor(categoryId, limit: 3)` → `List<NewsItem>` (`title`, `url`)  
-- `searchPageFor(categoryId)` → 「더보기」용 검색 페이지 URI  
+Google News **비즈니스 토픽 헤드라인** 1회 호출.
 
-### 카테고리 질의 (`categoryQueries`)
+```
+news.google.com/rss/headlines/section/topic/BUSINESS?hl=ko&gl=KR&ceid=KR:ko
+```
 
-| id | 검색어 요약 |
-|----|-------------|
-| `allowance` | 용돈 OR 생활비 OR 소비습관 |
-| `saving` | 예금 OR 적금 OR 저축 금리 |
-| `stock` | 주식 OR 증시 OR 투자 |
-| `insurance` | 보험 |
-| `tax` | 세금 OR 연말정산 OR 소득공제 |
-| `credit` | 신용점수 OR 대출 |
+검색 질의가 아니라 구글이 직접 고르고 순서를 매긴 묶음이라, 넓은 검색어(`금융 OR 경제`)보다 큰 기사가 위로 온다. 순서는 구글이 준 그대로 쓴다.
 
-### 웹 CORS
+> **조회수 순은 만들 수 없다.** RSS item이 주는 건 `title / link / source / pubDate / guid / description`뿐이라 조회수 필드가 없다.
+
+### 왜 카테고리를 안 나누나
+
+이전에는 6개 카테고리마다 검색 질의를 던져 각 TOP 3을 보여 줬다. 실측하니:
+
+| 쿼리 | 용어 매칭 |
+|---|---:|
+| 신용 | 98% |
+| 저축&예금 | 83% |
+| 주식&투자 | 39% |
+| 보험 | 33% |
+| 세금 | 27% |
+| 용돈&지출 | **6%** |
+
+카테고리 쿼리 자체는 필터로 잘 작동했지만, 보험·세금·용돈은 주에 따라 섹션이 비어 「표시할 뉴스가 없어요」가 떴다. 호출도 6번이라 웹 프록시가 502를 뱉는 원인이었다. 지금은 한 번 호출해서 한 목록으로 보여 준다.
+
+## 용어 필터 (`finance_terms.dart`)
+
+비즈니스 헤드라인에는 기업 인사·수출 실적·부동산 시황처럼 학습 소재가 안 되는 기사가 섞여 있다. **제목에 금융 용어가 없으면 목록에서 뺀다.**
+
+- 용어 47개 (`FinanceTerm`: `term` + `categoryId`)
+- `matchFinanceTerm(title)` — 가장 **긴** 용어를 고른다. `주택담보대출`이 걸렸는데 `대출`로 가르치면 기사와 어긋난다
+- 실측: 피드 70건 중 약 24%가 통과 → TOP 10이 여유 있게 채워진다
+- `categoryId`는 목록의 용어 칩 이모지에 쓰고, 뉴스 퀴즈에서 카테고리를 정할 때 쓴다
+
+같은 용어가 여러 기사에 겹치는 건 그대로 둔다(`금리` 3건 등).
+
+## 갱신 주기 — 1시간
+
+피드 기사 나이 중앙값이 약 19시간, 1시간 이내 신규는 3건 남짓이다. 필터 통과율 24%를 곱하면 목록에 새로 올라오는 건 **시간당 1건 꼴** — 더 짧게 잡으면 대부분 같은 목록을 다시 받는다.
+
+`NewsService`가 TTL 캐시를 들고 있어서(`refreshInterval`), 세 갈래가 모두 같은 캐시를 쓴다:
+
+| 트리거 | |
+|---|---|
+| 타이머 1시간 | 뉴스 탭이 `IndexedStack`에 물려 있어 앱 실행당 한 번만 만들어진다. 타이머 없이는 켜둔 채로 안 바뀐다 |
+| 앱 복귀 | 백그라운드에선 타이머가 밀릴 수 있어 `resumed`에 한 번 더 확인 |
+| 당겨서 새로고침 | `force: true` — 주기 무시 |
+
+갱신 실패 시 **보여주던 목록을 유지**한다. 캐시가 아예 없는 첫 로딩에서만 오류를 띄운다.
+
+## 웹 CORS
 
 브라우저는 구글뉴스에 CORS가 없어 직접 호출이 막힌다.
 
@@ -35,24 +67,72 @@ dart run tool/cors_proxy.dart
 flutter run -d chrome
 ```
 
-- 프록시: `tool/cors_proxy.dart` (포트 **8766**)  
-- 앱: 웹이면 기본 `http://localhost:8766`, `--dart-define=NEWS_PROXY=`로 덮어쓰기 / 모바일·데스크톱은 직접 RSS 호출  
+- 프록시: `tool/cors_proxy.dart` (포트 **8766**)
+- 앱: 웹이면 기본 `http://localhost:8766`, `--dart-define=NEWS_PROXY=`로 덮어쓰기 / 모바일·데스크톱은 직접 RSS 호출
 
-## NewsScreen
+## 화면
 
-- 6개 `kInterestCategories` 섹션  
-- 섹션별 병렬 fetch, 한 주제 실패해도 나머지 표시  
-- Pull-to-refresh  
-- 기사 탭 → `ArticleScreen` 또는 외부 브라우저  
+### NewsScreen (뉴스 탭)
 
-## ArticleScreen
+한 줄 목록 TOP 10. 제목만 나열하면 열 줄이 다 똑같아 보여서, **RSS가 주는데 안 쓰던 값**을 같이 띄운다.
 
-- Android/iOS: `webview_flutter`  
-- 상단/하단 CTA 자리: `onStartQuiz`  
-  - 문구 예: 「이 기사로 퀴즈 풀기」 / 웹뷰 배너 디자인 참고  
-  - **현재 NewsScreen에서 콜백 미전달** → UI만 준비된 상태  
+| | |
+|---|---|
+| 순위 뱃지 | 상위 3건 주황, 나머지 민트 |
+| 제목 | 최대 2줄, 상위 3건은 굵게 |
+| 두 번째 줄 | `🏦 금리 · 한국경제 · 3시간 전` — 용어/언론사(`<source>`)/발행 시각(`<pubDate>`) |
+| 용어 띠 | 목록 위, 오늘 걸린 용어를 중복 없이 가로로 훑어 준다 |
+| 부제 | `TOP 10 · 3분 전 업데이트` (`NewsService.cachedAt`) |
 
-## 본문 한계
+- 「더보기」→ 같은 비즈니스 섹션 페이지
+- Pull-to-refresh
 
-RSS는 **제목+URL만** 제공한다.  
-「기사 내용」 기반 LLM 퀴즈를 하려면 서버에서 본문 추출·요약이 필요하다. → [roadmap.md](./roadmap.md)
+`<pubDate>`는 RFC 822(`Tue, 02 Sep 2025 01:23:45 GMT`)다. `HttpDate.parse`는 `dart:io`라 웹 빌드에서 못 써서 `NewsService.parsePubDate`가 직접 읽는다 — 형식이 깨지면 null이고 그 기사만 시각을 안 띄운다.
+
+> **사진은 못 넣는다.** 피드 전체에 `media:*`/`<enclosure>`/`thumbnail`이 **0개**(`xmlns:media` 선언만 있고 원소가 없다), `<image>` 1개는 채널 로고다. 기사 `<link>`도 `news.google.com` 안에서 로케일만 붙여 자기 자신으로 302 — 언론사 URL은 자바스크립트로 풀린다. og:image를 쓰려면 링크를 해석해 주는 서버(Cloud Function)가 따로 있어야 한다.
+
+### 홈 뉴스바
+
+- TOP 10을 **10초마다** 한 건씩 슬라이드 (`AnimatedSwitcher`)
+- 누르면 그때 떠 있는 기사를 연다 — 뉴스 탭과 같은 경로(`ArticleScreen.open`)
+- 아직 못 불러왔으면 비즈니스 섹션 페이지로 (빈 탭 방지)
+- 뉴스 탭과 같은 캐시를 쓴다
+
+### ArticleScreen
+
+- Android/iOS: `webview_flutter` / Web·Windows: 외부 브라우저
+- `ArticleScreen.open(context, url, title)` — 뉴스 탭·홈 뉴스바 공통 진입점
+- 하단 CTA 자리: `onStartQuiz` — **현재 미전달**, 뉴스 퀴즈가 붙으면 연결
+
+## 뉴스 용어 학습
+
+RSS는 제목만 주고 구글뉴스 링크는 리다이렉트라 본문을 못 읽는다. 그래서 기사 본문을 시험 보지 않고, **제목에서 잡은 용어 하나를 가르치고 그걸 묻는다.**
+
+```
+기사 → 용어 카드(용어 / 한 줄 정의 / 나한테는?) → OX 2문제(해설 포함) → 결과
+```
+
+- 화면: `lib/screens/news/term_quiz_screen.dart`
+- 내용: `finance_terms.dart`의 `summary` / `forMe` / `quiz`(`TermOx`)
+- **`hasLesson`이 true인 용어만** 학습으로 이어진다. 나머지는 필터로만 쓰인다 — 자주 걸리는 용어부터 채워 나가면 된다
+
+### 홈 퀴즈와 왜 안 엮었나
+
+| | 홈 퀴즈(`QuizScreen`) | 뉴스 용어 학습 |
+|---|---|---|
+| 채점 | 서버 (`QuizSession`에 정답이 안 실려 온다) | 그 자리에서 |
+| 에너지 | 10문제당 소모 | 안 쓴다 |
+| 기록 | XP·연속일수 | 남기지 않는다 |
+
+기사 읽다 곁다리로 보는 학습이라 관문을 두면 안 들어온다. 진도로 세고 싶어지면 그때 `QuizService`에 붙이면 된다.
+
+### 진입 경로
+
+`ArticleScreen.open(..., onStartQuiz:)` 하나로 뉴스 탭·홈 뉴스바가 같이 들어간다.
+
+| | |
+|---|---|
+| Android·iOS | 인앱 WebView 기사 **하단 CTA** 「이 기사 용어 학습하기」 |
+| Web·Windows | 기사는 바깥 탭에서 열리고, 학습 화면을 앱에 바로 올려 둔다 — 읽고 돌아오면 기다리고 있다 |
+
+용어에 학습 내용이 없으면 `onStartQuiz`가 null이라 CTA도 안 붙는다.
