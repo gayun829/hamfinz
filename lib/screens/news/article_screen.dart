@@ -20,9 +20,46 @@ class ArticleScreen extends StatefulWidget {
   final Uri url;
   final String title;
 
-  /// 넘기면 하단에 '이 기사로 퀴즈 풀기' 버튼이 붙는다.
+  /// 넘기면 하단에 '이 기사 용어 학습하기' 버튼이 붙는다.
   /// 뉴스 기반 퀴즈가 준비되기 전까지는 비워두면 버튼도 안 보인다.
   final void Function(Uri url, String title)? onStartQuiz;
+
+  /// 기사를 연다. WebView가 있으면 앱 안에서, 없으면 외부 브라우저로.
+  ///
+  /// 뉴스 탭과 홈 화면 뉴스바가 같은 경로로 들어와야 해서 여기에 둔다.
+  ///
+  /// [onStartQuiz]를 주면 학습으로 이어진다. 웹·윈도우는 기사가 바깥 탭에서
+  /// 열려 앱에 CTA를 붙일 자리가 없으므로, 브라우저를 띄운 뒤 학습 화면을 앱에
+  /// 바로 올려 둔다 — 기사를 읽고 돌아오면 기다리고 있다.
+  static Future<void> open(
+    BuildContext context,
+    Uri url,
+    String title, {
+    void Function(Uri url, String title)? onStartQuiz,
+  }) async {
+    if (isSupported) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ArticleScreen(
+            url: url,
+            title: title,
+            onStartQuiz: onStartQuiz,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('뉴스 페이지를 열지 못했어요.')),
+      );
+      return;
+    }
+    if (onStartQuiz != null && context.mounted) onStartQuiz(url, title);
+  }
 
   /// WebView 플러그인이 있는 플랫폼인지. Web·Windows에는 구현체가 없어서
   /// 그쪽에서는 기존처럼 외부 브라우저로 넘겨야 한다.
@@ -149,7 +186,7 @@ class _ArticleScreenState extends State<ArticleScreen> {
                       ),
                     ),
                     child: const Text(
-                      '이 기사로 퀴즈 풀기',
+                      '이 기사 용어 학습하기',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                     ),
                   ),

@@ -74,9 +74,13 @@ String? resolveActiveInterestCategoryId(List<String> ids) {
   return null;
 }
 
-InterestCategory? interestCategoryById(String id) {
+/// id로 카테고리를 찾는다. 없는 id면 null — 뉴스 카드처럼 표시용으로만 쓴다.
+InterestCategory? findInterestCategory(String id) {
   for (final category in kInterestCategories) {
     if (category.id == id) return category;
   }
   return null;
 }
+
+/// 퀴즈/프로필 등 내부 코드용 별칭.
+InterestCategory? interestCategoryById(String id) => findInterestCategory(id);
