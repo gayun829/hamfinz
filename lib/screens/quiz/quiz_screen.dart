@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../data/quiz_data.dart';
@@ -489,9 +491,9 @@ class _QuizScreenState extends State<QuizScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxH = constraints.maxHeight;
-        final heroH = (maxH * 0.34).clamp(96.0, s(260.0));
-        final questionH = (maxH * 0.18).clamp(72.0, s(180.0));
-        final optionsH = (maxH - heroH - questionH).clamp(120.0, maxH);
+        final heroH = _orderedClamp(maxH * 0.34, 96.0, s(260.0));
+        final questionH = _orderedClamp(maxH * 0.18, 72.0, s(180.0));
+        final optionsH = _orderedClamp(maxH - heroH - questionH, 120.0, maxH);
 
         return Column(
           children: [
@@ -547,5 +549,11 @@ class _QuizScreenState extends State<QuizScreen> {
         );
       },
     );
+  }
+
+  static double _orderedClamp(double value, double a, double b) {
+    final lo = math.min(a, b);
+    final hi = math.max(a, b);
+    return value.clamp(lo, hi);
   }
 }
