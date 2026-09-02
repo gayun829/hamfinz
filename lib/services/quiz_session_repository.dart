@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../data/interest_categories.dart';
 import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
@@ -16,15 +17,6 @@ class QuizSessionRepository {
   QuizSessionRepository._();
 
   static final instance = QuizSessionRepository._();
-
-  static const _allCategoryIds = [
-    'allowance',
-    'saving',
-    'stock',
-    'insurance',
-    'tax',
-    'credit',
-  ];
 
   /// 카테고리당 후보 풀 크기 (랜덤 셔플 후 10문항 선정).
   static const _poolPerCategory = 200;
@@ -62,22 +54,13 @@ class QuizSessionRepository {
     );
 
     if (candidates.length < QuizData.dailyQuestionCount) {
-      final extraCategories = _allCategoryIds
-          .where((id) => !targetCategories.contains(id))
-          .toList();
-      final extra = await _fetchCandidates(
-        categoryIds: extraCategories,
-        excludeIds: mastered,
-      );
-      final seen = candidates.map((c) => c.id).toSet();
-      for (final doc in extra) {
-        if (seen.add(doc.id)) candidates.add(doc);
-      }
-    }
-
-    if (candidates.length < QuizData.dailyQuestionCount) {
+      final categoryLabel =
+          interestCategoryById(targetCategories.first)?.name ??
+          _categoryLabels[targetCategories.first] ??
+          targetCategories.first;
       throw QuizSessionException(
-        '출제 가능한 문제가 부족해요. (${candidates.length}문항)',
+        '$categoryLabel 카테고리의 출제 가능한 문제가 부족해요. '
+        '(${candidates.length}/${QuizData.dailyQuestionCount}문항)',
       );
     }
 
@@ -137,53 +120,68 @@ class QuizSessionRepository {
     final answerRef = sessionRef.collection('answers').doc(questionId);
     final questionRef = _firestore.collection('quizQuestions').doc(questionId);
 
+    // 웹: runTransaction 콜백 안에서 throw/reject 하면 Firestore JS SDK가
+    // HTTP BodyStream을 abort → AbortError · 무한 대기. 검증은 null 반환 후 처리.
+    final txError = <String>[];
+
     try {
-      return await _firestore.runTransaction((tx) async {
+      final txResult = await _firestore.runTransaction<Map<String, dynamic>?>(
+        (tx) async {
+        txError.clear();
         final userSnap = await tx.get(userRef);
         final sessionSnap = await tx.get(sessionRef);
         final answerSnap = await tx.get(answerRef);
         final questionSnap = await tx.get(questionRef);
 
         if (!userSnap.exists) {
-          throw QuizSessionException('유저 프로필을 찾을 수 없어요.');
+          txError.add('유저 프로필을 찾을 수 없어요.');
+          return null;
         }
         if (!sessionSnap.exists) {
-          throw QuizSessionException('세션을 찾을 수 없어요.');
+          txError.add('세션을 찾을 수 없어요.');
+          return null;
         }
         if (!questionSnap.exists) {
-          throw QuizSessionException('문제를 찾을 수 없어요.');
+          txError.add('문제를 찾을 수 없어요.');
+          return null;
         }
 
         final session = sessionSnap.data()!;
         if (session['status'] != 'inProgress') {
-          throw QuizSessionException('이미 종료된 세션이에요.');
+          txError.add('이미 종료된 세션이에요.');
+          return null;
         }
 
         final questionIds = List<String>.from(
           (session['questionIds'] as List?) ?? [],
         );
         if (!questionIds.contains(questionId)) {
-          throw QuizSessionException('이 세션의 문제가 아니에요.');
+          txError.add('이 세션의 문제가 아니에요.');
+          return null;
         }
 
         if (answerSnap.exists) {
-          throw QuizSessionException('이미 제출한 문제예요.');
+          txError.add('이미 제출한 문제예요.');
+          return null;
         }
 
         final user = userSnap.data()!;
         var energy = (user['energy'] as num?)?.toInt() ?? QuizData.maxEnergy;
         if (energy < QuizData.energyCostPerQuestion) {
-          throw QuizSessionException('에너지가 부족해요.');
+          txError.add('에너지가 부족해요.');
+          return null;
         }
 
         final q = questionSnap.data()!;
         if (q['isActive'] != true) {
-          throw QuizSessionException('출제되지 않은 문제예요.');
+          txError.add('출제되지 않은 문제예요.');
+          return null;
         }
 
         final options = List<String>.from((q['options'] as List?) ?? []);
         if (selectedIndex < 0 || selectedIndex >= options.length) {
-          throw QuizSessionException('보기 번호가 올바르지 않아요.');
+          txError.add('보기 번호가 올바르지 않아요.');
+          return null;
         }
 
         final correctIndex = (q['correctIndex'] as num?)?.toInt() ?? 0;
@@ -222,19 +220,26 @@ class QuizSessionRepository {
         }
         tx.update(sessionRef, sessionUpdate);
 
-        return SubmitAnswerResult(
-          isCorrect: isCorrect,
-          correctIndex: correctIndex,
-          energyRemaining: energy,
-        );
-      });
+        // 웹: 커스텀 클래스 반환은 JS interop에서 null로 깨짐 → Map만 반환.
+        return {
+          'isCorrect': isCorrect,
+          'correctIndex': correctIndex,
+          'energyRemaining': energy,
+        };
+      },
+      );
+
+      if (txError.isNotEmpty) {
+        throw QuizSessionException(txError.first);
+      }
+      if (txResult == null) {
+        throw QuizSessionException('답안 제출에 실패했어요.');
+      }
+      return _submitAnswerResultFromTx(txResult);
     } on QuizSessionException {
       rethrow;
     } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw QuizSessionException(firestorePermissionDeniedMessage());
-      }
-      throw QuizSessionException(e.message ?? '답안 제출에 실패했어요.');
+      throw QuizSessionException(_firebaseTxMessage(e, '답안 제출에 실패했어요.'));
     }
   }
 
@@ -248,21 +253,28 @@ class QuizSessionRepository {
     final userRef = _firestore.collection('users').doc(uid);
     final sessionRef = userRef.collection('sessions').doc(sessionId);
 
+    final txError = <String>[];
+
     try {
-      return await _firestore.runTransaction((tx) async {
+      final txResult = await _firestore.runTransaction<Map<String, dynamic>?>(
+        (tx) async {
+        txError.clear();
         final sessionSnap = await tx.get(sessionRef);
         if (!sessionSnap.exists) {
-          throw QuizSessionException('세션을 찾을 수 없어요.');
+          txError.add('세션을 찾을 수 없어요.');
+          return null;
         }
 
         final session = sessionSnap.data()!;
         if (session['status'] != 'inProgress') {
-          throw QuizSessionException('이미 완료된 세션이에요.');
+          txError.add('이미 완료된 세션이에요.');
+          return null;
         }
 
         final userSnap = await tx.get(userRef);
         if (!userSnap.exists) {
-          throw QuizSessionException('유저 프로필을 찾을 수 없어요.');
+          txError.add('유저 프로필을 찾을 수 없어요.');
+          return null;
         }
 
         final questionIds = List<String>.from(
@@ -277,17 +289,19 @@ class QuizSessionRepository {
             sessionRef.collection('answers').doc(qid),
           );
           if (!answerSnap.exists) {
-            throw QuizSessionException(
+            txError.add(
               '아직 풀지 않은 문제가 있어요. (${answerDocs.length}/$expectedCount)',
             );
+            return null;
           }
           answerDocs.add(answerSnap);
         }
 
         if (answerDocs.length < expectedCount) {
-          throw QuizSessionException(
+          txError.add(
             '아직 풀지 않은 문제가 있어요. (${answerDocs.length}/$expectedCount)',
           );
+          return null;
         }
 
         final answers = answerDocs;
@@ -391,26 +405,80 @@ class QuizSessionRepository {
           'completedAt': FieldValue.serverTimestamp(),
         });
 
-        return QuizSessionResult(
-          answers: answerResults,
-          xpEarned: xpEarned,
-          seedsEarned: seedsEarned,
-          leveledUp: newLevel > previousLevel,
-          newLevel: newLevel,
-          previousLevel: previousLevel,
-          unlockedItems: unlocks.newly,
-          newStreak: streak,
-          energyRemaining: energyRemaining,
-        );
-      });
+        return {
+          'answers': answerResults
+              .map(
+                (a) => {
+                  'questionId': a.questionId,
+                  'selectedIndex': a.selectedIndex,
+                  'isCorrect': a.isCorrect,
+                },
+              )
+              .toList(),
+          'xpEarned': xpEarned,
+          'seedsEarned': seedsEarned,
+          'leveledUp': newLevel > previousLevel,
+          'newLevel': newLevel,
+          'previousLevel': previousLevel,
+          'unlockedItems': unlocks.newly,
+          'newStreak': streak,
+          'energyRemaining': energyRemaining,
+        };
+      },
+      );
+
+      if (txError.isNotEmpty) {
+        throw QuizSessionException(txError.first);
+      }
+      if (txResult == null) {
+        throw QuizSessionException('세션 완료 처리에 실패했어요.');
+      }
+      return _sessionResultFromTx(txResult);
     } on QuizSessionException {
       rethrow;
     } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw QuizSessionException(firestorePermissionDeniedMessage());
-      }
-      throw QuizSessionException(e.message ?? '세션 완료 처리에 실패했어요.');
+      throw QuizSessionException(_firebaseTxMessage(e, '세션 완료 처리에 실패했어요.'));
     }
+  }
+
+  SubmitAnswerResult _submitAnswerResultFromTx(Map<String, dynamic> data) {
+    return SubmitAnswerResult(
+      isCorrect: data['isCorrect'] as bool? ?? false,
+      correctIndex: (data['correctIndex'] as num?)?.toInt() ?? 0,
+      energyRemaining: (data['energyRemaining'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  QuizSessionResult _sessionResultFromTx(Map<String, dynamic> data) {
+    final answersRaw = (data['answers'] as List? ?? []).cast<Map>();
+    return QuizSessionResult(
+      answers: answersRaw
+          .map(
+            (a) => QuizAnswer(
+              questionId: a['questionId'] as String,
+              selectedIndex: (a['selectedIndex'] as num).toInt(),
+              isCorrect: a['isCorrect'] as bool? ?? false,
+            ),
+          )
+          .toList(),
+      xpEarned: (data['xpEarned'] as num?)?.toInt() ?? 0,
+      seedsEarned: (data['seedsEarned'] as num?)?.toInt() ?? 0,
+      leveledUp: data['leveledUp'] as bool? ?? false,
+      newLevel: (data['newLevel'] as num?)?.toInt() ?? 1,
+      previousLevel: (data['previousLevel'] as num?)?.toInt() ?? 1,
+      unlockedItems: List<String>.from(data['unlockedItems'] as List? ?? []),
+      newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
+      energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
+    );
+  }
+
+  String _firebaseTxMessage(FirebaseException e, String fallback) {
+    if (e.code == 'permission-denied') {
+      return firestorePermissionDeniedMessage();
+    }
+    final msg = e.message?.trim();
+    if (msg != null && msg.isNotEmpty) return msg;
+    return '$fallback (${e.code})';
   }
 
   Map<String, CategoryStat> _copyCategoryStats(Object? raw) {
@@ -451,10 +519,11 @@ class QuizSessionRepository {
   }
 
   List<String> _targetCategories(UserProfile profile) {
-    final ids = profile.interestCategories
-        .where((id) => _allCategoryIds.contains(id))
-        .toList();
-    return ids.isEmpty ? List<String>.from(_allCategoryIds) : ids;
+    final activeId = resolveActiveInterestCategoryId(profile.interestCategories);
+    if (activeId == null) {
+      throw QuizSessionException('학습 카테고리를 선택해 주세요.');
+    }
+    return [activeId];
   }
 
   Future<Set<String>> _fetchMasteredIds(String uid) async {
@@ -549,10 +618,6 @@ class QuizSessionRepository {
 
     for (final question in pool) {
       if (picked.length >= count) break;
-      // 카테고리 다양성: 아직 적은 카테고리 우선 (최대 2개까지 같은 카테고리 연속 허용).
-      final sameCategoryCount =
-          picked.where((q) => q.category == question.category).length;
-      if (sameCategoryCount >= 3) continue;
       picked.add(question);
     }
 

@@ -515,27 +515,36 @@ class QuizOxHorizontalLayout extends StatelessWidget {
     );
     final s = figma.s;
 
-    return Column(
-      children: [
-        Flexible(
-          flex: FigmaQuizTokens.oxHeroFlex,
-          fit: FlexFit.tight,
-          child: const QuizOxHeroZone(),
-        ),
-        SizedBox(height: s(FigmaQuizTokens.oxHeroCardGap)),
-        Flexible(
-          flex: FigmaQuizTokens.oxCardFlex,
-          fit: FlexFit.tight,
-          child: QuizOxQuestionCard(
-            question: question,
-            options: options,
-            selectedIndex: selectedIndex,
-            correctIndex: correctIndex,
-            showResult: showResult,
-            onSelect: onSelect,
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 420;
+        final heroFlex =
+            compact ? 24 : FigmaQuizTokens.oxHeroFlex;
+        final cardFlex = compact ? 76 : FigmaQuizTokens.oxCardFlex;
+
+        return Column(
+          children: [
+            Expanded(
+              flex: heroFlex,
+              child: const QuizOxHeroZone(),
+            ),
+            SizedBox(
+              height: compact ? 0 : s(FigmaQuizTokens.oxHeroCardGap),
+            ),
+            Expanded(
+              flex: cardFlex,
+              child: QuizOxQuestionCard(
+                question: question,
+                options: options,
+                selectedIndex: selectedIndex,
+                correctIndex: correctIndex,
+                showResult: showResult,
+                onSelect: onSelect,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

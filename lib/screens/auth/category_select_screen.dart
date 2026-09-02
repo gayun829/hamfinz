@@ -4,10 +4,7 @@ import '../../data/interest_categories.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
-/// 회원가입 직후 관심 카테고리를 고르는 화면.
-///
-/// 카테고리 목록은 [kInterestCategories]를 사용한다. 나중에 "관심 카테고리 위주로
-/// 일일 퀴즈 출제" 같은 기능을 붙일 때 `question.category.name`과 바로 비교할 수 있다.
+/// 회원가입 직후 학습 카테고리를 고르는 화면 (6개 중 1개).
 class CategorySelectScreen extends StatefulWidget {
   const CategorySelectScreen({super.key});
 
@@ -16,24 +13,19 @@ class CategorySelectScreen extends StatefulWidget {
 }
 
 class _CategorySelectScreenState extends State<CategorySelectScreen> {
-  final Set<String> _selected = {};
+  String? _selectedId;
   bool _saving = false;
 
-  void _toggle(String id) {
-    setState(() {
-      if (_selected.contains(id)) {
-        _selected.remove(id);
-      } else {
-        _selected.add(id);
-      }
-    });
+  void _select(String id) {
+    setState(() => _selectedId = id);
   }
 
   Future<void> _complete() async {
-    if (_selected.isEmpty || _saving) return;
+    final selectedId = _selectedId;
+    if (selectedId == null || _saving) return;
     setState(() => _saving = true);
 
-    await AuthService.instance.saveInterestCategories(_selected.toList());
+    await AuthService.instance.saveInterestCategories([selectedId]);
 
     if (!mounted) return;
     Navigator.of(context).pop(true);
@@ -41,13 +33,12 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 가입이 이미 완료된 상태이므로 뒤로가기로 회원가입 폼에 돌아가지 않게 막는다.
     return PopScope(
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('관심 카테고리'),
+          title: const Text('학습 카테고리'),
         ),
         body: SafeArea(
           child: Center(
@@ -59,7 +50,7 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      '어떤 금융 주제가 궁금하세요?',
+                      '어떤 금융 주제부터 배울까요?',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -68,7 +59,7 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      '선택한 주제를 중심으로 퀴즈를 추천해드려요. (복수 선택 가능)',
+                      '6개 중 1개를 선택해 주세요. 선택한 카테고리 문제가 출제됩니다.',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppTheme.textSecondary,
@@ -89,17 +80,17 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
                           final item = kInterestCategories[index];
                           return _CategoryCard(
                             item: item,
-                            selected: _selected.contains(item.id),
-                            onTap: () => _toggle(item.id),
+                            selected: _selectedId == item.id,
+                            onTap: () => _select(item.id),
                           );
                         },
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _selected.isEmpty
-                          ? '1개 이상 선택해주세요'
-                          : '${_selected.length}개 선택됨',
+                      _selectedId == null
+                          ? '카테고리를 선택해 주세요'
+                          : '${interestCategoryById(_selectedId!)?.name ?? ''} 선택됨',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -110,7 +101,7 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed:
-                          _selected.isEmpty || _saving ? null : _complete,
+                          _selectedId == null || _saving ? null : _complete,
                       child: _saving
                           ? const SizedBox(
                               width: 20,

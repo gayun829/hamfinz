@@ -39,7 +39,7 @@ const ruleset = await createRes.json();
 console.log('ruleset:', ruleset.name);
 
 const releaseRes = await fetch(
-  `https://firebaserules.googleapis.com/v1/projects/${projectId}/releases/cloud.firestore?updateMask=rulesetName`,
+  `https://firebaserules.googleapis.com/v1/projects/${projectId}/releases/cloud.firestore`,
   {
     method: 'PATCH',
     headers: {
@@ -48,8 +48,10 @@ const releaseRes = await fetch(
       'x-goog-user-project': projectId,
     },
     body: JSON.stringify({
-      name: `projects/${projectId}/releases/cloud.firestore`,
-      rulesetName: ruleset.name,
+      release: {
+        name: `projects/${projectId}/releases/cloud.firestore`,
+        rulesetName: ruleset.name,
+      },
     }),
   },
 );

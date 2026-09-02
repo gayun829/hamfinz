@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../data/interest_categories.dart';
 import '../data/legal_documents.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
@@ -331,13 +332,15 @@ class AuthService {
     }
   }
 
-  /// 관심 카테고리 저장.
-  /// 회원가입 직후 카테고리 선택 화면에서 호출한다.
-  /// (categoryIds는 QuizCategory enum의 name 문자열 목록)
+  /// 학습 카테고리 저장 (6개 중 1개).
   Future<void> saveInterestCategories(List<String> categoryIds) async {
     final profile = await getCurrentUser();
     if (profile == null) return;
-    profile.interestCategories = List<String>.from(categoryIds);
+
+    final activeId = resolveActiveInterestCategoryId(categoryIds);
+    if (activeId == null) return;
+
+    profile.interestCategories = [activeId];
     await saveProfile(profile);
   }
 

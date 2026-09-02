@@ -38,7 +38,7 @@ class UserProfile {
   List<LearningRecord> learningHistory;
   Map<String, CategoryStat> categoryStats;
 
-  /// 회원가입 시 선택한 관심 카테고리 id 목록.
+  /// 현재 학습 카테고리 id (1개).
   /// QuizCategory enum의 name과 동일한 문자열을 저장한다.
   /// (allowance / saving / stock / insurance / tax / credit)
   List<String> interestCategories;

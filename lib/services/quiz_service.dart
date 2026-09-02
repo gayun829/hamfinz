@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
+
 import '../config/quiz_backend_config.dart';
 import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
@@ -24,6 +26,9 @@ class QuizService {
     required int selectedIndex,
     required UserProfile profile,
   }) async {
+    if (kDebugMode) {
+      debugPrint('Quiz submit backend: ${QuizBackendConfig.submitBackend.name}');
+    }
     final SubmitAnswerResult result;
     if (QuizBackendConfig.usesCloudFunctions) {
       result = await QuizFunctionsRepository.instance.submitAnswer(
