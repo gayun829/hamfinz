@@ -55,3 +55,11 @@ const List<InterestCategory> kInterestCategories = [
     description: '신용점수 관리하기',
   ),
 ];
+
+/// id로 카테고리를 찾는다. 없는 id면 null — 뉴스 카드처럼 표시용으로만 쓴다.
+InterestCategory? findInterestCategory(String id) {
+  for (final category in kInterestCategories) {
+    if (category.id == id) return category;
+  }
+  return null;
+}
