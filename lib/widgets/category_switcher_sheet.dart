@@ -50,9 +50,16 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
     if (_saving || _selectedId == id) return;
 
     setState(() => _saving = true);
-    await AuthService.instance.saveInterestCategories([id]);
+    final error = await AuthService.instance.saveInterestCategories([id]);
 
     if (!mounted) return;
+    if (error != null) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
+    }
     setState(() {
       _selectedId = id;
       _saving = false;
