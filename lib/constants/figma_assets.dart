@@ -8,6 +8,7 @@ class FigmaAssets {
 
   // Home
   static const hamsterMain = '$_home/hamster_main.png';
+
   /// 홈 카드·썸네일 — 단일 햄스터만 (`assets/images/hamster_auth.png`)
   static const hamsterCard = hamsterAuth;
   static const bgTop = '$_home/bg_top.svg';
@@ -44,6 +45,8 @@ class FigmaAssets {
   // Shop
   static const shopSeedPouch = '$_shop/seed_pouch.svg';
   static const shopHamsterSheet = '$_shop/hamster_headband.png';
+  static const shopClosetBanner = '$_shop/closet_banner_hamster.png';
+  static const shopClothingBanner = '$_shop/clothing_shop_hamster.png';
 
   // Calendar
   static const calendarPeekHamster = '$_calendar/hamster_peek.png';

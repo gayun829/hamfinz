@@ -29,7 +29,7 @@ void main() {
     expect(find.text('상점'), findsOneWidget);
     expect(find.text('햄핀 옷장'), findsOneWidget);
     expect(find.text('옷 상점'), findsOneWidget);
-    expect(find.text('아이템 상점'), findsOneWidget);
+    expect(find.text('아이템 목록'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
