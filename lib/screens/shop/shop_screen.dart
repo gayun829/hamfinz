@@ -5,7 +5,6 @@ import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/figma_shop_tokens.dart';
-import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 import 'closet_screen.dart';
@@ -286,7 +285,7 @@ class _ShopBanner extends StatelessWidget {
               child: Image.asset(
                 asset,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (context, error, stackTrace) =>
                     Image.asset(fallbackAsset, fit: BoxFit.contain),
               ),
             ),
@@ -369,72 +368,6 @@ class _ItemPurchaseTile extends StatelessWidget {
                 amountSize: 11,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ClosetBanner extends StatelessWidget {
-  const _ClosetBanner({required this.figma, required this.onTap});
-
-  final FigmaScale figma;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(s(16), s(14), s(12), s(14)),
-        decoration: BoxDecoration(
-          color: FigmaShopTokens.card,
-          borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '햄핀이 꾸미러 가기',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: FigmaShopTokens.cardEyebrow(figma.scale),
-                  ),
-                  SizedBox(height: s(4)),
-                  Text(
-                    '햄핀 옷장',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: FigmaShopTokens.cardTitle(figma.scale),
-                  ),
-                  SizedBox(height: s(6)),
-                  Text(
-                    '내가 가진 씨앗으로 햄핀이를 꾸며보세요!',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: FigmaShopTokens.body(figma.scale),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: s(8)),
-            SizedBox(
-              width: s(72),
-              height: s(86),
-              child: FigmaPng(
-                FigmaAssets.hamsterAuth,
-                width: s(72),
-                height: s(86),
-                fit: BoxFit.contain,
-              ),
-            ),
-            Icon(Icons.chevron_right, size: s(22), color: Colors.black),
           ],
         ),
       ),
