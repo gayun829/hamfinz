@@ -12,7 +12,8 @@ class QuizData {
   static const int maxEnergy = 100;
 
   /// 문제 1개 풀 때 소모하는 에너지. (잠정 — 변동 가능)
-  static const int energyCostPerQuestion = 5;
+  /// TODO: 배포 전 원복 (예: 5). 지금은 0 — Firestore·UI 에너지 불일치 우회.
+  static const int energyCostPerQuestion = 0;
 
   /// 한 학습 세션(10문제) 시작에 필요한 에너지.
   static const int sessionEnergyCost =

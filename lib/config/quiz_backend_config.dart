@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+
 /// 퀴즈 제출·완료 백엔드 모드.
 ///
 /// 배포 절차: [docs/quiz-production-deployment.md](../../docs/quiz-production-deployment.md)
@@ -16,8 +18,19 @@ enum QuizSubmitBackend {
 class QuizBackendConfig {
   QuizBackendConfig._();
 
-  /// 제출·세션 완료 구현 선택. `QuizService`가 이 값으로 라우팅한다.
-  static const submitBackend = QuizSubmitBackend.clientTransaction;
+  /// 로컬/개발: clientTransaction + `node scripts/deploy_firestore_rules.mjs`
+  /// 스토어 배포: cloudFunctions + Functions 배포 + production rules
+  static const configuredBackend = QuizSubmitBackend.clientTransaction;
+
+  /// [configuredBackend] + 웹 디버그 시 Functions(CORS) 대신 Firestore 트랜잭션.
+  static QuizSubmitBackend get submitBackend {
+    if (kDebugMode &&
+        kIsWeb &&
+        configuredBackend == QuizSubmitBackend.cloudFunctions) {
+      return QuizSubmitBackend.clientTransaction;
+    }
+    return configuredBackend;
+  }
 
   static bool get usesClientTransaction =>
       submitBackend == QuizSubmitBackend.clientTransaction;

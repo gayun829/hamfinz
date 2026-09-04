@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
+import '../../data/interest_categories.dart';
 import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
@@ -79,6 +80,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       );
+      return;
+    }
+
+    if (resolveActiveInterestCategoryId(profile.interestCategories) == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('학습 카테고리를 먼저 선택해 주세요.')),
+      );
+      await _openCategorySwitcher();
       return;
     }
 

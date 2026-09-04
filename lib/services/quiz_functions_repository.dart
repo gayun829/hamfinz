@@ -31,7 +31,9 @@ class QuizFunctionsRepository {
         energyRemaining: (data['energyRemaining'] as num?)?.toInt() ?? 0,
       );
     } on FirebaseFunctionsException catch (e) {
-      throw QuizSessionException(e.message ?? '답안 제출에 실패했어요.');
+      throw QuizSessionException(_functionsErrorMessage(e, '답안 제출에 실패했어요.'));
+    } catch (e) {
+      throw QuizSessionException('답안 제출에 실패했어요. Cloud Functions 배포·설정을 확인해 주세요.');
     }
   }
 
@@ -69,7 +71,20 @@ class QuizFunctionsRepository {
         energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
       );
     } on FirebaseFunctionsException catch (e) {
-      throw QuizSessionException(e.message ?? '세션 완료 처리에 실패했어요.');
+      throw QuizSessionException(_functionsErrorMessage(e, '세션 완료 처리에 실패했어요.'));
+    } catch (e) {
+      throw QuizSessionException('세션 완료에 실패했어요. Cloud Functions 배포·설정을 확인해 주세요.');
     }
+  }
+
+  String _functionsErrorMessage(FirebaseFunctionsException e, String fallback) {
+    final detail = e.message?.trim();
+    if (detail != null && detail.isNotEmpty && detail != 'internal') {
+      return detail;
+    }
+    if (e.code == 'unavailable' || e.code == 'internal') {
+      return '$fallback (Functions 연결 실패 — firebase deploy --only functions 후 cloudFunctions 전환)';
+    }
+    return fallback;
   }
 }
