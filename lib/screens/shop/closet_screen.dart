@@ -321,6 +321,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                 bool isEquipped() {
                                   return _stagedSkinId == item.id ||
                                       _stagedPatternId == item.id ||
+                                      _stagedBackgroundId == item.id ||
                                       _stagedAccessoryIds.contains(item.id);
                                 }
 
@@ -341,7 +342,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                         }
                                         break;
                                       case ShopCategory.background:
-                                        _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+                                        _stagedBackgroundId = _stagedBackgroundId == item.id ? null : item.id;
                                         break;
                                     }
                                   });
