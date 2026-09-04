@@ -41,9 +41,9 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   ShopItem _catalogItem(String id) => _catalogItems.firstWhere(
-        (item) => item.id == id,
-        orElse: () => ShopData.items.firstWhere((item) => item.id == id),
-      );
+    (item) => item.id == id,
+    orElse: () => ShopData.items.firstWhere((item) => item.id == id),
+  );
 
   Future<void> _buyStudyGuard() async {
     if (_profile.studyGuardCount >= _maxStudyGuards) {

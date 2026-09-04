@@ -56,22 +56,52 @@ class _ClosetScreenState extends State<ClosetScreen> {
   List<ShopItem> get _visibleItems {
     if (!widget.showCatalog) {
       return _catalogItems
-          .where((item) => !item.hideFromCloset && _profile.ownedShopItemIds.contains(item.id))
+          .where(
+            (item) =>
+                !item.hideFromCloset &&
+                _profile.ownedShopItemIds.contains(item.id),
+          )
           .toList();
     }
     switch (_tab) {
       case _ClosetTab.my:
         return _catalogItems
-            .where((item) => !item.hideFromCloset && _profile.ownedShopItemIds.contains(item.id))
+            .where(
+              (item) =>
+                  !item.hideFromCloset &&
+                  _profile.ownedShopItemIds.contains(item.id),
+            )
             .toList();
       case _ClosetTab.skin:
-        return _catalogItems.where((item) => item.category == ShopCategory.skin && !item.hideFromCloset).toList();
+        return _catalogItems
+            .where(
+              (item) =>
+                  item.category == ShopCategory.skin && !item.hideFromCloset,
+            )
+            .toList();
       case _ClosetTab.pattern:
-        return _catalogItems.where((item) => item.category == ShopCategory.pattern && !item.hideFromCloset).toList();
+        return _catalogItems
+            .where(
+              (item) =>
+                  item.category == ShopCategory.pattern && !item.hideFromCloset,
+            )
+            .toList();
       case _ClosetTab.accessory:
-        return _catalogItems.where((item) => item.category == ShopCategory.accessory && !item.hideFromCloset).toList();
+        return _catalogItems
+            .where(
+              (item) =>
+                  item.category == ShopCategory.accessory &&
+                  !item.hideFromCloset,
+            )
+            .toList();
       case _ClosetTab.background:
-        return _catalogItems.where((item) => item.category == ShopCategory.background && !item.hideFromCloset).toList();
+        return _catalogItems
+            .where(
+              (item) =>
+                  item.category == ShopCategory.background &&
+                  !item.hideFromCloset,
+            )
+            .toList();
     }
   }
 
@@ -153,7 +183,9 @@ class _ClosetScreenState extends State<ClosetScreen> {
         ..clear()
         ..addAll(accessoryIds);
     });
-    _showSnackBar(owned ? '${item.name}을(를) 착용했어요.' : '${item.name}을(를) 구매하고 착용했어요.');
+    _showSnackBar(
+      owned ? '${item.name}을(를) 착용했어요.' : '${item.name}을(를) 구매하고 착용했어요.',
+    );
   }
 
   void _showSnackBar(String message) {
@@ -188,35 +220,52 @@ class _ClosetScreenState extends State<ClosetScreen> {
     final List<Widget> layers = [];
 
     // base
-    layers.add(Image.asset(
-      FigmaAssets.hamsterAuth,
-      width: width,
-      height: height,
-      fit: BoxFit.contain,
-      errorBuilder: (c, e, s) => const SizedBox.shrink(),
-    ));
+    layers.add(
+      Image.asset(
+        FigmaAssets.hamsterAuth,
+        width: width,
+        height: height,
+        fit: BoxFit.contain,
+        errorBuilder: (c, e, s) => const SizedBox.shrink(),
+      ),
+    );
 
     final background = _itemById(backgroundId);
     final skin = _itemById(skinId);
     final pattern = _itemById(patternId);
 
     if (background != null) {
-      layers.add(ShopHamsterSprite(column: background.spriteCol, row: background.spriteRow));
+      layers.add(
+        ShopHamsterSprite(
+          column: background.spriteCol,
+          row: background.spriteRow,
+        ),
+      );
     }
     if (skin != null) {
-      layers.add(ShopHamsterSprite(column: skin.spriteCol, row: skin.spriteRow));
+      layers.add(
+        ShopHamsterSprite(column: skin.spriteCol, row: skin.spriteRow),
+      );
     }
     if (pattern != null) {
-      layers.add(ShopHamsterSprite(column: pattern.spriteCol, row: pattern.spriteRow));
+      layers.add(
+        ShopHamsterSprite(column: pattern.spriteCol, row: pattern.spriteRow),
+      );
     }
     for (final accId in accessoryIds) {
       final acc = _itemById(accId);
       if (acc != null) {
-        layers.add(ShopHamsterSprite(column: acc.spriteCol, row: acc.spriteRow));
+        layers.add(
+          ShopHamsterSprite(column: acc.spriteCol, row: acc.spriteRow),
+        );
       }
     }
 
-    return Stack(children: layers.map((w) => SizedBox(width: width, height: height, child: w)).toList());
+    return Stack(
+      children: layers
+          .map((w) => SizedBox(width: width, height: height, child: w))
+          .toList(),
+    );
   }
 
   @override
@@ -239,8 +288,10 @@ class _ClosetScreenState extends State<ClosetScreen> {
                 designWidth: FigmaShopTokens.designWidth,
               );
               final s = figma.s;
-              final previewHeight =
-                  (constraints.maxHeight * 0.34).clamp(160.0, 280.0);
+              final previewHeight = (constraints.maxHeight * 0.34).clamp(
+                160.0,
+                280.0,
+              );
               final hamsterSize = (previewHeight * 0.58).clamp(96.0, 180.0);
               return Column(
                 children: [
@@ -309,14 +360,16 @@ class _ClosetScreenState extends State<ClosetScreen> {
                             itemCount: items.length,
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: s(12),
-                              mainAxisSpacing: s(12),
-                              childAspectRatio: 0.82,
-                            ),
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: s(12),
+                                  mainAxisSpacing: s(12),
+                                  childAspectRatio: 0.82,
+                                ),
                             itemBuilder: (context, index) {
                               final item = items[index];
-                              final owned = _profile.ownedShopItemIds.contains(item.id);
+                              final owned = _profile.ownedShopItemIds.contains(
+                                item.id,
+                              );
                               Widget card = ShopItemCard(
                                 figma: figma,
                                 item: item,
@@ -325,8 +378,9 @@ class _ClosetScreenState extends State<ClosetScreen> {
                               );
 
                               // MY 탭에서는 소유한 아이템에 대해 '장착' 토글 버튼을 보여줍니다.
-                                    if (owned &&
-                                      (!widget.showCatalog || _tab == _ClosetTab.my)) {
+                              if (owned &&
+                                  (!widget.showCatalog ||
+                                      _tab == _ClosetTab.my)) {
                                 bool isEquipped() {
                                   return _stagedSkinId == item.id ||
                                       _stagedPatternId == item.id ||
@@ -338,20 +392,30 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                   setState(() {
                                     switch (item.category) {
                                       case ShopCategory.skin:
-                                        _stagedSkinId = _stagedSkinId == item.id ? null : item.id;
+                                        _stagedSkinId = _stagedSkinId == item.id
+                                            ? null
+                                            : item.id;
                                         break;
                                       case ShopCategory.pattern:
-                                        _stagedPatternId = _stagedPatternId == item.id ? null : item.id;
+                                        _stagedPatternId =
+                                            _stagedPatternId == item.id
+                                            ? null
+                                            : item.id;
                                         break;
                                       case ShopCategory.accessory:
-                                        if (_stagedAccessoryIds.contains(item.id)) {
+                                        if (_stagedAccessoryIds.contains(
+                                          item.id,
+                                        )) {
                                           _stagedAccessoryIds.remove(item.id);
                                         } else {
                                           _stagedAccessoryIds.add(item.id);
                                         }
                                         break;
                                       case ShopCategory.background:
-                                        _stagedBackgroundId = _stagedBackgroundId == item.id ? null : item.id;
+                                        _stagedBackgroundId =
+                                            _stagedBackgroundId == item.id
+                                            ? null
+                                            : item.id;
                                         break;
                                     }
                                   });
@@ -364,14 +428,23 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                     GestureDetector(
                                       onTap: toggleEquip,
                                       child: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(8)),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: s(12),
+                                          vertical: s(8),
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: isEquipped() ? Colors.green.shade600 : FigmaShopTokens.chip,
-                                          borderRadius: BorderRadius.circular(s(8)),
+                                          color: isEquipped()
+                                              ? Colors.green.shade600
+                                              : FigmaShopTokens.chip,
+                                          borderRadius: BorderRadius.circular(
+                                            s(8),
+                                          ),
                                         ),
                                         child: Text(
                                           isEquipped() ? '장착 해제' : '장착',
-                                          style: FigmaShopTokens.sectionTitle(figma.scale),
+                                          style: FigmaShopTokens.sectionTitle(
+                                            figma.scale,
+                                          ),
                                         ),
                                       ),
                                     ),

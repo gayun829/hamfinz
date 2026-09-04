@@ -30,6 +30,13 @@ service cloud.firestore {
       }
     }
 
+    // 상점 상품은 로그인한 사용자에게 활성 상품만 공개한다.
+    match /shopItems/{itemId} {
+      allow read: if request.auth != null
+        && resource.data.isActive == true;
+      allow write: if false;
+    }
+
     // quizQuestions: 앱은 isActive 문제만 읽기. 등록·수정은 Console / Admin SDK.
     match /quizQuestions/{questionId} {
       allow read: if request.auth != null && resource.data.isActive == true;

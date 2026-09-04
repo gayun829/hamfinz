@@ -7,12 +7,12 @@ class ShopCatalogService {
 
   static final instance = ShopCatalogService._();
 
-  final _items = FirebaseFirestore.instance.collection('shopItems');
+  CollectionReference<Map<String, dynamic>> get _items =>
+      FirebaseFirestore.instance.collection('shopItems');
 
   Future<List<ShopItem>> getItems() async {
-    final snapshot = await _items.get();
+    final snapshot = await _items.where('isActive', isEqualTo: true).get();
     final items = snapshot.docs
-        .where((doc) => doc.data()['isActive'] as bool? ?? true)
         .map((doc) => ShopItem.fromFirestore(doc.id, doc.data()))
         .toList();
     items.sort((a, b) => a.id.compareTo(b.id));

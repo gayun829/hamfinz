@@ -1,9 +1,4 @@
-enum ShopCategory {
-  skin,
-  pattern,
-  accessory,
-  background,
-}
+enum ShopCategory { skin, pattern, accessory, background }
 
 class ShopItem {
   const ShopItem({
@@ -138,6 +133,7 @@ abstract final class ShopData {
   static List<ShopItem> catalogWithoutFeatured() =>
       items.where((item) => !item.featured).toList();
 
-  static List<ShopItem> byCategory(ShopCategory category) =>
-      items.where((item) => item.category == category && !item.hideFromCloset).toList();
+  static List<ShopItem> byCategory(ShopCategory category) => items
+      .where((item) => item.category == category && !item.hideFromCloset)
+      .toList();
 }
