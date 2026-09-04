@@ -7,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
+import 'item_preview_screen.dart';
 
 enum _ClosetTab { my, skin, pattern, accessory, background }
 
@@ -66,74 +67,50 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   Future<void> _onItemTap(ShopItem item) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ItemPreviewScreen(
+          item: item,
+          profile: _profile,
+          onPurchase: () => _purchaseOrEquipFromPreview(item),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    final latest = await AuthService.instance.getCurrentUser();
+    if (latest != null) setState(() => _profile = latest);
+  }
+
+  Future<bool> _purchaseOrEquipFromPreview(ShopItem item) async {
     final owned = _profile.ownedShopItemIds.contains(item.id);
     var skinId = _profile.equippedSkinId;
     var patternId = _profile.equippedPatternId;
     var backgroundId = _profile.equippedBackgroundId;
-    var accessoryIds = <String>[];
+    var accessoryIds = List<String>.from(_profile.equippedAccessoryIds);
 
     switch (item.category) {
       case ShopCategory.skin:
         skinId = item.id;
-        accessoryIds = List<String>.from(_profile.equippedAccessoryIds);
-        break;
       case ShopCategory.pattern:
         patternId = item.id;
-        accessoryIds = List<String>.from(_profile.equippedAccessoryIds);
-        break;
       case ShopCategory.accessory:
         accessoryIds = [item.id];
-        break;
       case ShopCategory.background:
         backgroundId = item.id;
-        accessoryIds = List<String>.from(_profile.equippedAccessoryIds);
-        break;
     }
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(item.name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 180,
-              height: 180,
-              child: _buildCompositePreview(
-                180,
-                180,
-                skinId: skinId,
-                patternId: patternId,
-                backgroundId: backgroundId,
-                accessoryIds: accessoryIds,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(item.description, textAlign: TextAlign.center),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('닫기'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await _equipOrBuyItem(
-                item,
-                skinId: skinId,
-                patternId: patternId,
-                backgroundId: backgroundId,
-                accessoryIds: accessoryIds,
-              );
-              if (mounted) Navigator.of(dialogContext).pop();
-            },
-            child: Text(owned ? '착용' : '구매'),
-          ),
-        ],
-      ),
+    if (!owned && _profile.seeds < item.price) {
+      _showSnackBar(_seedShortageMessage(item.price));
+      return false;
+    }
+    await _equipOrBuyItem(
+      item,
+      skinId: skinId,
+      patternId: patternId,
+      backgroundId: backgroundId,
+      accessoryIds: accessoryIds,
     );
+    return true;
   }
 
   Future<void> _equipOrBuyItem(
