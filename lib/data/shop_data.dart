@@ -27,6 +27,26 @@ class ShopItem {
   final int spriteRow;
   final bool featured;
   final bool hideFromCloset;
+
+  factory ShopItem.fromFirestore(String id, Map<String, dynamic> data) {
+    final categoryName = data['category'] as String? ?? 'accessory';
+    final category = ShopCategory.values.firstWhere(
+      (value) => value.name == categoryName,
+      orElse: () => ShopCategory.accessory,
+    );
+
+    return ShopItem(
+      id: id,
+      name: data['name'] as String? ?? id,
+      description: data['description'] as String? ?? '',
+      price: (data['price'] as num?)?.toInt() ?? 0,
+      category: category,
+      spriteCol: (data['spriteCol'] as num?)?.toInt() ?? 0,
+      spriteRow: (data['spriteRow'] as num?)?.toInt() ?? 0,
+      featured: data['featured'] as bool? ?? false,
+      hideFromCloset: data['hideFromCloset'] as bool? ?? false,
+    );
+  }
 }
 
 abstract final class ShopData {
@@ -94,6 +114,16 @@ abstract final class ShopData {
       id: 'study_guard',
       name: '연속 학습 방어권',
       description: '연속 학습을 지켜주는 보호 아이템',
+      price: 123,
+      category: ShopCategory.accessory,
+      spriteCol: 4,
+      spriteRow: 2,
+      hideFromCloset: true,
+    ),
+    ShopItem(
+      id: 'energy_pack',
+      name: '에너지 20',
+      description: '에너지를 20 회복하는 아이템',
       price: 123,
       category: ShopCategory.accessory,
       spriteCol: 4,

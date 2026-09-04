@@ -4,6 +4,7 @@ import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/shop_catalog_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
@@ -32,6 +33,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   String? _stagedPatternId;
   String? _stagedBackgroundId;
   final List<String> _stagedAccessoryIds = [];
+  List<ShopItem> _catalogItems = ShopData.items;
 
   @override
   void initState() {
@@ -42,27 +44,34 @@ class _ClosetScreenState extends State<ClosetScreen> {
     _stagedBackgroundId = _profile.equippedBackgroundId;
     _stagedAccessoryIds.clear();
     _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    final items = await ShopCatalogService.instance.getItemsOrFallback();
+    if (!mounted) return;
+    setState(() => _catalogItems = items);
   }
 
   List<ShopItem> get _visibleItems {
     if (!widget.showCatalog) {
-      return ShopData.items
+      return _catalogItems
           .where((item) => !item.hideFromCloset && _profile.ownedShopItemIds.contains(item.id))
           .toList();
     }
     switch (_tab) {
       case _ClosetTab.my:
-        return ShopData.items
+        return _catalogItems
             .where((item) => !item.hideFromCloset && _profile.ownedShopItemIds.contains(item.id))
             .toList();
       case _ClosetTab.skin:
-        return ShopData.byCategory(ShopCategory.skin);
+        return _catalogItems.where((item) => item.category == ShopCategory.skin && !item.hideFromCloset).toList();
       case _ClosetTab.pattern:
-        return ShopData.byCategory(ShopCategory.pattern);
+        return _catalogItems.where((item) => item.category == ShopCategory.pattern && !item.hideFromCloset).toList();
       case _ClosetTab.accessory:
-        return ShopData.byCategory(ShopCategory.accessory);
+        return _catalogItems.where((item) => item.category == ShopCategory.accessory && !item.hideFromCloset).toList();
       case _ClosetTab.background:
-        return ShopData.byCategory(ShopCategory.background);
+        return _catalogItems.where((item) => item.category == ShopCategory.background && !item.hideFromCloset).toList();
     }
   }
 
@@ -161,7 +170,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   ShopItem? _itemById(String? id) {
     if (id == null) return null;
     try {
-      return ShopData.items.firstWhere((i) => i.id == id);
+      return _catalogItems.firstWhere((i) => i.id == id);
     } catch (_) {
       return null;
     }

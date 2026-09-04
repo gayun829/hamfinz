@@ -4,6 +4,7 @@ import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/shop_catalog_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
@@ -24,12 +25,25 @@ class _ShopScreenState extends State<ShopScreen> {
   static const _energyPackPrice = 123;
 
   late UserProfile _profile;
+  List<ShopItem> _catalogItems = ShopData.items;
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
+    _loadCatalog();
   }
+
+  Future<void> _loadCatalog() async {
+    final items = await ShopCatalogService.instance.getItemsOrFallback();
+    if (!mounted) return;
+    setState(() => _catalogItems = items);
+  }
+
+  ShopItem _catalogItem(String id) => _catalogItems.firstWhere(
+        (item) => item.id == id,
+        orElse: () => ShopData.items.firstWhere((item) => item.id == id),
+      );
 
   Future<void> _buyStudyGuard() async {
     if (_profile.studyGuardCount >= _maxStudyGuards) {
@@ -38,7 +52,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ).showSnackBar(const SnackBar(content: Text('방어권은 최대 3개까지 보유할 수 있어요.')));
       return;
     }
-    const price = 123;
+    final price = _catalogItem('study_guard').price;
     if (_profile.seeds < price) {
       _showSnackBar('씨앗이 부족해요. $price씨앗이 필요합니다.');
       return;
@@ -59,12 +73,13 @@ class _ShopScreenState extends State<ShopScreen> {
       _showSnackBar('에너지가 이미 가득 차 있어요.');
       return;
     }
-    if (_profile.seeds < _energyPackPrice) {
-      _showSnackBar('씨앗이 부족해요. $_energyPackPrice씨앗이 필요합니다.');
+    final price = _catalogItem('energy_pack').price;
+    if (_profile.seeds < price) {
+      _showSnackBar('씨앗이 부족해요. ${price}씨앗이 필요합니다.');
       return;
     }
 
-    _profile.seeds -= _energyPackPrice;
+    _profile.seeds -= price;
     _profile.energy = (_profile.energy + _energyPackAmount).clamp(0, 100);
     await AuthService.instance.saveProfile(_profile, includeEnergy: true);
     if (!mounted) return;
@@ -175,8 +190,8 @@ class _ShopScreenState extends State<ShopScreen> {
                               child: _ItemPurchaseTile(
                                 figma: figma,
                                 title: '방어햄',
-                                price: 579,
-                                item: ShopData.items.last,
+                                price: _catalogItem('study_guard').price,
+                                item: _catalogItem('study_guard'),
                                 onTap: _buyStudyGuard,
                               ),
                             ),
@@ -185,8 +200,8 @@ class _ShopScreenState extends State<ShopScreen> {
                               child: _ItemPurchaseTile(
                                 figma: figma,
                                 title: '에너지햄',
-                                price: _energyPackPrice,
-                                item: ShopData.items.first,
+                                price: _catalogItem('energy_pack').price,
+                                item: _catalogItem('energy_pack'),
                                 onTap: _buyEnergy,
                               ),
                             ),
