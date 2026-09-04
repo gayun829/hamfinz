@@ -325,6 +325,7 @@ class QuizSessionRepository {
         var streak = (user['streak'] as num?)?.toInt() ?? 0;
         var lastQuizCompletedDate = user['lastQuizCompletedDate'] as String?;
         var todayQuizCompleted = user['todayQuizCompleted'] as bool? ?? false;
+        var studyGuardCount = (user['studyGuardCount'] as num?)?.toInt() ?? 0;
         final today = DateHelper.todayKey();
 
         if (!todayQuizCompleted) {
@@ -334,7 +335,14 @@ class QuizSessionRepository {
           } else if (DateHelper.isYesterday(lastQuizCompletedDate)) {
             streak += 1;
           } else if (!DateHelper.isToday(lastQuizCompletedDate)) {
-            streak = 1;
+            final lastDate = DateTime.tryParse(lastQuizCompletedDate);
+            final todayDate = DateTime.tryParse(today);
+            final missedDays = lastDate == null || todayDate == null
+                ? 1
+                : todayDate.difference(lastDate).inDays - 1;
+            final protectedDays = missedDays.clamp(0, studyGuardCount).toInt();
+            studyGuardCount -= protectedDays;
+            streak = protectedDays == missedDays ? streak + 1 : 1;
           }
           lastQuizCompletedDate = today;
         }
@@ -370,6 +378,7 @@ class QuizSessionRepository {
           'streak': streak,
           'lastQuizCompletedDate': lastQuizCompletedDate,
           'todayQuizCompleted': todayQuizCompleted,
+          'studyGuardCount': studyGuardCount,
           'categoryStats': categoryStats.map(
             (key, value) => MapEntry(key, value.toJson()),
           ),

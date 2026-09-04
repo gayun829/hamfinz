@@ -255,6 +255,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     let streak = user.streak ?? 0;
     let lastQuizCompletedDate = user.lastQuizCompletedDate ?? null;
     let todayQuizCompleted = user.todayQuizCompleted ?? false;
+    let studyGuardCount = user.studyGuardCount ?? 0;
     const today = todayKey();
 
     if (!todayQuizCompleted) {
@@ -264,7 +265,12 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       } else if (lastQuizCompletedDate === yesterdayKey()) {
         streak += 1;
       } else if (lastQuizCompletedDate !== today) {
-        streak = 1;
+        const last = new Date(`${lastQuizCompletedDate}T00:00:00+09:00`);
+        const current = new Date(`${today}T00:00:00+09:00`);
+        const missedDays = Math.max(1, Math.round((current - last) / 86400000) - 1);
+        const protectedDays = Math.min(missedDays, studyGuardCount);
+        studyGuardCount -= protectedDays;
+        streak = protectedDays === missedDays ? streak + 1 : 1;
       }
       lastQuizCompletedDate = today;
     }
@@ -285,6 +291,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       streak,
       lastQuizCompletedDate,
       todayQuizCompleted,
+      studyGuardCount,
       categoryStats,
       learningHistory: history.slice(0, 50),
       unlockedHamsterIds: unlocks.all,
