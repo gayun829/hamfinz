@@ -500,7 +500,7 @@ friendships/{uidA}_{uidB}
 | `unlockedHamsterIds[]`          | 동일 배열                   |
 | `learningHistory[]`             | `users/{uid}/sessions`      |
 | `categoryStats{}`               | `users/{uid}.categoryStats` |
-| `QuizData.allQuestions`         | `quizQuestions`             |
+| (구) `QuizData.allQuestions`    | `quizQuestions` (Firestore · 12k+ 문항) |
 | `kInterestCategories`           | `categories`                |
 | `HamsterData`                   | `hamsters`                  |
 | 약관 체크                       | `users.consents`            |

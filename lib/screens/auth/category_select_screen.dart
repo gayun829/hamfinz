@@ -25,9 +25,16 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> {
     if (selectedId == null || _saving) return;
     setState(() => _saving = true);
 
-    await AuthService.instance.saveInterestCategories([selectedId]);
+    final error = await AuthService.instance.saveInterestCategories([selectedId]);
 
     if (!mounted) return;
+    if (error != null) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
+    }
     Navigator.of(context).pop(true);
   }
 

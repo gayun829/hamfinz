@@ -334,16 +334,28 @@ class AuthService {
     }
   }
 
-  /// 학습 카테고리 저장 (6개 중 1개).
-  Future<void> saveInterestCategories(List<String> categoryIds) async {
-    final profile = await getCurrentUser();
-    if (profile == null) return;
+  /// 학습 카테고리 저장 (6개 중 1개). 실패 시 사용자용 메시지, 성공 시 null.
+  Future<String?> saveInterestCategories(List<String> categoryIds) async {
+    final user = _auth.currentUser;
+    if (user == null) return '로그인 정보가 없어요.';
 
     final activeId = resolveActiveInterestCategoryId(categoryIds);
-    if (activeId == null) return;
+    if (activeId == null) return '유효한 카테고리를 선택해 주세요.';
 
-    profile.interestCategories = [activeId];
-    await saveProfile(profile);
+    try {
+      await _users.doc(user.uid).update({
+        'interestCategories': [activeId],
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return '카테고리 저장 권한이 없어요. Firestore 규칙 배포를 확인해 주세요.';
+      }
+      if (e.code == 'not-found') {
+        return '프로필을 찾을 수 없어요. 다시 로그인해 주세요.';
+      }
+      return '카테고리 저장에 실패했어요. (${e.code})';
+    }
   }
 
   /// 비밀번호 재설정 이메일을 보낸다. Firebase Auth는 클라이언트에서 임의로

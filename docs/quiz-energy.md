@@ -1,15 +1,16 @@
 # 퀴즈 · 에너지
 
-관련 코드: `lib/data/quiz_data.dart`, `lib/services/quiz_service.dart`, `lib/screens/quiz/`
+관련 코드: `lib/data/quiz_data.dart` (상수), `lib/services/quiz_session_repository.dart`, `lib/services/quiz_service.dart`, `lib/screens/quiz/`
 
 ## 핵심 규칙
 
 | 항목 | 값 |
 |------|-----:|
 | 세션당 문제 수 | 10 |
-| 문제 풀 `allQuestions` | 15 |
+| 문제 풀 | Firestore `quizQuestions` (`isActive == true`) |
 | 정답 XP | +10 |
 | 오답 XP | +2 |
+| 정답당 씨앗 | +5 |
 | 최대 에너지 | 100 |
 | 문제 1개당 에너지 | −5 (잠정, 변동 가능) |
 | 세션 시작 최소 에너지 | **50** (10×5) |
@@ -18,20 +19,27 @@
 
 ## 출제
 
-`QuizData.dailyQuestions(date)`:
+`QuizService.startSession` → `QuizSessionRepository.startSession`:
 
-1. 시드 = `day + month * 31`  
-2. `id.hashCode + seed`로 정렬  
-3. 상위 10문항  
+1. `profile.energy >= 50` 확인  
+2. `users/{uid}/mastered`에 있는 id **제외**  
+3. `interestCategories`에서 **활성 카테고리 1개** 기준으로 `quizQuestions` 쿼리 (카테고리당 최대 200건)  
+4. 난이도·랜덤으로 **10문항** 선정 → `users/{uid}/sessions/{sessionId}` (`inProgress`)  
+5. `QuizQuestionLearning` 반환 — **`correctIndex` 없음**
 
-같은 날이면 같은 세트.  
-카테고리: 용돈·저축·주식·보험·세금·신용 (`QuizCategory`).  
-유형: OX / 4지선다.
+같은 유저라도 세션마다 문제 구성이 달라질 수 있다.  
+오답 문제는 `mastered`에 기록되지 않아 **다음 세션에 재출제**될 수 있다.
+
+자세한 API: [quiz-session-api.md](./quiz-session-api.md) §1
 
 ## 세션 진행 (`QuizScreen`)
 
 1. 보기 선택  
-2. **정답 제출** → `QuizService.consumeEnergyForQuestion` (−5, 즉시 저장)  
+2. **정답 제출** → `QuizService.submitAnswer`  
+   - Firestore 트랜잭션(개발) 또는 Cloud Functions(배포)  
+   - `selectedIndex` vs DB `correctIndex` **서버 채점**  
+   - `users.energy -= 5`  
+   - 정답 시 `mastered/{questionId}` upsert  
 3. 정·오답 UI + XP 배너  
 4. 풀이확인 / 다음문제  
 5. 마지막 문제 → `completeSession` → `QuizResultScreen`  
@@ -45,11 +53,13 @@
 
 ## 세션 완료 (`completeSession`)
 
-- XP·카테고리 통계·`LearningRecord` 추가  
+- XP · 씨앗(`정답 수 × 5`) · 카테고리 통계 · `LearningRecord` · streak 갱신  
 - **Streak:** `todayQuizCompleted`가 false일 때만 (하루 첫 세션)  
   - 어제 완료 → +1  
   - 그 외 → 1  
-- 햄스터 해금 검사 후 `saveProfile`
+- Firestore `users/{uid}` 반영 후 프로필 재조회
+
+자세한 API: [quiz-session-api.md](./quiz-session-api.md) §3
 
 ### 햄스터 해금
 
@@ -73,11 +83,11 @@
 
 ## 홈에서의 표시
 
-- 에너지 숫자 + `에너지 n / 100` 진행 바  
-- 버튼: `학습 시작` (에너지 ≥ 50) / `에너지 부족`  
-- 부족 시 스낵바로 필요량(50)·현재량 안내  
+- 에너지 · 씨앗 · streak 숫자 (프로필 / Firestore `users.energy`)  
+- **오늘의 학습** 버튼 (에너지 ≥ 50) / **에너지 부족**  
+- 부족 시 스낵Bar로 필요량(50)·현재량 안내  
 
 ## 뉴스 퀴즈와의 관계
 
-일일/에너지 세션(**10문제**)과 **별개**로, 기사 단위 퀴즈(LLM)를 붙일 예정.  
+일일/에너지 세션(**10문제**)과 **별개**로, 기사 단위 퀴즈를 붙일 예정.  
 → [roadmap.md](./roadmap.md), [news.md](./news.md)
