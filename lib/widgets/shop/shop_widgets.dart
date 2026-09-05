@@ -188,10 +188,20 @@ class ShopItemCard extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(s(12), s(12), s(12), s(8)),
-                child: ShopHamsterSprite(
-                  column: item.spriteCol,
-                  row: item.spriteRow,
-                ),
+                child: item.imageUrl == null || item.imageUrl!.isEmpty
+                    ? ShopHamsterSprite(
+                        column: item.spriteCol,
+                        row: item.spriteRow,
+                      )
+                    : Image.network(
+                        item.imageUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            ShopHamsterSprite(
+                              column: item.spriteCol,
+                              row: item.spriteRow,
+                            ),
+                      ),
               ),
             ),
             Padding(

@@ -11,6 +11,7 @@ class ShopItem {
     required this.spriteRow,
     this.featured = false,
     this.hideFromCloset = false,
+    this.imageUrl,
   });
 
   final String id;
@@ -22,6 +23,7 @@ class ShopItem {
   final int spriteRow;
   final bool featured;
   final bool hideFromCloset;
+  final String? imageUrl;
 
   factory ShopItem.fromFirestore(String id, Map<String, dynamic> data) {
     final categoryName = data['category'] as String? ?? 'accessory';
@@ -40,6 +42,7 @@ class ShopItem {
       spriteRow: (data['spriteRow'] as num?)?.toInt() ?? 0,
       featured: data['featured'] as bool? ?? false,
       hideFromCloset: data['hideFromCloset'] as bool? ?? false,
+      imageUrl: data['imageUrl'] as String?,
     );
   }
 }

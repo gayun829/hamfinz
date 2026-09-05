@@ -22,7 +22,6 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> {
   static const _maxStudyGuards = 3;
   static const _energyPackAmount = 20;
-  static const _energyPackPrice = 123;
 
   late UserProfile _profile;
   List<ShopItem> _catalogItems = ShopData.items;
@@ -75,7 +74,7 @@ class _ShopScreenState extends State<ShopScreen> {
     }
     final price = _catalogItem('energy_pack').price;
     if (_profile.seeds < price) {
-      _showSnackBar('씨앗이 부족해요. ${price}씨앗이 필요합니다.');
+      _showSnackBar('씨앗이 부족해요. $price씨앗이 필요합니다.');
       return;
     }
 

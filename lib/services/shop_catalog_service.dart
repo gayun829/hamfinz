@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../data/shop_data.dart';
 
@@ -21,9 +22,23 @@ class ShopCatalogService {
 
   Future<List<ShopItem>> getItemsOrFallback() async {
     try {
-      final items = await getItems();
-      return items.isEmpty ? ShopData.items : items;
-    } on FirebaseException {
+      final remoteItems = await getItems();
+      final localIds = ShopData.items.map((item) => item.id).toSet();
+      final newItems = remoteItems
+          .where((item) => !localIds.contains(item.id))
+          .toList();
+      final ignoredIds = remoteItems
+          .where((item) => localIds.contains(item.id))
+          .map((item) => item.id)
+          .toList();
+      debugPrint(
+        'Shop catalog: Firebase IDs=${remoteItems.map((item) => item.id).toList()}, '
+        'new=${newItems.map((item) => item.id).toList()}, '
+        'ignoredExisting=$ignoredIds',
+      );
+      return [...ShopData.items, ...newItems];
+    } on FirebaseException catch (error) {
+      debugPrint('Shop catalog Firebase error: ${error.code} ${error.message}');
       return ShopData.items;
     }
   }

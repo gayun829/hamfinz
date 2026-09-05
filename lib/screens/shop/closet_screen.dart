@@ -111,6 +111,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
         builder: (_) => ItemPreviewScreen(
           item: item,
           profile: _profile,
+          catalogItems: _catalogItems,
           onPurchase: () => _purchaseOrEquipFromPreview(item),
         ),
       ),
