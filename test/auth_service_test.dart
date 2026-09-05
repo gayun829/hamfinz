@@ -16,7 +16,8 @@ void main() {
 
     final json = AuthService.clientOwnedJson(profile);
 
-    // 아래 필드는 퀴즈 트랜잭션·Functions만 쓴다. 여기 섞이면 진행도가 되돌아간다.
+    // 아래 필드는 퀴즈 트랜잭션·Functions(xp 등) 또는 상점 구매(seeds 등)만 쓴다.
+    // 여기 섞이면 진행도·재화가 되돌아간다.
     for (final key in [
       'xp',
       'streak',
@@ -27,12 +28,14 @@ void main() {
       'learningHistory',
       'categoryStats',
       'unlockedHamsterIds',
+      'seeds',
+      'ownedShopItemIds',
+      'studyGuardCount',
     ]) {
       expect(json.containsKey(key), isFalse, reason: key);
     }
 
     expect(json['nickname'], '햄찌');
     expect(json['selectedHamsterId'], 'hamster_streak');
-    expect(json['seeds'], 12);
   });
 }

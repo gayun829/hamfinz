@@ -7,7 +7,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+
+      // xp/energy/streak 등은 퀴즈 Functions(submitAnswer·completeSession)만,
+      // seeds/ownedShopItemIds/studyGuardCount는 상점 Functions(purchaseShopItem)만
+      // 쓴다. 클라이언트가 같은 update()에서 이 필드들을 건드리면 거부한다 —
+      // equipped*·nickname 등 나머지 필드는 계속 클라이언트가 직접 쓴다.
+      allow update: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+             'xp', 'energy', 'lastEnergyResetDate', 'streak',
+             'lastQuizCompletedDate', 'todayQuizCompleted', 'categoryStats',
+             'learningHistory', 'unlockedHamsterIds',
+             'seeds', 'ownedShopItemIds', 'studyGuardCount',
+           ]);
 
       // 퀴즈: 맞춘 문제 id — 읽기만. 쓰기는 submitAnswer Functions.
       match /mastered/{questionId} {

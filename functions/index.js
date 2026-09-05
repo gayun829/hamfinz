@@ -1,5 +1,6 @@
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
+ * Shop — purchaseShopItem (씨앗 차감 상점 구매)
  *
  * deploy: firebase deploy --only functions
  */
@@ -18,6 +19,22 @@ const SEEDS_PER_CORRECT = 5;
 const MAX_ENERGY = 100;
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 10;
+const MAX_STUDY_GUARD = 3;
+const ENERGY_PACK_AMOUNT = 20;
+
+// Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
+// 코스메틱(스킨/무늬/배경/악세서리)은 `shopItems` Firestore 문서를 우선 신뢰하고,
+// 여기 값은 그 문서가 없을 때만 쓰는 폴백이다.
+const SHOP_CATALOG = {
+  headband: { price: 579, kind: 'cosmetic' },
+  cap: { price: 579, kind: 'cosmetic' },
+  hoodie: { price: 579, kind: 'cosmetic' },
+  glasses: { price: 579, kind: 'cosmetic' },
+  bow: { price: 579, kind: 'cosmetic' },
+  coconut: { price: 579, kind: 'cosmetic' },
+  study_guard: { price: 123, kind: 'studyGuard' },
+  energy_pack: { price: 123, kind: 'energyPack', amount: ENERGY_PACK_AMOUNT },
+};
 
 const CATEGORY_LABELS = {
   allowance: '용돈 관리',
@@ -50,6 +67,19 @@ function yesterdayKey() {
 
 function levelFromXp(xp) {
   return Math.min(MAX_LEVEL, Math.floor(xp / XP_PER_LEVEL) + 1);
+}
+
+// 날짜가 바뀌면 에너지를 최대로 회복한다 (Dart `AuthService._profileFromJson`과
+// 동일한 규칙). 서버가 항상 이 값을 기준으로 계산해야 클라이언트가 화면에만
+// 보여주고 저장은 안 하는 상황(리셋 유실)이 안 생긴다.
+function resolveEnergy(user, today) {
+  let energy = user.energy ?? MAX_ENERGY;
+  let lastEnergyResetDate = user.lastEnergyResetDate ?? null;
+  if (lastEnergyResetDate !== today) {
+    energy = MAX_ENERGY;
+    lastEnergyResetDate = today;
+  }
+  return { energy, lastEnergyResetDate };
 }
 
 function computeUnlocks(userData, streak, xp) {
@@ -128,7 +158,8 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     }
 
     const user = userSnap.data();
-    let energy = user.energy ?? MAX_ENERGY;
+    const today = todayKey();
+    let { energy, lastEnergyResetDate } = resolveEnergy(user, today);
     if (energy < ENERGY_PER_QUESTION) {
       throw new HttpsError('failed-precondition', '에너지가 부족해요.');
     }
@@ -147,7 +178,7 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     const isCorrect = selected === correctIndex;
     energy = Math.max(0, energy - ENERGY_PER_QUESTION);
 
-    tx.update(userRef, { energy });
+    tx.update(userRef, { energy, lastEnergyResetDate });
 
     tx.set(answerRef, {
       selectedIndex: selected,
@@ -268,9 +299,14 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
         const last = new Date(`${lastQuizCompletedDate}T00:00:00+09:00`);
         const current = new Date(`${today}T00:00:00+09:00`);
         const missedDays = Math.max(1, Math.round((current - last) / 86400000) - 1);
-        const protectedDays = Math.min(missedDays, studyGuardCount);
-        studyGuardCount -= protectedDays;
-        streak = protectedDays === missedDays ? streak + 1 : 1;
+        // 방어권은 결석일수를 "전부" 못 덮으면 쓰지 않는다 — 일부만 막고
+        // streak을 어차피 리셋하면 유저 입장에서 방어권만 날리고 얻는 게 없다.
+        if (missedDays <= studyGuardCount) {
+          studyGuardCount -= missedDays;
+          streak += 1;
+        } else {
+          streak = 1;
+        }
       }
       lastQuizCompletedDate = today;
     }
@@ -318,5 +354,96 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       newStreak: streak,
       energyRemaining: user.energy ?? 0,
     };
+  });
+});
+
+/**
+ * 상점 구매 — 씨앗 차감·소유/방어권/에너지 갱신을 서버 트랜잭션으로 처리한다.
+ * 클라이언트가 화면에 들고 있는 프로필로 seeds를 직접 덮어쓰지 않으므로,
+ * 오래된 값 때문에 서버 값이 롤백되거나(동시 편집) 두 번 소모되는 문제가 없다.
+ */
+exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', '로그인이 필요해요.');
+  }
+
+  const { itemId } = request.data ?? {};
+  if (!itemId || typeof itemId !== 'string') {
+    throw new HttpsError('invalid-argument', 'itemId가 필요해요.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const shopItemRef = db.collection('shopItems').doc(itemId);
+
+  return db.runTransaction(async (tx) => {
+    const [userSnap, shopItemSnap] = await Promise.all([
+      tx.get(userRef),
+      tx.get(shopItemRef),
+    ]);
+
+    if (!userSnap.exists) {
+      throw new HttpsError('not-found', '유저 프로필을 찾을 수 없어요.');
+    }
+
+    const fallback = SHOP_CATALOG[itemId];
+    const remote = shopItemSnap.exists ? shopItemSnap.data() : null;
+    const price = Number(remote?.price ?? fallback?.price);
+    if (!Number.isFinite(price)) {
+      throw new HttpsError('not-found', '존재하지 않는 상품이에요.');
+    }
+    const kind = fallback?.kind ?? 'cosmetic';
+
+    const user = userSnap.data();
+    const seeds = user.seeds ?? 0;
+
+    if (kind === 'studyGuard') {
+      const studyGuardCount = user.studyGuardCount ?? 0;
+      if (studyGuardCount >= MAX_STUDY_GUARD) {
+        throw new HttpsError('failed-precondition', '방어권은 최대 3개까지 보유할 수 있어요.');
+      }
+      if (seeds < price) {
+        throw new HttpsError('failed-precondition', '씨앗이 부족해요.');
+      }
+      const newSeeds = seeds - price;
+      const newStudyGuardCount = studyGuardCount + 1;
+      tx.update(userRef, { seeds: newSeeds, studyGuardCount: newStudyGuardCount });
+      return { seeds: newSeeds, studyGuardCount: newStudyGuardCount };
+    }
+
+    if (kind === 'energyPack') {
+      const today = todayKey();
+      const { energy, lastEnergyResetDate } = resolveEnergy(user, today);
+      if (energy >= MAX_ENERGY) {
+        throw new HttpsError('failed-precondition', '에너지가 이미 가득 차 있어요.');
+      }
+      if (seeds < price) {
+        throw new HttpsError('failed-precondition', '씨앗이 부족해요.');
+      }
+      const amount = Number(fallback?.amount ?? ENERGY_PACK_AMOUNT);
+      const newSeeds = seeds - price;
+      const newEnergy = Math.min(MAX_ENERGY, energy + amount);
+      tx.update(userRef, {
+        seeds: newSeeds,
+        energy: newEnergy,
+        lastEnergyResetDate,
+      });
+      return { seeds: newSeeds, energy: newEnergy };
+    }
+
+    // 코스메틱 (스킨/무늬/배경/악세서리) — 이미 소유했으면 재구매 없이 그대로 성공.
+    const ownedShopItemIds = user.ownedShopItemIds || [];
+    if (ownedShopItemIds.includes(itemId)) {
+      return { seeds, ownedShopItemIds };
+    }
+    if (seeds < price) {
+      throw new HttpsError('failed-precondition', '씨앗이 부족해요.');
+    }
+    const newSeeds = seeds - price;
+    tx.update(userRef, {
+      seeds: newSeeds,
+      ownedShopItemIds: FieldValue.arrayUnion(itemId),
+    });
+    return { seeds: newSeeds, ownedShopItemIds: [...ownedShopItemIds, itemId] };
   });
 });

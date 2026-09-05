@@ -5,6 +5,7 @@ import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/shop_catalog_service.dart';
+import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
@@ -46,9 +47,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   Future<void> _buyStudyGuard() async {
     if (_profile.studyGuardCount >= _maxStudyGuards) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('방어권은 최대 3개까지 보유할 수 있어요.')));
+      _showSnackBar('방어권은 최대 3개까지 보유할 수 있어요.');
       return;
     }
     final price = _catalogItem('study_guard').price;
@@ -57,14 +56,17 @@ class _ShopScreenState extends State<ShopScreen> {
       return;
     }
 
-    _profile.seeds -= price;
-    _profile.studyGuardCount += 1;
-    await AuthService.instance.saveProfile(_profile);
+    final result = await ShopService.instance.purchaseItem(
+      profile: _profile,
+      itemId: 'study_guard',
+    );
     if (!mounted) return;
+    if (!result.isSuccess) {
+      _showSnackBar(result.message ?? '구매에 실패했어요.');
+      return;
+    }
     setState(() {});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('연속 학습 방어권을 1개 구매했어요.')));
+    _showSnackBar('연속 학습 방어권을 1개 구매했어요.');
   }
 
   Future<void> _buyEnergy() async {
@@ -78,10 +80,15 @@ class _ShopScreenState extends State<ShopScreen> {
       return;
     }
 
-    _profile.seeds -= price;
-    _profile.energy = (_profile.energy + _energyPackAmount).clamp(0, 100);
-    await AuthService.instance.saveProfile(_profile, includeEnergy: true);
+    final result = await ShopService.instance.purchaseItem(
+      profile: _profile,
+      itemId: 'energy_pack',
+    );
     if (!mounted) return;
+    if (!result.isSuccess) {
+      _showSnackBar(result.message ?? '구매에 실패했어요.');
+      return;
+    }
     setState(() {});
     _showSnackBar('에너지 $_energyPackAmount을 구매했어요.');
   }

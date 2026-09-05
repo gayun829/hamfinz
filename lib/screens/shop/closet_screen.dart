@@ -5,6 +5,7 @@ import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/shop_catalog_service.dart';
+import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
@@ -166,8 +167,15 @@ class _ClosetScreenState extends State<ClosetScreen> {
         _showSnackBar(_seedShortageMessage(item.price));
         return;
       }
-      _profile.seeds -= item.price;
-      _profile.ownedShopItemIds = [..._profile.ownedShopItemIds, item.id];
+      final result = await ShopService.instance.purchaseItem(
+        profile: _profile,
+        itemId: item.id,
+      );
+      if (!mounted) return;
+      if (!result.isSuccess) {
+        _showSnackBar(result.message ?? '구매에 실패했어요.');
+        return;
+      }
     }
 
     _profile.equippedSkinId = skinId;
