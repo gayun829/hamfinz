@@ -4,15 +4,23 @@ import '../../constants/figma_assets.dart';
 import '../../data/streak_calendar_data.dart';
 import '../../theme/figma_calendar_tokens.dart';
 import '../../theme/figma_shop_tokens.dart';
+import '../../utils/date_helper.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 import '../friends/add_friend_screen.dart';
 
 class StreakCalendarScreen extends StatefulWidget {
-  const StreakCalendarScreen({super.key, this.streak = 0});
+  const StreakCalendarScreen({
+    super.key,
+    this.streak = 0,
+    this.studyGuardCount = 0,
+    this.completedDates = const <String>{},
+  });
 
   final int streak;
+  final int studyGuardCount;
+  final Set<String> completedDates;
 
   @override
   State<StreakCalendarScreen> createState() => _StreakCalendarScreenState();
@@ -24,13 +32,10 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _month = StreakCalendarMock.visibleMonth;
+    _month = DateTime.now();
   }
 
-  int get _streakDisplay {
-    if (widget.streak > 0) return widget.streak;
-    return StreakCalendarMock.fallbackStreak;
-  }
+  int get _streakDisplay => widget.streak;
 
   void _shiftMonth(int delta) {
     setState(() {
@@ -92,6 +97,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                               _HeaderSection(
                                 figma: figma,
                                 streak: _streakDisplay,
+                                studyGuardCount: widget.studyGuardCount,
                               ),
                               Padding(
                                 padding: EdgeInsets.fromLTRB(
@@ -103,6 +109,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                                 child: _MonthCalendar(
                                   figma: figma,
                                   month: _month,
+                                  completedDates: widget.completedDates,
                                   onPrev: () => _shiftMonth(-1),
                                   onNext: () => _shiftMonth(1),
                                 ),
@@ -141,10 +148,11 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
 }
 
 class _HeaderSection extends StatelessWidget {
-  const _HeaderSection({required this.figma, required this.streak});
+  const _HeaderSection({required this.figma, required this.streak, required this.studyGuardCount});
 
   final FigmaScale figma;
   final int streak;
+  final int studyGuardCount;
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +239,7 @@ class _HeaderSection extends StatelessWidget {
                     SizedBox(width: s(8).clamp(6, 10)),
                     Expanded(
                       flex: 2,
-                      child: _PauseStat(figma: figma),
+                      child: _PauseStat(figma: figma, studyGuardCount: studyGuardCount),
                     ),
                   ],
                 ),
@@ -337,9 +345,10 @@ class _StreakStat extends StatelessWidget {
 }
 
 class _PauseStat extends StatelessWidget {
-  const _PauseStat({required this.figma});
+  const _PauseStat({required this.figma, required this.studyGuardCount});
 
   final FigmaScale figma;
+  final int studyGuardCount;
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +363,7 @@ class _PauseStat extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '일시멈춤 사용횟수',
+            '일시멈춤',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -365,34 +374,21 @@ class _PauseStat extends StatelessWidget {
           ),
           SizedBox(height: s(6)),
           Row(
-            children: [
-              FigmaSvg(
-                FigmaAssets.calendarDropOn,
-                width: s(FigmaCalendarTokens.dropFilled.width).clamp(8, 12),
-                height: s(FigmaCalendarTokens.dropFilled.height).clamp(12, 16),
-                fit: BoxFit.contain,
-              ),
-              SizedBox(width: s(4)),
-              FigmaSvg(
-                FigmaAssets.calendarDropMid,
-                width: s(FigmaCalendarTokens.dropMid.width).clamp(8, 12),
-                height: s(FigmaCalendarTokens.dropMid.height).clamp(12, 16),
-                fit: BoxFit.contain,
-              ),
-              SizedBox(width: s(4)),
-              FigmaSvg(
-                FigmaAssets.calendarDropOff,
-                width: s(FigmaCalendarTokens.dropFaded.width).clamp(8, 12),
-                height: s(FigmaCalendarTokens.dropFaded.height).clamp(12, 16),
-                fit: BoxFit.contain,
-              ),
-            ],
-          ),
-          SizedBox(height: s(8)),
-          const _FlexibleBar(
-            fillFraction: 49 / 69,
-            height: 8,
-            color: FigmaCalendarTokens.pauseFill,
+            children: List.generate(3, (index) {
+              final remaining = studyGuardCount.clamp(0, 3);
+              final isAvailable = index >= 3 - remaining;
+              return Padding(
+                padding: EdgeInsets.only(right: index == 2 ? 0 : s(4)),
+                child: FigmaSvg(
+                  isAvailable
+                      ? FigmaAssets.calendarDropOn
+                      : FigmaAssets.calendarDropOff,
+                  width: s(FigmaCalendarTokens.dropFilled.width).clamp(8, 12),
+                  height: s(FigmaCalendarTokens.dropFilled.height).clamp(12, 16),
+                  fit: BoxFit.contain,
+                ),
+              );
+            }),
           ),
         ],
       ),
@@ -496,21 +492,21 @@ class _MonthCalendar extends StatelessWidget {
   const _MonthCalendar({
     required this.figma,
     required this.month,
+    required this.completedDates,
     required this.onPrev,
     required this.onNext,
   });
 
   final FigmaScale figma;
   final DateTime month;
+  final Set<String> completedDates;
   final VoidCallback onPrev;
   final VoidCallback onNext;
 
   static const _weekdays = ['일', '월', '화', '수', '목', '금', '토'];
 
   bool _completed(DateTime day) {
-    return StreakCalendarMock.completedDays.any(
-      (d) => d.year == day.year && d.month == day.month && d.day == day.day,
-    );
+    return completedDates.contains(DateHelper.todayKey(day));
   }
 
   @override
@@ -521,9 +517,13 @@ class _MonthCalendar extends StatelessWidget {
     final leading = first.weekday % 7;
     final cells = leading + daysInMonth;
     final rows = ((cells + 6) ~/ 7);
-    final latest = StreakCalendarMock.completedDays.reduce(
-      (a, b) => a.isAfter(b) ? a : b,
-    );
+    final latest = completedDates
+        .map(DateTime.tryParse)
+        .whereType<DateTime>()
+        .fold<DateTime?>(null, (latest, date) {
+      if (latest == null || date.isAfter(latest)) return date;
+      return latest;
+    });
 
     return Container(
       padding: EdgeInsets.fromLTRB(s(10), s(12), s(10), s(12)),
@@ -597,7 +597,8 @@ class _MonthCalendar extends StatelessWidget {
                                 _dayFor(leading, r, c, daysInMonth)!,
                               ),
                             ),
-                        latest: _dayFor(leading, r, c, daysInMonth) != null &&
+                        latest: latest != null &&
+                          _dayFor(leading, r, c, daysInMonth) != null &&
                             month.year == latest.year &&
                             month.month == latest.month &&
                             _dayFor(leading, r, c, daysInMonth) == latest.day,

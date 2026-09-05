@@ -242,10 +242,12 @@ class AuthService {
   /// xp·energy·streak·learningHistory·categoryStats·unlockedHamsterIds는
   /// 퀴즈 트랜잭션(`QuizSessionRepository`)·Functions만 쓴다. 여기서 같이 덮으면
   /// 화면이 들고 있던 오래된 프로필로 진행도가 되돌아간다.
-  Future<void> saveProfile(UserProfile profile) async {
+  Future<void> saveProfile(UserProfile profile, {bool includeEnergy = false}) async {
     final user = _auth.currentUser;
     if (user == null) return;
-    await _users.doc(user.uid).update(clientOwnedJson(profile));
+    final data = clientOwnedJson(profile);
+    if (includeEnergy) data['energy'] = profile.energy;
+    await _users.doc(user.uid).update(data);
   }
 
   /// 회원 탈퇴. 재인증 → Firestore 개인정보 삭제 → Auth 계정 삭제 순으로 한다.

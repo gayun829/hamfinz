@@ -1,9 +1,4 @@
-enum ShopCategory {
-  skin,
-  pattern,
-  accessory,
-  background,
-}
+enum ShopCategory { skin, pattern, accessory, background }
 
 class ShopItem {
   const ShopItem({
@@ -16,6 +11,7 @@ class ShopItem {
     required this.spriteRow,
     this.featured = false,
     this.hideFromCloset = false,
+    this.imageUrl,
   });
 
   final String id;
@@ -27,6 +23,28 @@ class ShopItem {
   final int spriteRow;
   final bool featured;
   final bool hideFromCloset;
+  final String? imageUrl;
+
+  factory ShopItem.fromFirestore(String id, Map<String, dynamic> data) {
+    final categoryName = data['category'] as String? ?? 'accessory';
+    final category = ShopCategory.values.firstWhere(
+      (value) => value.name == categoryName,
+      orElse: () => ShopCategory.accessory,
+    );
+
+    return ShopItem(
+      id: id,
+      name: data['name'] as String? ?? id,
+      description: data['description'] as String? ?? '',
+      price: (data['price'] as num?)?.toInt() ?? 0,
+      category: category,
+      spriteCol: (data['spriteCol'] as num?)?.toInt() ?? 0,
+      spriteRow: (data['spriteRow'] as num?)?.toInt() ?? 0,
+      featured: data['featured'] as bool? ?? false,
+      hideFromCloset: data['hideFromCloset'] as bool? ?? false,
+      imageUrl: data['imageUrl'] as String?,
+    );
+  }
 }
 
 abstract final class ShopData {
@@ -100,6 +118,16 @@ abstract final class ShopData {
       spriteRow: 2,
       hideFromCloset: true,
     ),
+    ShopItem(
+      id: 'energy_pack',
+      name: '에너지 20',
+      description: '에너지를 20 회복하는 아이템',
+      price: 123,
+      category: ShopCategory.accessory,
+      spriteCol: 4,
+      spriteRow: 2,
+      hideFromCloset: true,
+    ),
   ];
 
   static ShopItem get featured =>
@@ -108,6 +136,7 @@ abstract final class ShopData {
   static List<ShopItem> catalogWithoutFeatured() =>
       items.where((item) => !item.featured).toList();
 
-  static List<ShopItem> byCategory(ShopCategory category) =>
-      items.where((item) => item.category == category && !item.hideFromCloset).toList();
+  static List<ShopItem> byCategory(ShopCategory category) => items
+      .where((item) => item.category == category && !item.hideFromCloset)
+      .toList();
 }

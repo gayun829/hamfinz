@@ -179,7 +179,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (profile == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => StreakCalendarScreen(streak: profile.streak),
+        builder: (_) => StreakCalendarScreen(
+          streak: profile.streak,
+          studyGuardCount: profile.studyGuardCount,
+          completedDates: profile.learningHistory
+              .map((record) => record.date)
+              .toSet(),
+        ),
       ),
     );
   }
