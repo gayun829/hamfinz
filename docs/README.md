@@ -11,6 +11,7 @@
 | [screens-and-navigation.md](./screens-and-navigation.md) | 화면·탭·네비게이션 흐름 |
 | [auth.md](./auth.md) | 인증, 약관 동의, 관심 카테고리 |
 | [quiz-energy.md](./quiz-energy.md) | 퀴즈 세션, 에너지, XP·streak·해금 |
+| [shop-seeds.md](./shop-seeds.md) | 씨앗(seed) 상점 화폐, 아이템·방어권·에너지 구매 설계 (초안) |
 | [quiz-session-api.md](./quiz-session-api.md) | 세션 출제·제출 API (startSession · Firestore) |
 | [quiz-production-deployment.md](./quiz-production-deployment.md) | 퀴즈 Functions 프로덕션 배포 체크리스트 |
 | [news.md](./news.md) | 뉴스 탭, RSS, 기사 WebView |
