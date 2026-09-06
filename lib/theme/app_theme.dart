@@ -18,7 +18,7 @@ class AppTheme {
   static const figmaInputBorderAlt = Color(0xFF93A8BD);
   static const figmaPlaceholder = Color(0xFF93A8BD);
   static const figmaLink = Color(0xFF1BA1B9);
-  static const figmaHomeBackground = Color(0xFFFFF9EE);
+  static const figmaHomeBackground = Color(0xFFFBFBFB);
   static const figmaMintLight = Color(0xFFB7F1F3);
   static const figmaMintCard = Color(0xFFDDF6FF);
   static const figmaMintDeep = Color(0xFF46CABF);

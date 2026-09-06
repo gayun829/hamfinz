@@ -1,5 +1,6 @@
 class FigmaAssets {
   static const _home = 'assets/figma/home';
+  static const _homeBeginner = '$_home/beginner';
   static const _auth = 'assets/figma/auth';
   static const _quiz = 'assets/figma/quiz';
   static const _shop = 'assets/figma/shop';
@@ -8,6 +9,7 @@ class FigmaAssets {
 
   // Home
   static const hamsterMain = '$_home/hamster_main.png';
+
   /// 홈 카드·썸네일 — 단일 햄스터만 (`assets/images/hamster_auth.png`)
   static const hamsterCard = hamsterAuth;
   static const bgTop = '$_home/bg_top.svg';
@@ -29,6 +31,33 @@ class FigmaAssets {
   static const navHomeB = '$_home/nav_home_b.svg';
   static const navProfile = '$_home/nav_profile.svg';
 
+  // Home beginner (131:5278)
+  static const homePathMap = '$_homeBeginner/path_map.svg';
+  static const homeHamsterMap = '$_homeBeginner/hamster_map.svg';
+  static const homeEllipse100 = '$_homeBeginner/ellipse_100.svg';
+  static const homeEllipse154 = '$_homeBeginner/ellipse_154.svg';
+  static const homeEllipse155 = '$_homeBeginner/ellipse_155.svg';
+  static const homeNode1Overlay = '$_homeBeginner/node_1_overlay.svg';
+  static const homeDecoVector1 = '$_homeBeginner/deco_vector_1.svg';
+  static const homeDecoVector2 = '$_homeBeginner/deco_vector_2.svg';
+  static const homeDecoVector3 = '$_homeBeginner/deco_vector_3.svg';
+  static const homeDecoVector4 = '$_homeBeginner/deco_vector_4.svg';
+  static const homeNode3Overlay = '$_homeBeginner/node_3_overlay.svg';
+  static const homeNode3Flag = '$_homeBeginner/node_3_flag.svg';
+  static const homeNode1 = '$_homeBeginner/node_1.png';
+  static const homeNode3 = '$_homeBeginner/node_3.png';
+  static const homeBeginnerMegaphone = '$_homeBeginner/megaphone.svg';
+  static const homeBeginnerChevronNews = '$_homeBeginner/chevron_news.svg';
+  static const homeBeginnerChevronLearning = '$_homeBeginner/chevron_learning.svg';
+  static const homeBeginnerLearningQ = '$_homeBeginner/learning_q.svg';
+  static const homeBeginnerMenuIcon = '$_homeBeginner/menu_icon.svg';
+  static const homeBeginnerStatEnergy = '$_homeBeginner/stat_energy.svg';
+  static const homeBeginnerStatCoin = '$_homeBeginner/stat_coin.svg';
+  static const homeBeginnerStatStreak = '$_homeBeginner/stat_streak.svg';
+  static const homeBeginnerNavHome = '$_homeBeginner/nav_home.svg';
+  static const homeBeginnerNavList = '$_homeBeginner/nav_list.png';
+  static const homeBeginnerNavProfile = '$_homeBeginner/nav_profile.svg';
+
   // Auth — 벡터 SVG는 assets/icons/, PNG는 assets/figma/auth/
   static const authDividerLine = '$_iconsAuth/divider_line.svg';
   static const authDividerLineSignup = '$_iconsAuth/divider_line_signup.svg';
@@ -44,6 +73,8 @@ class FigmaAssets {
   // Shop
   static const shopSeedPouch = '$_shop/seed_pouch.svg';
   static const shopHamsterSheet = '$_shop/hamster_headband.png';
+  static const shopClosetBanner = '$_shop/closet_banner_hamster.png';
+  static const shopClothingBanner = '$_shop/clothing_shop_hamster.png';
 
   // Calendar
   static const calendarPeekHamster = '$_calendar/hamster_peek.png';

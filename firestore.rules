@@ -1,9 +1,40 @@
 rules_version = '2';
 
+// 개발 Rules — quiz mastered/answers/sessions 클라이언트 write 허용.
+// 프로덕션: firestore.rules.production · docs/quiz-production-deployment.md
+
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // 퀴즈: 맞춘 문제 id. 개발 — 클라이언트 write · 배포 — Functions 전환 예정.
+      match /mastered/{questionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid;
+        allow delete: if false;
+      }
+
+      // 퀴즈: 세션 · answers. inProgress 생성/갱신 — 클라이언트(개발) · Functions(배포) 예정.
+      match /sessions/{sessionId} {
+        allow read, create: if request.auth != null && request.auth.uid == uid;
+        allow update: if request.auth != null && request.auth.uid == uid
+          && resource.data.status == 'inProgress';
+        allow delete: if false;
+
+        match /answers/{questionId} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow create: if request.auth != null && request.auth.uid == uid;
+          allow update, delete: if false;
+        }
+      }
+    }
+
+    // 상점 상품은 로그인한 사용자에게 활성 상품만 공개한다.
+    match /shopItems/{itemId} {
+      allow read: if request.auth != null
+        && resource.data.isActive == true;
+      allow write: if false;
     }
 
     // quizQuestions: 앱은 isActive 문제만 읽기. 등록·수정은 Console / Admin SDK.
@@ -35,7 +66,11 @@ service cloud.firestore {
     // friendships: 두 uid를 정렬해 이어붙인 id(`uidA_uidB`) 문서 하나로 관계를 관리한다.
     // users 문서는 건드리지 않아 위 users 규칙과 충돌하지 않는다.
     match /friendships/{friendshipId} {
-      allow read: if request.auth != null && request.auth.uid in resource.data.uids;
+      // 문서가 아직 없으면 resource == null이라 resource.data 참조가 그대로 에러 →
+      // false 취급돼서 "친구 요청했는지 확인" get()이 permission-denied로 막힌다.
+      // 없는 문서는 어차피 새어나갈 데이터가 없으니 read를 허용해 존재 확인을 가능하게 한다.
+      allow read: if request.auth != null
+        && (resource == null || request.auth.uid in resource.data.uids);
 
       allow create: if request.auth != null
         && request.resource.data.uids is list
@@ -48,13 +83,20 @@ service cloud.firestore {
            );
 
       // 요청받은 쪽만 pending -> accepted 로 바꿀 수 있다.
+      // 이때 수락자 닉네임(accepterNickname)도 같이 적어서, 친구 목록을 보여줄 때
+      // 상대가 requestedBy든 아니든 users 문서를 열지 않고 닉네임을 알 수 있게 한다.
       allow update: if request.auth != null
         && request.auth.uid in resource.data.uids
         && request.auth.uid != resource.data.requestedBy
         && resource.data.status == 'pending'
         && request.resource.data.status == 'accepted'
         && request.resource.data.uids == resource.data.uids
-        && request.resource.data.requestedBy == resource.data.requestedBy;
+        && request.resource.data.requestedBy == resource.data.requestedBy
+        && request.resource.data.requestedByNickname == resource.data.requestedByNickname
+        && request.resource.data.keys().hasOnly(
+             ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt',
+              'accepterNickname', 'acceptedAt']
+           );
 
       // 요청 취소/거절/친구 끊기: 관계 당사자 누구나.
       allow delete: if request.auth != null && request.auth.uid in resource.data.uids;

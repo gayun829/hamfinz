@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Figma 프레임(1237×2629) 좌표를 실제 화면 폭에 맞게 스케일한다.
+/// Figma 프레임 좌표를 실제 화면 폭에 맞게 스케일한다.
 class FigmaScale {
   const FigmaScale(this.scale);
 
-  static const homeDesignWidth = 1237.0;
-  static const homeDesignHeight = 2629.0;
-  static const homeContentHeight = 2474.0;
+  /// Figma `131:5278` 홈화면_초급 (393×852, 하단탭 68px 제외 콘텐츠 784px).
+  static const homeDesignWidth = 393.0;
+  static const homeDesignHeight = 852.0;
+  static const homeContentHeight = 784.0;
 
   static const authDesignWidth = 1212.67;
   static const authDesignHeight = 2629.0;

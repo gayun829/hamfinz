@@ -86,7 +86,7 @@
 
 | 파일 | 내용 |
 |------|------|
-| `lib/data/quiz_data.dart` | 문제 풀, 일일 출제, 에너지 상수 |
+| `lib/data/quiz_data.dart` | 세션 상수 (문항 수, XP, 에너지, 씨앗) — 문제 본문은 Firestore |
 | `lib/data/hamster_data.dart` | 햄스터 컬렉션 |
 | `lib/data/interest_categories.dart` | 관심 카테고리 마스터 |
 | `lib/data/legal_documents.dart` | 약관·개인정보 임시 본문 |

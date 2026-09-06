@@ -38,6 +38,7 @@ dependencies:
   firebase_core: ^4.13.0
   cloud_firestore: ^6.8.0
   firebase_auth: ^6.5.7
+  cloud_functions: ^6.0.0
   webview_flutter: ^4.14.1
 
 dev_dependencies:
@@ -66,10 +67,10 @@ flutter:
     - assets/images/
     - assets/icons/auth/
     - assets/figma/home/
+    - assets/figma/home/beginner/
     - assets/figma/auth/
     - assets/figma/quiz/
-    - assets/figma/shop/seed_pouch.svg
-    - assets/figma/shop/hamster_headband.png
+    - assets/figma/shop/
     - assets/figma/calendar/hamster_peek.png
     - assets/figma/calendar/drop_empty_1.svg
     - assets/figma/calendar/drop_empty_2.svg

@@ -11,12 +11,12 @@
 
 ## 스택
 
-| 구성 | 역할 |
-|------|------|
-| **Firebase Auth** | 이메일/비번, 이후 Google·Apple·Kakao |
-| **Cloud Firestore** | 프로필, 퀴즈, 뉴스 캐시, 학습 기록 |
+| 구성                       | 역할                                                |
+| -------------------------- | --------------------------------------------------- |
+| **Firebase Auth**          | 이메일/비번, 이후 Google·Apple·Kakao                |
+| **Cloud Firestore**        | 프로필, 퀴즈, 뉴스 캐시, 학습 기록                  |
 | **Cloud Functions** (권장) | 에너지 차감·세션 완료를 트랜잭션으로, 뉴스 LLM 생성 |
-| **클라이언트 직접 쓰기** | 관심 카테고리 정도만. XP·에너지는 Functions 권장 |
+| **클라이언트 직접 쓰기**   | 관심 카테고리 정도만. XP·에너지는 Functions 권장    |
 
 비밀번호 해시(`passwordHash`/`salt`)는 Firestore에 **넣지 않는다**. Auth가 담당한다.
 
@@ -26,14 +26,14 @@
 
 ## 설계 원칙
 
-| 원칙 | Firestore에서 |
-|------|----------------|
-| 앱 규칙 유지 | 에너지 100, 문제당 −5, 세션 10문제, XP 10/2 (에너지 수치 잠정) |
-| 레벨은 저장하지 않음 | `xp`만. 레벨 = `min(xp ~/ 100 + 1, 10)` |
-| 작은 목록은 배열 | 관심 카테고리, 해금 햄스터 id (개수 고정·적음) |
-| 늘어나는 기록은 서브컬렉션 | 퀴즈 세션, 답안, 뉴스 퀴즈 기록 |
-| 마스터는 탑레벨 | `categories`, `hamsters`, `quizQuestions`, `legalDocuments` |
-| 문서 ID | 의미 있는 id면 그대로 (`saving`, `q1`, `hamster_basic`) |
+| 원칙                       | Firestore에서                                                  |
+| -------------------------- | -------------------------------------------------------------- |
+| 앱 규칙 유지               | 에너지 100, 문제당 −5, 세션 10문제, XP 10/2 (에너지 수치 잠정) |
+| 레벨은 저장하지 않음       | `xp`만. 레벨 = `min(xp ~/ 100 + 1, 10)`                        |
+| 작은 목록은 배열           | 관심 카테고리, 해금 햄스터 id (개수 고정·적음)                 |
+| 늘어나는 기록은 서브컬렉션 | 퀴즈 세션, 답안, 뉴스 퀴즈 기록                                |
+| 마스터는 탑레벨            | `categories`, `hamsters`, `quizQuestions`, `legalDocuments`    |
+| 문서 ID                    | 의미 있는 id면 그대로 (`saving`, `q1`, `hamster_basic`)        |
 
 ### 게임 상수 (앱·Functions 공유)
 
@@ -122,29 +122,29 @@ id: `allowance` | `saving` | `stock` | `insurance` | `tax` | `credit`
 }
 ```
 
-| id | unlockType | unlockValue |
-|----|------------|-------------|
-| `hamster_basic` | `signup` | — |
-| `hamster_study` | `first_session` | — |
-| `hamster_streak` | `streak` | 3 |
-| `hamster_level3` | `level` | 3 |
-| `hamster_level5` | `level` | 5 |
-| `hamster_master` | `level` | 10 |
+| id               | unlockType      | unlockValue |
+| ---------------- | --------------- | ----------- |
+| `hamster_basic`  | `signup`        | —           |
+| `hamster_study`  | `first_session` | —           |
+| `hamster_streak` | `streak`        | 3           |
+| `hamster_level3` | `level`         | 3           |
+| `hamster_level5` | `level`         | 5           |
+| `hamster_master` | `level`         | 10          |
 
 ### `quizQuestions/{questionId}`
 
 문서 id 예: `q0001`, `q0002` … (의미 있는 id 권장)
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `categoryId` | string | `allowance` \| `saving` \| `stock` \| `insurance` \| `tax` \| `credit` |
-| `difficulty` | number | **1~10** (클수록 어려움) |
-| `type` | string | `ox` \| `multipleChoice` |
-| `question` | string | 지문 |
-| `options` | array\<string\> | 보기 (`ox`: `["O","X"]`, 4지선다: 4개) |
-| `correctIndex` | number | 정답 보기 인덱스 (0부터) |
-| `explanation` | string | 해설 |
-| `isActive` | boolean | `true` = 출제 풀 포함 · `false` = soft delete(비공개) |
+| 필드           | 타입        | 설명                                                  |
+| -------------- | ----------- | ----------------------------------------------------- | ---------------- | ------- | ----------- | ----- | -------- |
+| `categoryId`   | string      | `allowance`                                           | `saving`         | `stock` | `insurance` | `tax` | `credit` |
+| `difficulty`   | number      | **1~10** (클수록 어려움)                              |
+| `type`         | string      | `ox`                                                  | `multipleChoice` |
+| `question`     | string      | 지문                                                  |
+| `options`      | arraystring | 보기 (`ox`: `["O","X"]`, 4지선다: 4개)                |
+| `correctIndex` | number      | 정답 보기 인덱스 (0부터)                              |
+| `explanation`  | string      | 해설                                                  |
+| `isActive`     | boolean     | `true` = 출제 풀 포함 · `false` = soft delete(비공개) |
 
 **CRUD (현재):** Firebase Console / Admin SDK. 클라이언트 `write: false` (Rules).
 
@@ -220,16 +220,16 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 }
 ```
 
-| 필드 | 로컬 대응 | 메모 |
-|------|-----------|------|
+| 필드                       | 로컬 대응                       | 메모                                    |
+| -------------------------- | ------------------------------- | --------------------------------------- |
 | `energy` / `energyResetOn` | `energy`, `lastEnergyResetDate` | 날짜 문자열 `yyyy-MM-dd` 또는 Timestamp |
-| `lastQuizCompletedOn` | `lastQuizCompletedDate` | streak용 |
-| `todayQuizCompleted` | **저장 안 함** | `lastQuizCompletedOn == today`로 계산 |
-| `unlockedHamsterIds` | 배열 (최대 6) | |
-| `interestCategoryIds` | 배열 (1~6, 최소 1) | |
-| `categoryStats` | map | 카테고리 6개뿐이라 문서에 포함 |
-| `consents` | 약관 체크 | 버전 바뀌면 재동의 필드 추가 가능 |
-| `providers` | 예정 소셜 | `password`, `google`, `apple`, `kakao` |
+| `lastQuizCompletedOn`      | `lastQuizCompletedDate`         | streak용                                |
+| `todayQuizCompleted`       | **저장 안 함**                  | `lastQuizCompletedOn == today`로 계산   |
+| `unlockedHamsterIds`       | 배열 (최대 6)                   |                                         |
+| `interestCategoryIds`      | 배열 (1~6, 최소 1)              |                                         |
+| `categoryStats`            | map                             | 카테고리 6개뿐이라 문서에 포함          |
+| `consents`                 | 약관 체크                       | 버전 바뀌면 재동의 필드 추가 가능       |
+| `providers`                | 예정 소셜                       | `password`, `google`, `apple`, `kakao`  |
 
 가입 Cloud Function / 클라이언트 최초 쓰기:
 
@@ -290,8 +290,8 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 **쓰기 권장 경로 (Cloud Function)**
 
-1. `startSession`: `energy >= 50` 확인, 세션 문서 생성 (에너지 아직 안 깎음 또는 예약)  
-2. `submitAnswer`: 트랜잭션으로 `users.energy -= 5`, answers 문서 생성  
+1. `startSession`: `energy >= 50` 확인, 세션 문서 생성 (에너지 아직 안 깎음 또는 예약)
+2. `submitAnswer`: 트랜잭션으로 `users.energy -= 5`, answers 문서 생성
 3. `completeSession`: XP·categoryStats·streak·해금 배열 갱신, `status: completed`
 
 클라이언트가 energy/xp를 직접 쓰면 치트가 되므로 Functions + Admin SDK가 맞다.
@@ -452,17 +452,22 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
   "requestedBy": "<uid>",
   "requestedByNickname": "<요청 시점 닉네임>",
   "status": "pending",
-  "createdAt": "<timestamp>"
+  "createdAt": "<timestamp>",
+  "accepterNickname": "<수락 시점 닉네임>",
+  "acceptedAt": "<timestamp>"
 }
 ```
 
-`status`: `pending` | `accepted`
+`status`: `pending` | `accepted`. `accepterNickname`/`acceptedAt`은 수락(`pending → accepted`) 시에만 생긴다.
 
-- create: `request.auth.uid`가 `uids`에 포함, `requestedBy == request.auth.uid`, `status == 'pending'`, 필드는 위 5개만 허용
-- update: `requestedBy`가 아닌 상대방만 `pending → accepted`
+- create: `request.auth.uid`가 `uids`에 포함, `requestedBy == request.auth.uid`, `status == 'pending'`, 필드는 `uids`/`requestedBy`/`requestedByNickname`/`status`/`createdAt` 5개만 허용
+- update: `requestedBy`가 아닌 상대방만 `pending → accepted`로 바꿀 수 있고, 이때 `accepterNickname`/`acceptedAt`을 추가로 적는다. `uids`/`requestedBy`/`requestedByNickname`은 못 바꾸고, 필드는 위 5개 + `accepterNickname`/`acceptedAt` 총 7개만 허용
 - read/delete: `request.auth.uid in resource.data.uids`인 당사자만
 - `users/{uid}` 문서는 전혀 건드리지 않아 §2 규칙과 충돌하지 않는다
-- `requestedByNickname`을 문서에 그대로 박아두는 이유: "받은 요청" 목록에 보낸 사람 닉네임을 보여줘야 하는데, `users/{상대uid}`는 본인만 read라 열어볼 수 없다. 매번 `nicknames` 인덱스를 역으로 훑는 대신 요청 시점 닉네임을 복사해둔다 (그 이후 닉네임이 바뀌어도 요청 문서엔 옛 닉네임이 남는다 — 스냅샷)
+- `requestedByNickname`/`accepterNickname`을 문서에 그대로 박아두는 이유: "받은 요청"·"내 친구" 목록에 상대 닉네임을 보여줘야 하는데, `users/{상대uid}`는 본인만 read라 열어볼 수 없다. 매번 `nicknames` 인덱스를 역으로 훑는 대신 요청/수락 시점 닉네임을 복사해둔다 (그 이후 닉네임이 바뀌어도 문서엔 그때 닉네임이 남는다 — 스냅샷)
+- 이 필드들이 없는 옛날 문서(필드 추가 전에 만들어진 문서) 대비: `friend_service.dart`의 `getIncomingRequests`/`getFriends`는 스냅샷이 null이면 `nicknames`에서 `uid`로 현재 닉네임을 찾는 fallback을 탄다(`_lookupNicknameByUid`). 상대가 한 번도 로그인 안 해서 `nicknames` 인덱스 자체가 없으면 그래도 "알 수 없음"
+- **내 친구 목록**: `friendships`에서 `uids` array-contains 내 uid, `status == 'accepted'`로 쿼리한다. 상대 닉네임은 내가 `requestedBy`면 `accepterNickname`, 아니면 `requestedByNickname`. 친구 요청 조회와 같은 복합 인덱스를 그대로 쓴다(값만 다른 equality라 인덱스 추가 불필요)
+- **친구 끊기**: `friendships` 문서를 그냥 삭제한다. `allow delete`가 당사자 누구에게나 이미 열려 있어서 별도 규칙 불필요
 
 **CRUD (현재):** create/update/delete 모두 당사자만 (위 규칙). 예시: [`firestore/friendships/uid_example_1_uid_example_2.example.json`](../../firestore/friendships/uid_example_1_uid_example_2.example.json)
 
@@ -476,8 +481,8 @@ friendships/{uidA}_{uidB}
 
 ### 인덱스 추가
 
-| 쿼리 | 인덱스 |
-|------|--------|
+| 쿼리                     | 인덱스                                           |
+| ------------------------ | ------------------------------------------------ |
 | 내가 받은/보낸 친구 요청 | `friendships`: `uids`(array-contains) + `status` |
 
 ### 아직 안 정한 것 (친구)
@@ -492,30 +497,30 @@ friendships/{uidA}_{uidB}
 
 ## 로컬 JSON → Firestore
 
-| 로컬 | Firestore |
-|------|-----------|
-| `users[email]` + session 이메일 | Auth + `users/{uid}` |
-| `profile.xp/streak/energy` | `users/{uid}` 필드 |
-| `interestCategories[]` | `interestCategoryIds` |
-| `unlockedHamsterIds[]` | 동일 배열 |
-| `learningHistory[]` | `users/{uid}/sessions` |
-| `categoryStats{}` | `users/{uid}.categoryStats` |
-| `QuizData.allQuestions` | `quizQuestions` |
-| `kInterestCategories` | `categories` |
-| `HamsterData` | `hamsters` |
-| 약관 체크 | `users.consents` |
-| `NewsItem` | `newsArticles` |
+| 로컬                            | Firestore                   |
+| ------------------------------- | --------------------------- |
+| `users[email]` + session 이메일 | Auth + `users/{uid}`        |
+| `profile.xp/streak/energy`      | `users/{uid}` 필드          |
+| `interestCategories[]`          | `interestCategoryIds`       |
+| `unlockedHamsterIds[]`          | 동일 배열                   |
+| `learningHistory[]`             | `users/{uid}/sessions`      |
+| `categoryStats{}`               | `users/{uid}.categoryStats` |
+| (구) `QuizData.allQuestions`    | `quizQuestions` (Firestore · 12k+ 문항) |
+| `kInterestCategories`           | `categories`                |
+| `HamsterData`                   | `hamsters`                  |
+| 약관 체크                       | `users.consents`            |
+| `NewsItem`                      | `newsArticles`              |
 
 ---
 
 ## 인덱스 (예상)
 
-| 쿼리 | 인덱스 |
-|------|--------|
-| 내 세션 최신순 | `sessions`: `status` + `completedAt` DESC (컬렉션 그룹이면 복합) |
-| 현재 약관 | `legalDocuments`: `docType` + `isCurrent` |
-| 공개 공지 | `announcements`: `isPublished` + `publishedAt` |
-| 카테고리별 기사 | `newsArticles`: `categoryId` + `fetchedAt` |
+| 쿼리            | 인덱스                                                           |
+| --------------- | ---------------------------------------------------------------- |
+| 내 세션 최신순  | `sessions`: `status` + `completedAt` DESC (컬렉션 그룹이면 복합) |
+| 현재 약관       | `legalDocuments`: `docType` + `isCurrent`                        |
+| 공개 공지       | `announcements`: `isPublished` + `publishedAt`                   |
+| 카테고리별 기사 | `newsArticles`: `categoryId` + `fetchedAt`                       |
 
 유저 서브컬렉션 `sessions`를 `uid` 아래에서만 읽으면 단일 필드 `completedAt`로 충분한 경우가 많다.
 
@@ -592,18 +597,18 @@ service cloud.firestore {
 
 앱이 지금 로컬에서 하는 일:
 
-1. **프로필 get**  
+1. **프로필 get**
    `energyResetOn != today`이면 `energy = 100`, `energyResetOn = today` (트랜잭션).
-2. **세션 시작**  
+2. **세션 시작**
    `energy < 50`이면 거부.
-3. **답 제출**  
+3. **답 제출**
    `energy >= 5`일 때만 −5 + answers 문서.
-4. **세션 완료**  
+4. **세션 완료**
    XP 합산, `categoryStats`, 당일 첫 완료면 streak, 해금 id 배열에 추가.
-5. **관심 카테고리**  
+5. **관심 카테고리**
    배열 길이가 1이면 마지막 id 제거 거부.
-6. **탈퇴**  
-   Auth disable + `status: withdrawn` + 개인정보 마스킹. 실제 삭제  Retention은 추후.
+6. **탈퇴**
+   Auth disable + `status: withdrawn` + 개인정보 마스킹. 실제 삭제 Retention은 추후.
 
 뉴스 퀴즈 생성은 Functions에서 본문 요약 → LLM → `newsQuizPacks` 쓰기. API 키는 클라이언트에 두지 않는다.
 

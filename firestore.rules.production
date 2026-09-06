@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// 프로덕션: quiz mastered / answers / sessions update — Cloud Functions(Admin SDK) 전용.
+// 배포: node scripts/deploy_firestore_rules.mjs --production
+// 개발 Rules: firestore.rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // 퀴즈: 맞춘 문제 id — 읽기만. 쓰기는 submitAnswer Functions.
+      match /mastered/{questionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+
+      // 퀴즈: startSession 시 inProgress 생성만 클라이언트. answers·완료는 Functions.
+      match /sessions/{sessionId} {
+        allow read, create: if request.auth != null && request.auth.uid == uid;
+        allow update, delete: if false;
+
+        match /answers/{questionId} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow write: if false;
+        }
+      }
+    }
+
+    match /quizQuestions/{questionId} {
+      allow read: if request.auth != null && resource.data.isActive == true;
+      allow write: if false;
+    }
+
+    match /shopItems/{itemId} {
+      allow read: if request.auth != null
+        && resource.data.isActive == true;
+      allow write: if false;
+    }
+
+    match /nicknames/{nicknameLower} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nickname']);
+      allow update, delete: if false;
+    }
+
+    match /emails/{emailLower} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nickname'])
+        && emailLower == request.auth.token.email;
+      allow update, delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow read: if request.auth != null
+        && (resource == null || request.auth.uid in resource.data.uids);
+
+      allow create: if request.auth != null
+        && request.resource.data.uids is list
+        && request.resource.data.uids.size() == 2
+        && request.auth.uid in request.resource.data.uids
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(
+             ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt']
+           );
+
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.uids
+        && request.auth.uid != resource.data.requestedBy
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.uids == resource.data.uids
+        && request.resource.data.requestedBy == resource.data.requestedBy
+        && request.resource.data.requestedByNickname == resource.data.requestedByNickname
+        && request.resource.data.keys().hasOnly(
+             ['uids', 'requestedBy', 'requestedByNickname', 'status', 'createdAt',
+              'accepterNickname', 'acceptedAt']
+           );
+
+      allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
+    }
+  }
+}

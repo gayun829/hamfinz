@@ -55,3 +55,32 @@ const List<InterestCategory> kInterestCategories = [
     description: '신용점수 관리하기',
   ),
 ];
+
+/// 유효한 관심 카테고리 id 집합.
+const Set<String> kInterestCategoryIds = {
+  'allowance',
+  'saving',
+  'stock',
+  'insurance',
+  'tax',
+  'credit',
+};
+
+/// 저장된 id 목록에서 현재 학습 카테고리 1개를 고른다.
+String? resolveActiveInterestCategoryId(List<String> ids) {
+  for (final id in ids) {
+    if (kInterestCategoryIds.contains(id)) return id;
+  }
+  return null;
+}
+
+/// id로 카테고리를 찾는다. 없는 id면 null — 뉴스 카드처럼 표시용으로만 쓴다.
+InterestCategory? findInterestCategory(String id) {
+  for (final category in kInterestCategories) {
+    if (category.id == id) return category;
+  }
+  return null;
+}
+
+/// 퀴즈/프로필 등 내부 코드용 별칭.
+InterestCategory? interestCategoryById(String id) => findInterestCategory(id);

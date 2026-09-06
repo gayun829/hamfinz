@@ -4,9 +4,7 @@ import '../data/interest_categories.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
-/// 홈 화면 좌측 상단 아이콘을 눌렀을 때 뜨는 관심 카테고리 관리 시트.
-///
-/// 모든 카테고리를 한 화면에 보여 주고, 탭으로 선택(초록) / 해제한다.
+/// 홈 화면 좌측 상단 아이콘 — 학습 카테고리 6개 중 1개 선택.
 Future<void> showCategorySwitcherSheet({
   required BuildContext context,
   required List<String> interestCategoryIds,
@@ -38,39 +36,35 @@ class CategorySwitcherSheet extends StatefulWidget {
 }
 
 class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
-  late List<String> _selectedIds;
+  late String _selectedId;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedIds = List<String>.from(widget.initialSelectedIds);
+    _selectedId = resolveActiveInterestCategoryId(widget.initialSelectedIds) ??
+        kInterestCategories.first.id;
   }
 
-  Future<void> _toggleCategory(String id) async {
-    if (_saving) return;
+  Future<void> _selectCategory(String id) async {
+    if (_saving || _selectedId == id) return;
 
-    final isSelected = _selectedIds.contains(id);
-    if (isSelected && _selectedIds.length <= 1) {
+    setState(() => _saving = true);
+    final error = await AuthService.instance.saveInterestCategories([id]);
+
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('관심 카테고리는 최소 1개 이상 선택해야 해요.')),
+        SnackBar(content: Text(error)),
       );
       return;
     }
-
-    final updated = isSelected
-        ? _selectedIds.where((item) => item != id).toList()
-        : [..._selectedIds, id];
-
-    setState(() => _saving = true);
-    await AuthService.instance.saveInterestCategories(updated);
-
-    if (!mounted) return;
     setState(() {
-      _selectedIds = updated;
+      _selectedId = id;
       _saving = false;
     });
-    widget.onCategoriesChanged(updated);
+    widget.onCategoriesChanged([id]);
   }
 
   @override
@@ -98,7 +92,7 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
             ),
             const SizedBox(height: 16),
             const Text(
-              '내 관심 카테고리',
+              '학습 카테고리',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -107,7 +101,7 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
             ),
             const SizedBox(height: 8),
             const Text(
-              '카테고리를 탭해 추가하거나 해제할 수 있어요 (최소 1개)',
+              '6개 중 1개만 선택할 수 있어요. 선택한 카테고리 문제가 출제됩니다.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppTheme.textSecondary,
@@ -121,8 +115,8 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
                 for (final category in kInterestCategories)
                   _CategoryIconButton(
                     category: category,
-                    selected: _selectedIds.contains(category.id),
-                    onTap: _saving ? null : () => _toggleCategory(category.id),
+                    selected: _selectedId == category.id,
+                    onTap: _saving ? null : () => _selectCategory(category.id),
                   ),
               ],
             ),

@@ -1,15 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
+import '../../data/interest_categories.dart';
 import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/news_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/category_switcher_sheet.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../calendar/streak_calendar_screen.dart';
-import '../friends/add_friend_screen.dart';
+import '../news/article_screen.dart';
+import '../news/term_quiz_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
@@ -24,10 +30,30 @@ class _HomeScreenState extends State<HomeScreen> {
   UserProfile? _profile;
   bool _loading = true;
 
+  /// 뉴스바에 돌릴 TOP 10. 뉴스 탭과 같은 캐시를 쓴다(1시간 TTL).
+  List<NewsItem> _news = const [];
+  int _newsIndex = 0;
+  Timer? _newsTimer;
+
+  /// 뉴스바가 한 건을 보여주는 시간.
+  static const _newsSlideInterval = Duration(seconds: 10);
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadNews();
+    _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
+  }
+
+  @override
+  void dispose() {
+    _newsTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshHome() async {
+    await Future.wait([_loadProfile(), _loadNews()]);
   }
 
   Future<void> _loadProfile() async {
@@ -57,6 +83,15 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    if (resolveActiveInterestCategoryId(profile.interestCategories) == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('학습 카테고리를 먼저 선택해 주세요.')),
+      );
+      await _openCategorySwitcher();
+      return;
+    }
+
     final completed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => QuizScreen(profile: profile)),
     );
@@ -75,23 +110,51 @@ class _HomeScreenState extends State<HomeScreen> {
       interestCategoryIds: profile.interestCategories,
       onCategoriesChanged: (updated) {
         if (!mounted) return;
-        setState(() => profile.interestCategories = updated);
+        setState(() {
+          _profile?.interestCategories = List<String>.from(updated);
+        });
       },
     );
   }
 
+  /// 뉴스바에 지금 떠 있는 기사를 연다 — 뉴스 탭에서 누른 것과 같은 경로다.
+  /// 아직 못 불러왔으면 구글뉴스 비즈니스 섹션으로 보낸다(빈 탭 방지).
   void _openNews() {
-    // 나중에 추가: HOT 뉴스/공지 화면
-  }
-
-  void _openFriends() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+    if (_news.isEmpty) {
+      ArticleScreen.open(context, NewsService.morePageUri, '금융 뉴스');
+      return;
+    }
+    final item = _news[_newsIndex];
+    ArticleScreen.open(
+      context,
+      Uri.parse(item.url),
+      item.title,
+      onStartQuiz: item.term.hasLesson
+          ? (_, _) => TermQuizScreen.open(context, item.term, item.title)
+          : null,
     );
   }
 
-  void _openBookmark() {
-    // 나중에 추가: 북마크/학습 저장 기능
+  /// 뉴스바에 보여줄 제목. 못 불러왔을 때도 배너가 비어 보이지 않게 한다.
+  String get _newsBarTitle =>
+      _news.isEmpty ? '오늘의 금융 뉴스 보러가기' : _news[_newsIndex].title;
+
+  Future<void> _loadNews() async {
+    try {
+      final items = await NewsService.topFinance();
+      if (!mounted) return;
+      setState(() {
+        _news = items;
+        _newsIndex = 0;
+      });
+    } catch (_) {
+      // 뉴스는 홈의 곁다리라, 실패해도 홈 전체를 오류로 만들지 않는다.
+    }
+  }
+
+  void _rotateNews() {
+    if (!mounted || _news.length < 2) return;
+    setState(() => _newsIndex = (_newsIndex + 1) % _news.length);
   }
 
   Future<void> _openShop() async {
@@ -108,7 +171,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (profile == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => StreakCalendarScreen(streak: profile.streak),
+        builder: (_) => StreakCalendarScreen(
+          streak: profile.streak,
+          studyGuardCount: profile.studyGuardCount,
+          completedDates: profile.learningHistory
+              .map((record) => record.date)
+              .toSet(),
+        ),
       ),
     );
   }
@@ -130,31 +199,25 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final canStart = profile.energy >= QuizData.sessionEnergyCost;
-    final energyProgress = profile.energy / QuizData.maxEnergy;
-    final progressFillWidth = 157.0 * energyProgress;
-    final hamsterDisplayName =
-        profile.nickname.isNotEmpty ? profile.nickname : '아깅햄핀';
 
     return RefreshIndicator(
-      onRefresh: _loadProfile,
+      onRefresh: _refreshHome,
       child: FigmaCanvas(
         designWidth: FigmaScale.homeDesignWidth,
         designHeight: FigmaScale.homeContentHeight,
+        backgroundColor: AppTheme.figmaHomeBackground,
+        fit: FigmaCanvasFit.widthScroll,
+        scrollable: true,
+        clipContent: false,
         builder: (context, figma) => _buildFigmaHomeLayers(
           figma: figma,
           energy: profile.energy,
           coin: profile.seeds,
           streak: profile.streak,
-          level: profile.level,
-          hamsterName: hamsterDisplayName,
-          questCompleted: profile.energy,
-          questTotal: QuizData.maxEnergy,
-          progressFillWidth: progressFillWidth,
           canStartLearning: canStart,
+          newsTitle: _newsBarTitle,
           onMenu: _openCategorySwitcher,
           onNews: _openNews,
-          onFriends: _openFriends,
-          onBookmark: _openBookmark,
           onShop: _openShop,
           onStreakCalendar: _openStreakCalendar,
           onStartLearning: _startQuiz,
@@ -169,553 +232,435 @@ List<Widget> _buildFigmaHomeLayers({
   required int energy,
   required int coin,
   required int streak,
-  required int level,
-  required String hamsterName,
-  required int questCompleted,
-  required int questTotal,
-  required double progressFillWidth,
   required bool canStartLearning,
+  required String newsTitle,
   required VoidCallback onMenu,
   required VoidCallback onNews,
-  required VoidCallback onFriends,
-  required VoidCallback onBookmark,
   required VoidCallback onShop,
   required VoidCallback onStreakCalendar,
   required VoidCallback onStartLearning,
 }) {
   final s = figma.s;
+  final newsLine = newsTitle.startsWith('HOT 뉴스')
+      ? newsTitle
+      : 'HOT 뉴스 / $newsTitle';
 
   return [
-      // 83:4, 83:5 배경 원
-      FigmaBox(
-        figma: figma,
-        left: -477,
-        top: 1510,
-        width: 924,
-        height: 924,
-        child: const FigmaSvg(FigmaAssets.bgBottom, fit: BoxFit.fill),
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 300,
-        top: -1255,
-        width: 2976,
-        height: 2976,
-        child: const FigmaSvg(FigmaAssets.bgTop, fit: BoxFit.fill),
-      ),
+    // ── 131:5279~5324 학습 경로 (관람차 원 + 섹터) ──
+    FigmaBox(
+      figma: figma,
+      left: 139.59765625,
+      top: 143,
+      width: 485.3046875,
+      height: 541.802734375,
+      child: const FigmaSvg(FigmaAssets.homePathMap, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 219,
+      top: 186,
+      width: 131,
+      height: 66,
+      child: const FigmaSvg(FigmaAssets.homeEllipse154, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 302.0035400390625,
+      top: 210.01507568359375,
+      width: 29.65591569747437,
+      height: 12.33499826037405,
+      child: const FigmaSvg(FigmaAssets.homeNode1Overlay, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 145,
+      top: 514,
+      width: 210,
+      height: 119,
+      child: const FigmaSvg(FigmaAssets.homeEllipse155, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 45,
+      top: 373,
+      width: 166,
+      height: 95,
+      child: const FigmaSvg(FigmaAssets.homeEllipse100, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 258.90625,
+      top: 359.197265625,
+      width: 46.0875624669402,
+      height: 46.427402590952624,
+      child: const FigmaSvg(FigmaAssets.homeDecoVector1, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 221.388671875,
+      top: 399.357421875,
+      width: 18.94550179868429,
+      height: 18.72608362290339,
+      child: const FigmaSvg(FigmaAssets.homeDecoVector3, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 22,
+      top: 356.4765625,
+      width: 24.489221139918072,
+      height: 23.995337006143018,
+      child: const FigmaSvg(FigmaAssets.homeDecoVector4, fit: BoxFit.fill),
+    ),
 
-      // 83:7, 83:13 뉴스 배너
-      FigmaPill(
-        figma: figma,
-        left: 108,
-        top: 280,
-        width: 1011,
-        height: 104,
-        color: const Color(0xFF99C9CA),
-        radius: 44,
+    // ── 131:5325 뉴스 배너 ──
+    FigmaPill(
+      figma: figma,
+      left: 32,
+      top: 115,
+      width: 327.536,
+      height: 33.693,
+      color: const Color(0xFFB4EBFF),
+      radius: 14.255,
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 45.607177734375,
+      top: 125.04296875,
+      width: 14.255,
+      height: 13.679,
+      child: const FigmaSvg(
+        FigmaAssets.homeBeginnerMegaphone,
+        fit: BoxFit.fill,
       ),
-      FigmaPill(
-        figma: figma,
-        left: 102,
-        top: 268,
-        width: 1011,
-        height: 104,
-        color: const Color(0xFFB7F1F3),
-        radius: 44,
-      ),
-
-      // 83:8~9, 83:14 레벨 pill
-      FigmaPill(
-        figma: figma,
-        left: 299.06,
-        top: 1469.54,
-        width: 588.962,
-        height: 125.311,
-        color: const Color(0xFFACC5CF),
-        radius: 75.187,
-      ),
-      FigmaPill(
-        figma: figma,
-        left: 288,
-        top: 1443,
-        width: 588.962,
-        height: 125.311,
-        color: const Color(0xFFCFDFE5),
-        radius: 75.187,
-      ),
-      FigmaPill(
-        figma: figma,
-        left: 295,
-        top: 1456,
-        width: 588.962,
-        height: 125.311,
-        color: const Color(0xFFEEF9FD),
-        radius: 75.187,
-      ),
-
-      // 83:11, 83:12 학습 카드
-      FigmaPill(
-        figma: figma,
-        left: 105,
-        top: 1745,
-        width: 1029,
-        height: 633,
-        color: const Color(0xFFABC8D3),
-        radius: 95,
-      ),
-      FigmaPill(
-        figma: figma,
-        left: 82,
-        top: 1721,
-        width: 1029,
-        height: 633,
-        color: const Color(0xFFDDF6FF),
-        radius: 95,
-      ),
-
-      // 83:91 학습 버튼 배경
-      FigmaPill(
-        figma: figma,
-        left: 158.9,
-        top: 2114,
-        width: 876,
-        height: 141,
-        color: const Color(0xFF9CE5FF),
-        radius: 46.285,
-      ),
-
-      // 83:80 메뉴 버튼
-      _FigmaMenuButton(figma: figma, onTap: onMenu),
-
-      // 83:197, 83:181, 83:185, 83:196 스탯
-      FigmaBox(
-        figma: figma,
-        left: 343,
-        top: 111,
-        width: 135,
-        height: 83,
-        child: const FigmaSvg(FigmaAssets.statEnergy, fit: BoxFit.contain),
-      ),
-      FigmaLabel(
-        figma: figma,
-        left: 478.62,
-        top: 130.37,
-        text: '$energy',
-        fontSize: 37,
-        color: const Color(0xFFFBB03B),
-        fontWeight: FontWeight.w600,
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 667,
-        top: 110,
-        width: 107,
-        height: 83,
-        child: const FigmaSvg(FigmaAssets.statCoin, fit: BoxFit.contain),
-      ),
-      FigmaLabel(
-        figma: figma,
-        left: 774,
-        top: 135,
-        text: '$coin',
-        fontSize: 37,
-        color: const Color(0xFFFFCA55),
-        fontWeight: FontWeight.w600,
-      ),
-      FigmaTapArea(
-        figma: figma,
-        left: 650,
-        top: 100,
-        width: 220,
-        height: 110,
-        onTap: onShop,
-        child: const SizedBox.expand(),
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 980,
-        top: 108,
-        width: 68.249,
-        height: 83.999,
-        child: const FigmaSvg(FigmaAssets.statStreak, fit: BoxFit.contain),
-      ),
-      FigmaLabel(
-        figma: figma,
-        left: 1072.37,
-        top: 135,
-        text: '$streak',
-        fontSize: 37,
-        color: const Color(0xFFFB8B3B),
-        fontWeight: FontWeight.w600,
-      ),
-      FigmaTapArea(
-        figma: figma,
-        left: 960,
-        top: 100,
-        width: 220,
-        height: 110,
-        onTap: onStreakCalendar,
-        child: const SizedBox.expand(),
-      ),
-
-      // 83:19, 83:17, 83:67 뉴스
-      FigmaBox(
-        figma: figma,
-        left: 144,
-        top: 299,
-        width: 44,
-        height: 42.222,
-        child: const FigmaSvg(FigmaAssets.megaphone, fit: BoxFit.fill),
-      ),
-      FigmaLabel(
-        figma: figma,
-        left: 224,
-        top: 300,
-        text: 'HOT 뉴스 / 기사 제목 ~',
-        fontSize: 34,
-        width: 867,
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 1060,
-        top: 303,
-        width: 20,
-        height: 34.754,
-        child: const FigmaSvg(FigmaAssets.chevronRight, fit: BoxFit.fill),
-      ),
-      FigmaTapArea(
-        figma: figma,
-        left: 102,
-        top: 268,
-        width: 1011,
-        height: 104,
-        onTap: onNews,
-        child: const SizedBox.shrink(),
-      ),
-
-      // 83:31~43 말풍선
-      ..._speechBubbleLayers(figma),
-
-      // 87:3 메인 햄스터 — 단일 PNG (스프라이트 크롭 금지)
-      FigmaCenterBox(
-        figma: figma,
-        designWidth: FigmaScale.homeDesignWidth,
-        top: 817,
-        width: 502,
-        height: 600,
-        centerOffsetX: -0.34,
-        child: const FigmaPng(
-          FigmaAssets.hamsterAuth,
-          fit: BoxFit.contain,
-          clip: true,
-        ),
-      ),
-
-      // 83:15~18, 83:16 레벨 pill 텍스트
-      FigmaLabel(
-        figma: figma,
-        left: 344,
-        top: 1496,
-        text: 'Lv.$level $hamsterName',
-        fontSize: 37,
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 641.42,
-        top: 1490.98,
-        width: 4.177,
-        height: 54.301,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFFB0C5CD),
-            borderRadius: BorderRadius.circular(s(2.089)),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 71.525390625,
+      top: 126.6640625,
+      width: 258,
+      height: 16,
+      child: ClipRect(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: child,
           ),
-        ),
-      ),
-      FigmaTapArea(
-        figma: figma,
-        left: 713,
-        top: 1496,
-        width: 121,
-        height: 46,
-        onTap: onFriends,
-        child: Text(
-          '친구',
-          style: TextStyle(
-            fontSize: s(37),
-            color: Colors.black,
-            height: 1.1,
-          ),
-        ),
-      ),
-
-      // 83:93 프레임 + 87:5 카드 썸네일 (Figma: left calc(50%-334.84px) → frame 기준 x=53.16)
-      FigmaBox(
-        figma: figma,
-        left: 158,
-        top: 1809,
-        width: 235.677,
-        height: 254.867,
-        child: Stack(
-          clipBehavior: Clip.hardEdge,
-          children: [
-            Positioned(
-              left: figma.s(53.16),
-              top: figma.s(45),
-              width: figma.s(145),
-              height: figma.s(173),
-              child: const FigmaPng(
-                FigmaAssets.hamsterAuth,
-                fit: BoxFit.contain,
-                clip: true,
+          child: Align(
+            key: ValueKey(newsLine),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              newsLine,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: s(8.747),
+                height: 1.1,
+                color: Colors.black,
               ),
             ),
-            const FigmaSvg(FigmaAssets.cardHamsterFrame, fit: BoxFit.fill),
-          ],
-        ),
-      ),
-
-      // 83:96~102 퀘스트
-      FigmaPill(
-        figma: figma,
-        left: 447.9,
-        top: 1920,
-        width: 346,
-        height: 62,
-        color: Colors.white,
-        radius: 17,
-      ),
-      FigmaLabel(
-        figma: figma,
-        left: 521.9,
-        top: 1935,
-        text: '에너지    $questCompleted / $questTotal',
-        fontSize: 28,
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 465.9,
-        top: 1931,
-        width: 40.114,
-        height: 40.114,
-        child: const FigmaSvg(FigmaAssets.questIconCircle, fit: BoxFit.fill),
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 482.79,
-        top: 1957.51,
-        width: 6.054,
-        height: 6.054,
-        child: const FigmaSvg(FigmaAssets.questIconDot, fit: BoxFit.fill),
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 482.79,
-        top: 1937.51,
-        width: 6.054,
-        height: 18.162,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(s(3.027)),
           ),
-        ),
-      ),
-      FigmaPill(
-        figma: figma,
-        left: 447.9,
-        top: 2016.33,
-        width: 587,
-        height: 47.339,
-        color: Colors.white,
-        radius: 32.136,
-      ),
-      FigmaPill(
-        figma: figma,
-        left: 456.9,
-        top: 2024.25,
-        width: progressFillWidth.clamp(31, 587),
-        height: 31,
-        color: const Color(0xFF46CABF),
-        radius: 33.942,
-      ),
-
-      // 83:103~111 Q 아이콘 + 텍스트
-      ..._quizIconLayers(figma),
-      FigmaLabel(
-        figma: figma,
-        left: 305.9,
-        top: 2166,
-        text: canStartLearning ? '학습 시작' : '에너지 부족',
-        fontSize: 34,
-      ),
-      FigmaBox(
-        figma: figma,
-        left: 973.9,
-        top: 2165,
-        width: 24.046,
-        height: 39.297,
-        child: const FigmaSvg(FigmaAssets.chevronLearning, fit: BoxFit.fill),
-      ),
-      FigmaTapArea(
-        figma: figma,
-        left: 158.9,
-        top: 2114,
-        width: 876,
-        height: 141,
-        onTap: onStartLearning,
-        child: const SizedBox.shrink(),
-      ),
-
-      // 83:133 북마크
-      FigmaTapArea(
-        figma: figma,
-        left: 993.19,
-        top: 1888.25,
-        width: 42,
-        height: 51.241,
-        onTap: onBookmark,
-        child: const FigmaSvg(FigmaAssets.bookmark, fit: BoxFit.fill),
-      ),
-  ];
-}
-
-List<Widget> _speechBubbleLayers(FigmaScale figma) {
-  return [
-    _bubbleLayer(figma, 564, 596, 835.8, 677.31, 821, 739, const Color(0xFF9EB6CE)),
-    _bubbleLayer(figma, 548, 580, 819.8, 661.31, 805, 723, const Color(0xFFC3D5E8)),
-    _bubbleLayer(
-      figma,
-      559,
-      590,
-      830.8,
-      671.31,
-      816,
-      733,
-      const Color(0xFFF5FAFF),
-      text: '작은 습관이 큰 자산이 돼요 !',
-    ),
-  ];
-}
-
-Widget _bubbleLayer(
-  FigmaScale figma,
-  double left,
-  double top,
-  double tailLeft,
-  double tailTop,
-  double dotLeft,
-  double dotTop,
-  Color color, {
-  String? text,
-}) {
-  final s = figma.s;
-  return Stack(
-    clipBehavior: Clip.none,
-    children: [
-      FigmaBox(
-        figma: figma,
-        left: left,
-        top: top,
-        width: 435.081,
-        height: 111.085,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(s(55.542)),
-          ),
-          child: text == null
-              ? null
-              : Padding(
-                  padding: EdgeInsets.fromLTRB(s(49), s(39), s(16), 0),
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: s(27),
-                      color: Colors.black,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-        ),
-      ),
-      FigmaBox(
-        figma: figma,
-        left: tailLeft,
-        top: tailTop,
-        width: 58.628,
-        height: 58.628,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(s(55.542)),
-          ),
-        ),
-      ),
-      FigmaBox(
-        figma: figma,
-        left: dotLeft,
-        top: dotTop,
-        width: 30.857,
-        height: 30.857,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(s(55.542)),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-List<Widget> _quizIconLayers(FigmaScale figma) {
-  final s = figma.s;
-  return [
-    FigmaBox(
-      figma: figma,
-      left: 184.9,
-      top: 2138,
-      width: 93.411,
-      height: 93.411,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1B9CA1),
-          borderRadius: BorderRadius.circular(s(25.848)),
         ),
       ),
     ),
     FigmaBox(
       figma: figma,
-      left: 198.44,
-      top: 2158.31,
-      width: 35.198,
-      height: 52.797,
+      left: 338,
+      top: 124,
+      width: 16,
+      height: 16,
+      child: const FigmaSvg(
+        FigmaAssets.homeBeginnerChevronNews,
+        fit: BoxFit.fill,
+      ),
+    ),
+    FigmaTapArea(
+      figma: figma,
+      left: 32,
+      top: 115,
+      width: 327.536,
+      height: 33.693,
+      onTap: onNews,
+      child: const SizedBox.shrink(),
+    ),
+
+    // ── 131:5342 오늘의 학습 CTA ──
+    FigmaPill(
+      figma: figma,
+      left: 34,
+      top: 666,
+      width: 328,
+      height: 84.247,
+      color: canStartLearning
+          ? const Color(0xFF3CC6FF)
+          : const Color(0xFF3CC6FF).withValues(alpha: 0.55),
+      radius: 13,
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 49,
+      top: 684,
+      width: 47,
+      height: 47,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(s(25.848)),
+          borderRadius: BorderRadius.circular(s(7.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              offset: Offset(s(3), s(3)),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: s(6),
+            top: s(9),
+            right: s(7),
+            bottom: s(10),
+          ),
+          child: const FigmaSvg(
+            FigmaAssets.homeBeginnerLearningQ,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     ),
+    FigmaLabel(
+      figma: figma,
+      left: 135,
+      top: 690,
+      text: canStartLearning ? '오늘의 학습' : '에너지 부족',
+      fontSize: 26,
+      color: Colors.white,
+      fontWeight: FontWeight.w500,
+    ),
     FigmaBox(
       figma: figma,
-      left: 205.21,
-      top: 2167.78,
-      width: 21.66,
-      height: 35.198,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1B9CA1),
-          borderRadius: BorderRadius.circular(s(16.569)),
-        ),
+      left: 309,
+      top: 684,
+      width: 46.055,
+      height: 46.055,
+      child: const FigmaSvg(
+        FigmaAssets.homeBeginnerChevronLearning,
+        fit: BoxFit.fill,
       ),
+    ),
+    FigmaTapArea(
+      figma: figma,
+      left: 34,
+      top: 666,
+      width: 328,
+      height: 84.247,
+      onTap: onStartLearning,
+      child: const SizedBox.shrink(),
+    ),
+
+    // ── 131:5371 카테고리 메뉴 ──
+    _BeginnerMenuButton(figma: figma, onTap: onMenu),
+
+    // ── 131:5380~5395 상단 스탯 ──
+    FigmaBox(
+      figma: figma,
+      left: 119.99951171875,
+      top: 63.999755859375,
+      width: 35.718,
+      height: 24.949,
+      child: const FigmaSvg(
+        FigmaAssets.homeBeginnerStatEnergy,
+        fit: BoxFit.contain,
+      ),
+    ),
+    FigmaLabel(
+      figma: figma,
+      left: 163.91872787475586,
+      top: 70.26683902740479,
+      text: '$energy',
+      fontSize: 12,
+      color: const Color(0xFFFBB03B),
+      fontWeight: FontWeight.w600,
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 224,
+      top: 62,
+      width: 27.43,
+      height: 26.57,
+      child: const FigmaSvg(
+        FigmaAssets.homeBeginnerStatCoin,
+        fit: BoxFit.contain,
+      ),
+    ),
+    FigmaLabel(
+      figma: figma,
+      left: 258.6328125,
+      top: 70.087890625,
+      text: '$coin',
+      fontSize: 12,
+      color: const Color(0xFFFFCA55),
+      fontWeight: FontWeight.w600,
+    ),
+    FigmaTapArea(
+      figma: figma,
+      left: 210,
+      top: 55,
+      width: 90,
+      height: 40,
+      onTap: onShop,
+      child: const SizedBox.expand(),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 316,
+      top: 61,
+      width: 22.111,
+      height: 27.204,
+      child: const FigmaSvg(
+        FigmaAssets.homeBeginnerStatStreak,
+        fit: BoxFit.contain,
+      ),
+    ),
+    FigmaLabel(
+      figma: figma,
+      left: 345.92693519592285,
+      top: 69.73677730560303,
+      text: '$streak',
+      fontSize: 12,
+      color: const Color(0xFFFB8B3B),
+      fontWeight: FontWeight.w600,
+    ),
+    FigmaTapArea(
+      figma: figma,
+      left: 300,
+      top: 55,
+      width: 80,
+      height: 40,
+      onTap: onStreakCalendar,
+      child: const SizedBox.expand(),
+    ),
+
+    // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 ──
+    _HomeStagePentagon(
+      figma: figma,
+      left: 304.9996337890625,
+      top: 181.42132568359375,
+      width: 40.99964304702837,
+      height: 41.66641630988579,
+      asset: FigmaAssets.homeDecoVector2,
+      label: '1',
+      fontSize: 15.167,
+      shadowOffset: Offset(0.782, 0.782),
+      svgBleed: const EdgeInsets.only(right: 0.0523, bottom: 0.0536),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 222.1222686767578,
+      top: 556.8336181640625,
+      width: 55.69799777731794,
+      height: 23.166871005831126,
+      child: const FigmaSvg(FigmaAssets.homeNode3Overlay, fit: BoxFit.fill),
+    ),
+    _HomeStagePentagon(
+      figma: figma,
+      left: 294.0031433105469,
+      top: 502.0601501464844,
+      width: 77.00312867523678,
+      height: 78.25542120861064,
+      asset: FigmaAssets.homeNode3Flag,
+      label: '3',
+      fontSize: 28.485,
+      shadowOffset: Offset(-1.453, 1.468),
+      svgBleed: const EdgeInsets.only(left: 0.0432, bottom: 0.0773),
+    ),
+
+    // ── 162:421 햄스터 (최상단) ──
+    FigmaBox(
+      figma: figma,
+      left: 52,
+      top: 324,
+      width: 152,
+      height: 144,
+      child: const FigmaSvg(FigmaAssets.homeHamsterMap, fit: BoxFit.contain),
     ),
   ];
 }
 
-class _FigmaMenuButton extends StatelessWidget {
-  const _FigmaMenuButton({required this.figma, required this.onTap});
+/// Figma 131:5322 / 131:5423 오각형 + 131:5421 / 131:5424 번호.
+///
+/// Figma MCP 기준 번호는 오각형 bounds 안에서 center 정렬된다.
+/// SVG는 inset bleed(그림자)만큼 box 밖으로 확장한다.
+class _HomeStagePentagon extends StatelessWidget {
+  const _HomeStagePentagon({
+    required this.figma,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+    required this.asset,
+    required this.label,
+    required this.fontSize,
+    required this.shadowOffset,
+    required this.svgBleed,
+  });
+
+  final FigmaScale figma;
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final String asset;
+  final String label;
+  final double fontSize;
+  final Offset shadowOffset;
+
+  /// Figma export `inset-[...]` — 비율(0~1)로 box 대비 bleed.
+  final EdgeInsets svgBleed;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    return FigmaBox(
+      figma: figma,
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            left: -width * svgBleed.left,
+            top: -height * svgBleed.top,
+            right: -width * svgBleed.right,
+            bottom: -height * svgBleed.bottom,
+            child: FigmaSvg(asset, fit: BoxFit.fill),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: s(fontSize),
+              fontWeight: FontWeight.w200,
+              color: Colors.white,
+              height: 1,
+              shadows: [
+                Shadow(
+                  offset: Offset(s(shadowOffset.dx), s(shadowOffset.dy)),
+                  color: const Color(0xFFCD5500).withValues(alpha: 0.25),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BeginnerMenuButton extends StatelessWidget {
+  const _BeginnerMenuButton({required this.figma, required this.onTap});
 
   final FigmaScale figma;
   final VoidCallback onTap;
@@ -725,34 +670,33 @@ class _FigmaMenuButton extends StatelessWidget {
     final s = figma.s;
     return FigmaTapArea(
       figma: figma,
-      left: 110.8,
-      top: 100,
-      width: 94,
-      height: 92,
+      left: 33.999755859375,
+      top: 61,
+      width: 30.58,
+      height: 29.91,
       onTap: onTap,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned(
-            left: s(51.8),
+            left: s(16.78),
             child: _square(s, const Color(0xFFFFCA55)),
           ),
           Positioned(
-            left: s(51.8),
-            top: s(49.71),
+            left: s(16.78),
+            top: s(16.1),
             child: _square(s, const Color(0xFFFFCA55)),
           ),
           Positioned(
-            left: s(2.09),
-            top: s(49.71),
+            top: s(16.1),
             child: _square(s, const Color(0xFFFFCA55)),
           ),
           Positioned(
-            top: s(3.15),
+            top: s(1.03),
             child: FigmaSvg(
-              FigmaAssets.menuIcon,
-              width: s(45.397),
-              height: s(39.861),
+              FigmaAssets.homeBeginnerMenuIcon,
+              width: s(14.709),
+              height: s(12.905),
             ),
           ),
         ],
@@ -762,11 +706,11 @@ class _FigmaMenuButton extends StatelessWidget {
 
   Widget _square(double Function(double) s, Color color) {
     return Container(
-      width: s(42.604),
-      height: s(42.604),
+      width: s(13.803),
+      height: s(13.803),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(s(9.026)),
+        borderRadius: BorderRadius.circular(s(2.924)),
       ),
     );
   }

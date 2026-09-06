@@ -4,6 +4,18 @@ import 'package:flutter/material.dart';
 
 import 'figma_scale.dart';
 
+/// Figma 캔버스가 viewport에 맞추는 방식.
+enum FigmaCanvasFit {
+  /// [designWidth] 기준 균일 스케일. Figma 비율 유지, 세로 overflow 시 스크롤.
+  widthScroll,
+
+  /// min(가로, 세로) scale로 한 화면에 맞춤. 좌우/상하 여백 가능.
+  viewport,
+
+  /// 가로 폭 scale, 스크롤·viewport 정렬 없음.
+  width,
+}
+
 /// Figma 프레임을 폭 기준 균일 스케일로 그대로 렌더링한다.
 class FigmaCanvas extends StatelessWidget {
   const FigmaCanvas({
@@ -13,14 +25,22 @@ class FigmaCanvas extends StatelessWidget {
     required this.builder,
     this.backgroundColor = Colors.white,
     this.scrollable = true,
-    this.fitToViewport = false,
+    this.fit = FigmaCanvasFit.width,
+    this.fillWidth = false,
+    this.clipContent = true,
   });
 
   final double designWidth;
   final double designHeight;
   final Color backgroundColor;
   final bool scrollable;
-  final bool fitToViewport;
+  final FigmaCanvasFit fit;
+
+  /// [FigmaCanvasFit.viewport]일 때 가로를 viewport에 맞추고 세로는 잘린다.
+  final bool fillWidth;
+
+  /// false면 맵 등 프레임 밖으로 나가는 요소를 잘리지 않는다.
+  final bool clipContent;
   final List<Widget> Function(BuildContext context, FigmaScale figma) builder;
 
   @override
@@ -28,60 +48,91 @@ class FigmaCanvas extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxHeight = constraints.maxHeight;
-        final useViewportFit =
-            fitToViewport && maxHeight.isFinite && maxHeight > 0;
+        final hasBoundedHeight = maxHeight.isFinite && maxHeight > 0;
 
-        final figma = useViewportFit
-            ? FigmaScale.ofViewport(
-                constraints.maxWidth,
-                maxHeight,
-                designWidth: designWidth,
-                designHeight: designHeight,
-              )
-            : FigmaScale.ofWidth(
-                constraints.maxWidth,
-                designWidth: designWidth,
-              );
+        final figma = switch (fit) {
+          FigmaCanvasFit.viewport when hasBoundedHeight && !fillWidth =>
+            FigmaScale.ofViewport(
+              constraints.maxWidth,
+              maxHeight,
+              designWidth: designWidth,
+              designHeight: designHeight,
+            ),
+          FigmaCanvasFit.viewport ||
+          FigmaCanvasFit.widthScroll ||
+          FigmaCanvasFit.width =>
+            FigmaScale.ofWidth(
+              constraints.maxWidth,
+              designWidth: designWidth,
+            ),
+        };
 
-        final contentWidth = figma.s(designWidth);
+        final contentWidth = fillWidth && fit == FigmaCanvasFit.viewport
+            ? constraints.maxWidth
+            : figma.s(designWidth);
         final contentHeight = figma.s(designHeight);
-        final fitsInViewport =
-            useViewportFit && contentHeight <= maxHeight + 0.5;
+        final fitsInViewport = hasBoundedHeight &&
+            contentHeight <= maxHeight + 0.5;
 
-        final canvas = SizedBox(
-          width: constraints.maxWidth,
-          height: useViewportFit ? maxHeight : contentHeight,
-          child: useViewportFit
-              ? Align(
-                  alignment: fitsInViewport
-                      ? Alignment.bottomCenter
-                      : Alignment.topCenter,
-                  child: SizedBox(
-                    width: contentWidth,
-                    height: contentHeight,
-                    child: ColoredBox(
-                      color: backgroundColor,
-                      child: Stack(
-                        clipBehavior: Clip.hardEdge,
-                        children: builder(context, figma),
-                      ),
-                    ),
-                  ),
-                )
-              : ColoredBox(
-                  color: backgroundColor,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: builder(context, figma),
-                  ),
-                ),
+        final frame = SizedBox(
+          width: contentWidth,
+          height: contentHeight,
+          child: ColoredBox(
+            color: backgroundColor,
+            child: Stack(
+              clipBehavior: clipContent ? Clip.hardEdge : Clip.none,
+              children: builder(context, figma),
+            ),
+          ),
         );
 
-        if (!scrollable || useViewportFit) return canvas;
+        final alignWhenFits = fit == FigmaCanvasFit.widthScroll ||
+                fit == FigmaCanvasFit.viewport
+            ? Alignment.bottomCenter
+            : Alignment.topCenter;
+
+        final alignedFrame = Align(
+          alignment: fitsInViewport ? alignWhenFits : Alignment.topCenter,
+          child: frame,
+        );
+
+        if (fit == FigmaCanvasFit.width && !scrollable) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: contentHeight,
+            child: alignedFrame,
+          );
+        }
+
+        if (fit == FigmaCanvasFit.viewport && !scrollable && hasBoundedHeight) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: maxHeight,
+            child: alignedFrame,
+          );
+        }
+
+        if (!scrollable) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: hasBoundedHeight ? maxHeight : contentHeight,
+            child: alignedFrame,
+          );
+        }
+
+        final scrollMinHeight = hasBoundedHeight
+            ? (fitsInViewport ? maxHeight : contentHeight)
+            : contentHeight;
 
         return SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: canvas,
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: scrollMinHeight,
+              minWidth: constraints.maxWidth,
+            ),
+            child: alignedFrame,
+          ),
         );
       },
     );
