@@ -113,11 +113,15 @@ Functions는 Blaze에서도 그대로 두어도 무방 (미호출 시 비용 없
 
 ---
 
-## 보안 메모 (추후)
+## 보안 메모
 
-- `users` 문서에 `allow read, write: if uid == auth.uid`가 있어 클라이언트가 xp/energy를 직접 수정할 수 있다.
-- Functions 배포 후에도 **users 필드별 Rules**로 xp/seeds/streak 등 서버 전용 필드를 막는 강화를 검토한다.
-- `startSession`을 Callable로 옮기면 energy 선차감·출제 로직도 서버에서 통제 가능.
+- ~~`users` 문서에 `allow read, write: if uid == auth.uid`가 있어 클라이언트가 xp/energy를 직접 수정할 수 있다.~~
+  `firestore.rules.production`의 `users/{uid}` `update`에 **필드별 제한**을 추가했다 —
+  xp/energy/streak/seeds/ownedShopItemIds/studyGuardCount 등은 `request.resource.data.diff(resource.data).affectedKeys().hasAny([...])`로
+  막아서 Functions(Admin SDK, `submitAnswer`·`completeSession`·`purchaseShopItem`)만 쓸 수 있다.
+  상점 쪽 상세: [shop-production-deployment.md](./shop-production-deployment.md)
+- (개발 Rules `firestore.rules`는 그대로 블랭킷 허용 — 클라이언트 트랜잭션이 이 필드들을 직접 쓰기 때문.)
+- `startSession`을 Callable로 옮기면 energy 선차감·출제 로직도 서버에서 통제 가능 (추후).
 
 ---
 

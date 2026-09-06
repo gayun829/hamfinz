@@ -240,14 +240,13 @@ class AuthService {
   /// 클라이언트가 직접 고치는 필드만 쓴다.
   ///
   /// xp·energy·streak·learningHistory·categoryStats·unlockedHamsterIds는
-  /// 퀴즈 트랜잭션(`QuizSessionRepository`)·Functions만 쓴다. 여기서 같이 덮으면
-  /// 화면이 들고 있던 오래된 프로필로 진행도가 되돌아간다.
-  Future<void> saveProfile(UserProfile profile, {bool includeEnergy = false}) async {
+  /// 퀴즈 트랜잭션(`QuizSessionRepository`)·Functions만, seeds·ownedShopItemIds·
+  /// studyGuardCount는 상점 구매(`ShopService`)만 쓴다. 여기서 같이 덮으면 화면이
+  /// 들고 있던 오래된 프로필로 진행도·재화가 되돌아간다.
+  Future<void> saveProfile(UserProfile profile) async {
     final user = _auth.currentUser;
     if (user == null) return;
-    final data = clientOwnedJson(profile);
-    if (includeEnergy) data['energy'] = profile.energy;
-    await _users.doc(user.uid).update(data);
+    await _users.doc(user.uid).update(clientOwnedJson(profile));
   }
 
   /// 회원 탈퇴. 재인증 → Firestore 개인정보 삭제 → Auth 계정 삭제 순으로 한다.
@@ -493,16 +492,13 @@ class AuthService {
     );
   }
 
-  // ponytail: seeds는 상점(차감)과 퀴즈 트랜잭션(적립)이 같이 쓴다. 화면이
-  // 프로필을 다시 읽고 구매하므로 지금은 충분 — 동시에 틀어지면 상점 쪽을
-  // FieldValue.increment로 바꾼다.
+  // seeds·ownedShopItemIds·studyGuardCount·energy는 `ShopService.purchaseItem`
+  // (트랜잭션/Functions)만 쓴다. equipped*는 재화와 무관한 순수 착용 상태라
+  // 여기서 계속 클라이언트가 쓴다.
   static Map<String, dynamic> clientOwnedJson(UserProfile profile) => {
     'nickname': profile.nickname,
     'selectedHamsterId': profile.selectedHamsterId,
     'interestCategories': profile.interestCategories,
-    'seeds': profile.seeds,
-    'ownedShopItemIds': profile.ownedShopItemIds,
-    'studyGuardCount': profile.studyGuardCount,
     'equippedSkinId': profile.equippedSkinId,
     'equippedPatternId': profile.equippedPatternId,
     'equippedBackgroundId': profile.equippedBackgroundId,

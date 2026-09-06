@@ -358,9 +358,14 @@ class QuizSessionRepository {
             final missedDays = lastDate == null || todayDate == null
                 ? 1
                 : todayDate.difference(lastDate).inDays - 1;
-            final protectedDays = missedDays.clamp(0, studyGuardCount).toInt();
-            studyGuardCount -= protectedDays;
-            streak = protectedDays == missedDays ? streak + 1 : 1;
+            // 방어권은 결석일수를 전부 못 덮으면 쓰지 않는다 — 일부만 막고
+            // streak을 어차피 리셋하면 방어권만 날리고 얻는 게 없다.
+            if (missedDays <= studyGuardCount) {
+              studyGuardCount -= missedDays;
+              streak += 1;
+            } else {
+              streak = 1;
+            }
           }
           lastQuizCompletedDate = today;
         }
