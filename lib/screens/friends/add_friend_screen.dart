@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/friend_service.dart';
 import '../../theme/app_theme.dart';
 
-/// 친구 화면. 검색 · 받은 요청 · 내 친구 3개 탭으로 구성된다.
+/// 친구 화면. 내 친구 · 검색 · 받은 요청 3개 탭으로 구성된다.
 class AddFriendScreen extends StatefulWidget {
   const AddFriendScreen({super.key});
 
@@ -200,15 +200,15 @@ class _AddFriendScreenState extends State<AddFriendScreen>
           unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryGreen,
           tabs: [
+            Tab(text: '내 친구${_friends.isEmpty ? '' : ' (${_friends.length})'}'),
             const Tab(text: '검색'),
             Tab(text: '받은 요청${_requests.isEmpty ? '' : ' (${_requests.length})'}'),
-            Tab(text: '내 친구${_friends.isEmpty ? '' : ' (${_friends.length})'}'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildSearchTab(), _buildRequestsTab(), _buildFriendsTab()],
+        children: [_buildFriendsTab(), _buildSearchTab(), _buildRequestsTab()],
       ),
     );
   }
