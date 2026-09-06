@@ -26,7 +26,7 @@
 
 ## P2 — 친구 소셜 기능
 
-목표: 친구 관계(검색·요청·수락)는 구현됨(`feature/add-friend`, PR #28 리뷰 중 — [status/friends.md](./status/friends.md)) → 그 위에 실제로 "친구와 함께" 하는 기능을 얹는다.
+목표: 친구 관계(검색·요청·수락)는 구현·머지됨(`feature/add-friend`, PR #28 — [status/friends.md](./status/friends.md)) → 그 위에 실제로 "친구와 함께" 하는 기능을 얹는다.
 
 진입점은 별도 하단 탭을 새로 만들지 않고, 지금처럼 설정 메뉴 + 홈 화면 아이콘(불꽃 → 캘린더, 친구 추가는 설정에서)으로 유지하기로 결정함.
 
@@ -45,7 +45,6 @@
 | 항목 | 위치 |
 |------|------|
 | HOT 뉴스/공지 | `home_screen._openNews` |
-| 땅 파기 | `_openDigging` |
 | 북마크/학습 저장 | `_openBookmark` |
 | 프로필 설정 | 설정 메뉴 |
 | 연락처 연동 | 설정 |
