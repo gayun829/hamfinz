@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/friend_service.dart';
 import '../../theme/app_theme.dart';
 
-/// 친구 추가 화면. 닉네임/이메일 검색 탭과 받은 요청 탭으로 구성된다.
+/// 친구 화면. 내 친구 · 검색 · 받은 요청 3개 탭으로 구성된다.
 class AddFriendScreen extends StatefulWidget {
   const AddFriendScreen({super.key});
 
@@ -24,11 +24,16 @@ class _AddFriendScreenState extends State<AddFriendScreen>
   List<FriendRequestInfo> _requests = const [];
   String? _requestsError;
 
+  bool _loadingFriends = true;
+  List<Friend> _friends = const [];
+  String? _friendsError;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadRequests();
+    _loadFriends();
   }
 
   @override
@@ -62,6 +67,27 @@ class _AddFriendScreenState extends State<AddFriendScreen>
       setState(() {
         _requestsError = '$e';
         _loadingRequests = false;
+      });
+    }
+  }
+
+  Future<void> _loadFriends() async {
+    setState(() {
+      _loadingFriends = true;
+      _friendsError = null;
+    });
+    try {
+      final friends = await FriendService.instance.getFriends();
+      if (!mounted) return;
+      setState(() {
+        _friends = friends;
+        _loadingFriends = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _friendsError = '$e';
+        _loadingFriends = false;
       });
     }
   }
@@ -120,6 +146,7 @@ class _AddFriendScreenState extends State<AddFriendScreen>
         SnackBar(content: Text('${request.nickname}님과 친구가 되었어요.')),
       );
       await _loadRequests();
+      await _loadFriends();
     } catch (e) {
       _showError(e);
     }
@@ -134,17 +161,46 @@ class _AddFriendScreenState extends State<AddFriendScreen>
     }
   }
 
+  Future<void> _removeFriend(Friend friend) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('친구 끊기'),
+        content: Text('${friend.nickname}님과 친구를 끊을까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('끊기', style: TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await FriendService.instance.removeFriend(friend.friendshipId);
+      await _loadFriends();
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('친구 추가'),
+        title: const Text('친구'),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryGreen,
           unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryGreen,
           tabs: [
+            Tab(text: '내 친구${_friends.isEmpty ? '' : ' (${_friends.length})'}'),
             const Tab(text: '검색'),
             Tab(text: '받은 요청${_requests.isEmpty ? '' : ' (${_requests.length})'}'),
           ],
@@ -152,7 +208,7 @@ class _AddFriendScreenState extends State<AddFriendScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildSearchTab(), _buildRequestsTab()],
+        children: [_buildFriendsTab(), _buildSearchTab(), _buildRequestsTab()],
       ),
     );
   }
@@ -271,6 +327,67 @@ class _AddFriendScreenState extends State<AddFriendScreen>
                     child: const Text('수락'),
                   ),
                 ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFriendsTab() {
+    if (_loadingFriends) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_friendsError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '친구 목록을 불러오지 못했어요.',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: _loadFriends,
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_friends.isEmpty) {
+      return const Center(
+        child: Text(
+          '아직 친구가 없어요. 검색 탭에서 추가해보세요.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadFriends,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: _friends.length,
+        itemBuilder: (context, index) {
+          final friend = _friends[index];
+          return Card(
+            child: ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.person)),
+              title: Text(
+                friend.nickname,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: TextButton(
+                onPressed: () => _removeFriend(friend),
+                child: const Text(
+                  '끊기',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
               ),
             ),
           );

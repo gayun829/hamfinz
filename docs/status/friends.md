@@ -5,41 +5,41 @@
 ## 흐름
 
 1. `backend-schema.md`에 "6. 친구 (Friends)" 제안 섹션 작성 → PR [#25](https://github.com/gayun829/hamfinz/pull/25) → merge 완료
-2. 그 제안대로 실제 DB(규칙 + 인덱스 + 코드)를 `feature/add-friend` 브랜치에서 구현 → PR [#28](https://github.com/gayun829/hamfinz/pull/28) **리뷰 대기 중**
+2. 그 제안대로 실제 DB(규칙 + 인덱스 + 코드)를 `feature/add-friend` 브랜치에서 구현 → PR [#28](https://github.com/gayun829/hamfinz/pull/28) → merge 완료
+3. 실기기 테스트 중 발견한 규칙 버그 수정 → PR [#29](https://github.com/gayun829/hamfinz/pull/29) → merge 완료
+4. 친구 목록 화면 + 관련 DB 필드(`accepterNickname`) 추가 — **작업 중, 아직 PR 없음**
 
 ## 브랜치/PR
 
-- 브랜치: `feature/add-friend`
-- 커밋: `2a98c8b` "친구 검색/추가 실제 DB 연동 (nicknames·emails·friendships)"
-- PR [#28](https://github.com/gayun829/hamfinz/pull/28) — Auth owner 리뷰 필요 (`users` 읽기 권한과 겹치는 부분 있음)
+- 브랜치: `feature/add-friend` (PR #28/#29 merge 이후 main에서 다시 fast-forward해서 이어서 작업 중)
+- 지금까지: 검색, 요청 보내기/받기/수락/거절까지 동작 확인됨 (permission-denied 버그 수정 후)
+- 이번 작업: "내 친구" 탭 + 목록 조회/친구 끊기
 
-## 이번 PR에서 바뀐 것
+## 이번에 바뀐 것 (미커밋)
 
-- `firestore.rules` / `firestore.indexes.json` — `nicknames`, `emails`, `friendships` 컬렉션 규칙·인덱스 추가, **`hamfins-719b8`에 배포 완료**
-- `lib/services/friend_service.dart` — `users` 컬렉션을 전혀 읽지 않는 버전으로 재작성 (검색은 `nicknames`/`emails` 인덱스, 받은 요청 닉네임은 `friendships` 문서에 스냅샷된 `requestedByNickname` 사용)
-- `lib/services/auth_service.dart` — 가입 시 `nicknames`/`emails` 인덱스 문서 같이 생성. 닉네임 중복이면 에러 반환(수동 가입) / uid 뒷자리 붙여 재시도(소셜 로그인)
-- `lib/screens/friends/add_friend_screen.dart` — 목업(`friend_mock_data.dart`, 삭제됨) 대신 실제 `FriendService` 연결
-- `firestore/{nicknames,emails,friendships}/*.example.json`, `scripts/init_friends_collections.mjs` — quizQuestions PR(#27)과 같은 패턴의 예시·로컬 시드 스크립트
+- `firestore.rules` / `firestore.rules.production` — `friendships` update 규칙에 `accepterNickname`/`acceptedAt` 필드 추가 허용 (수락한 사람 닉네임도 스냅샷)
+- `lib/services/friend_service.dart` — `Friend` 모델, `getFriends()`, `removeFriend()` 추가. `acceptFriendRequest()`가 수락자 닉네임도 같이 기록하도록 변경
+- `lib/services/friend_service.dart` — `getIncomingRequests`/`getFriends`에 fallback 추가: 닉네임 스냅샷이 없는 옛날 문서(필드 추가 전에 만들어짐)는 `nicknames` 인덱스에서 uid로 현재 닉네임을 찾아온다. 실기기 테스트 중 "알 수 없음" 뜨던 것 해결
+- `lib/screens/friends/add_friend_screen.dart` — 탭 2개(검색/받은 요청) → 3개(검색/받은 요청/내 친구). 화면 타이틀도 "친구 추가" → "친구"로 변경 (더는 추가만 하는 화면이 아니라서)
 
 ## 검증
 
 - `flutter analyze lib test`, `flutter test` 통과
-- 실기기/에뮬레이터 end-to-end 테스트는 **아직 안 함**
+- `firestore.rules` dev 재배포 완료 (`hamfins-719b8`)
+- `firestore.rules.production`도 같이 고쳤지만 **프로덕션에 배포는 안 함** (배포 시점은 팀 결정 필요)
 
 ## 남은 일
 
+- [ ] 이번 변경사항 커밋 → push → PR
 - [ ] 팀원 리뷰 (특히 Auth owner)
-- [x] 실기기에서 검색 → 요청 흐름 테스트 — 버그 발견·수정 (아래)
-- [ ] 수락 흐름까지 실기기 테스트
+- [ ] 실기기에서 수락 → 내 친구 탭에 뜨는지 → 끊기까지 전체 흐름 테스트
 - [ ] 캘린더 "친구와의 경쟁" 랭킹은 여전히 목업(`StreakCalendarMock`) — 이번 범위 밖
 
-## 발견된 버그 (수정 완료)
+## 알아둘 것
 
-- **친구 추가 시 permission-denied**: `friendships` 문서가 아직 없을 때 "이미 요청했는지" 확인하는 `get()`이 막혔다. Firestore 규칙에서 문서가 없으면 `resource == null`인데, `allow read`가 `resource.data.uids`를 바로 참조해서 에러 → 거부로 처리됨. `resource == null`이면 (샐 데이터가 없으니) read를 허용하도록 고치고 재배포함.
-
-## 테스트할 때 알아둘 것
-
-- `nicknames`/`emails` 인덱스는 **로그인할 때마다 자동 백필**된다(`AuthService._backfillSearchIndexes`) — 기존 테스트 계정도 한 번만 다시 로그인하면 검색에 걸린다. 수동으로 만들고 싶으면 `scripts/init_friends_collections.mjs`도 여전히 쓸 수 있다.
+- **홈 화면 진입점 없어짐**: `design/home-screen-update` 브랜치(다른 작업, 홈 화면 Figma 재설계)에서 예전에 넣었던 "친구" 버튼(`onFriends`)이 새 홈 화면 코드에 없다. 그 브랜치가 merge되면 홈 화면에서 친구 화면으로 들어가는 길이 없어짐 — 새 디자인에 다시 넣어야 함. 캘린더 화면(+ 아이콘)·설정 화면(메뉴)에는 여전히 진입점 있음.
+- `nicknames`/`emails` 인덱스는 로그인할 때마다 자동 백필된다(`AuthService._backfillSearchIndexes`) — 기존 테스트 계정도 재로그인 한 번이면 검색에 걸린다.
+- **검색 대상 계정도 인덱스가 있어야** 검색된다 — 내가 재로그인해도 상대방이 한 번도 로그인 안 했으면 그 사람은 안 걸림.
 
 ## 열린 질문 (`backend-schema.md`에 상세)
 
