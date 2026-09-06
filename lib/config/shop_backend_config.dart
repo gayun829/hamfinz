@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 /// 상점 구매(씨앗 차감) 백엔드 모드.
 ///
 /// [QuizBackendConfig]와 같은 전환 패턴 — 배포 절차:
-/// [docs/quiz-production-deployment.md](../../docs/quiz-production-deployment.md)
+/// [docs/shop-production-deployment.md](../../docs/shop-production-deployment.md)
 enum ShopPurchaseBackend {
   /// 개발 — Blaze 없이 Firestore 클라이언트 트랜잭션 (`firestore.rules`)
   clientTransaction,
@@ -15,7 +15,7 @@ enum ShopPurchaseBackend {
 /// 상점 구매(`purchaseShopItem`) 백엔드 전환 설정.
 ///
 /// **배포 전** [ShopPurchaseBackend.cloudFunctions] 로 변경하고
-/// [docs/quiz-production-deployment.md] 체크리스트를 따른다 (퀴즈와 같은 절차).
+/// [docs/shop-production-deployment.md] 체크리스트를 따른다 (퀴즈와 같은 절차).
 class ShopBackendConfig {
   ShopBackendConfig._();
 

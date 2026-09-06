@@ -52,6 +52,10 @@ abstract final class ShopData {
   static const spriteColumns = 6;
   static const spriteRows = 5;
 
+  /// [items]의 id·price는 `functions/index.js`의 `SHOP_CATALOG`와 값을 맞춰야
+  /// 한다 — 배포(cloudFunctions) 모드에서는 Functions가 이 두 카탈로그 중
+  /// 하나가 갱신 안 됐을 때 (`SHOP_CATALOG`에 없는 id는 `kind: 'cosmetic'`으로
+  /// 조용히 처리하므로) 가격·종류가 어긋난 채로 구매가 성사될 수 있다.
   static const items = <ShopItem>[
     ShopItem(
       id: 'headband',

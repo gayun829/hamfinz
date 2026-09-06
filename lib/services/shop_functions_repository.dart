@@ -41,6 +41,22 @@ class ShopFunctionsRepository {
 
   ShopPurchaseStatus _statusFromCode(FirebaseFunctionsException e) {
     if (e.code != 'failed-precondition') return ShopPurchaseStatus.failed;
+
+    // Functions가 details.code로 기계-readable 코드를 실어 보낸다 — 메시지 문구가
+    // 바뀌어도 매핑이 깨지지 않는다. 구버전 Functions 배포본과의 호환을 위해
+    // details가 없을 때만 한글 substring으로 폴백한다.
+    final details = e.details;
+    if (details is Map && details['code'] is String) {
+      switch (details['code'] as String) {
+        case 'insufficientSeeds':
+          return ShopPurchaseStatus.insufficientSeeds;
+        case 'studyGuardMaxCapacity':
+          return ShopPurchaseStatus.studyGuardMaxCapacity;
+        case 'energyAlreadyFull':
+          return ShopPurchaseStatus.energyAlreadyFull;
+      }
+    }
+
     final message = e.message ?? '';
     if (message.contains('씨앗이 부족')) return ShopPurchaseStatus.insufficientSeeds;
     if (message.contains('최대 3개')) return ShopPurchaseStatus.studyGuardMaxCapacity;

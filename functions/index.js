@@ -400,10 +400,18 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
     if (kind === 'studyGuard') {
       const studyGuardCount = user.studyGuardCount ?? 0;
       if (studyGuardCount >= MAX_STUDY_GUARD) {
-        throw new HttpsError('failed-precondition', '방어권은 최대 3개까지 보유할 수 있어요.');
+        throw new HttpsError(
+          'failed-precondition',
+          '방어권은 최대 3개까지 보유할 수 있어요.',
+          { code: 'studyGuardMaxCapacity' },
+        );
       }
       if (seeds < price) {
-        throw new HttpsError('failed-precondition', '씨앗이 부족해요.');
+        throw new HttpsError(
+          'failed-precondition',
+          '씨앗이 부족해요.',
+          { code: 'insufficientSeeds' },
+        );
       }
       const newSeeds = seeds - price;
       const newStudyGuardCount = studyGuardCount + 1;
@@ -415,10 +423,18 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
       const today = todayKey();
       const { energy, lastEnergyResetDate } = resolveEnergy(user, today);
       if (energy >= MAX_ENERGY) {
-        throw new HttpsError('failed-precondition', '에너지가 이미 가득 차 있어요.');
+        throw new HttpsError(
+          'failed-precondition',
+          '에너지가 이미 가득 차 있어요.',
+          { code: 'energyAlreadyFull' },
+        );
       }
       if (seeds < price) {
-        throw new HttpsError('failed-precondition', '씨앗이 부족해요.');
+        throw new HttpsError(
+          'failed-precondition',
+          '씨앗이 부족해요.',
+          { code: 'insufficientSeeds' },
+        );
       }
       const amount = Number(fallback?.amount ?? ENERGY_PACK_AMOUNT);
       const newSeeds = seeds - price;
@@ -437,7 +453,11 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
       return { seeds, ownedShopItemIds };
     }
     if (seeds < price) {
-      throw new HttpsError('failed-precondition', '씨앗이 부족해요.');
+      throw new HttpsError(
+        'failed-precondition',
+        '씨앗이 부족해요.',
+        { code: 'insufficientSeeds' },
+      );
     }
     const newSeeds = seeds - price;
     tx.update(userRef, {
