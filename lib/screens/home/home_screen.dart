@@ -19,6 +19,21 @@ import '../news/term_quiz_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
+/// Figma `131:5342` 오늘의 학습 CTA — 하단 고정 오버레이용.
+const _homeLearningCtaLeft = 34.0;
+const _homeLearningCtaDesignHeight = 84.247;
+const _homeLearningCtaHeightScale = 0.75;
+const _homeLearningCtaHeight =
+    _homeLearningCtaDesignHeight * _homeLearningCtaHeightScale;
+const _homeLearningCtaTop = 666.0;
+const _homeLearningCtaWidth = 328.0;
+const _homeLearningCtaBottomDesign =
+    _homeLearningCtaTop + _homeLearningCtaDesignHeight;
+const _homeLearningCtaBottomGap =
+    FigmaScale.homeContentHeight - _homeLearningCtaBottomDesign;
+const _homeLearningCtaScrollPadding = FigmaScale.homeContentHeight -
+    (_homeLearningCtaBottomDesign - _homeLearningCtaHeight);
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -200,29 +215,53 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final canStart = profile.energy >= QuizData.sessionEnergyCost;
 
-    return RefreshIndicator(
-      onRefresh: _refreshHome,
-      child: FigmaCanvas(
-        designWidth: FigmaScale.homeDesignWidth,
-        designHeight: FigmaScale.homeContentHeight,
-        backgroundColor: AppTheme.figmaHomeBackground,
-        fit: FigmaCanvasFit.widthScroll,
-        scrollable: true,
-        clipContent: false,
-        builder: (context, figma) => _buildFigmaHomeLayers(
-          figma: figma,
-          energy: profile.energy,
-          coin: profile.seeds,
-          streak: profile.streak,
-          canStartLearning: canStart,
-          newsTitle: _newsBarTitle,
-          onMenu: _openCategorySwitcher,
-          onNews: _openNews,
-          onShop: _openShop,
-          onStreakCalendar: _openStreakCalendar,
-          onStartLearning: _startQuiz,
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final figma = FigmaScale.ofWidth(
+          constraints.maxWidth,
+          designWidth: FigmaScale.homeDesignWidth,
+        );
+
+        return RefreshIndicator(
+          onRefresh: _refreshHome,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              FigmaCanvas(
+                designWidth: FigmaScale.homeDesignWidth,
+                designHeight: FigmaScale.homeContentHeight,
+                backgroundColor: AppTheme.figmaHomeBackground,
+                fit: FigmaCanvasFit.widthScroll,
+                scrollable: true,
+                clipContent: false,
+                extraBottomPaddingDesign: _homeLearningCtaScrollPadding,
+                builder: (context, figma) => _buildFigmaHomeLayers(
+                  figma: figma,
+                  energy: profile.energy,
+                  coin: profile.seeds,
+                  streak: profile.streak,
+                  newsTitle: _newsBarTitle,
+                  onMenu: _openCategorySwitcher,
+                  onNews: _openNews,
+                  onShop: _openShop,
+                  onStreakCalendar: _openStreakCalendar,
+                ),
+              ),
+              Positioned(
+                left: figma.s(_homeLearningCtaLeft),
+                bottom: figma.s(_homeLearningCtaBottomGap),
+                width: figma.s(_homeLearningCtaWidth),
+                height: figma.s(_homeLearningCtaHeight),
+                child: _HomeLearningCta(
+                  figma: figma,
+                  canStartLearning: canStart,
+                  onTap: _startQuiz,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -232,13 +271,11 @@ List<Widget> _buildFigmaHomeLayers({
   required int energy,
   required int coin,
   required int streak,
-  required bool canStartLearning,
   required String newsTitle,
   required VoidCallback onMenu,
   required VoidCallback onNews,
   required VoidCallback onShop,
   required VoidCallback onStreakCalendar,
-  required VoidCallback onStartLearning,
 }) {
   final s = figma.s;
   final newsLine = newsTitle.startsWith('HOT 뉴스')
@@ -384,80 +421,6 @@ List<Widget> _buildFigmaHomeLayers({
       child: const SizedBox.shrink(),
     ),
 
-    // ── 131:5342 오늘의 학습 CTA ──
-    FigmaPill(
-      figma: figma,
-      left: 34,
-      top: 666,
-      width: 328,
-      height: 84.247,
-      color: canStartLearning
-          ? const Color(0xFF3CC6FF)
-          : const Color(0xFF3CC6FF).withValues(alpha: 0.55),
-      radius: 13,
-    ),
-    FigmaBox(
-      figma: figma,
-      left: 49,
-      top: 684,
-      width: 47,
-      height: 47,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(s(7.5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              offset: Offset(s(3), s(3)),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: s(6),
-            top: s(9),
-            right: s(7),
-            bottom: s(10),
-          ),
-          child: const FigmaSvg(
-            FigmaAssets.homeBeginnerLearningQ,
-            fit: BoxFit.contain,
-          ),
-        ),
-      ),
-    ),
-    FigmaLabel(
-      figma: figma,
-      left: 135,
-      top: 690,
-      text: canStartLearning ? '오늘의 학습' : '에너지 부족',
-      fontSize: 26,
-      color: Colors.white,
-      fontWeight: FontWeight.w500,
-    ),
-    FigmaBox(
-      figma: figma,
-      left: 309,
-      top: 684,
-      width: 46.055,
-      height: 46.055,
-      child: const FigmaSvg(
-        FigmaAssets.homeBeginnerChevronLearning,
-        fit: BoxFit.fill,
-      ),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 34,
-      top: 666,
-      width: 328,
-      height: 84.247,
-      onTap: onStartLearning,
-      child: const SizedBox.shrink(),
-    ),
-
     // ── 131:5371 카테고리 메뉴 ──
     _BeginnerMenuButton(figma: figma, onTap: onMenu),
 
@@ -585,6 +548,100 @@ List<Widget> _buildFigmaHomeLayers({
       child: const FigmaSvg(FigmaAssets.homeHamsterMap, fit: BoxFit.contain),
     ),
   ];
+}
+
+/// Figma `131:5342` — 맵 스크롤과 무관하게 하단에 고정.
+class _HomeLearningCta extends StatelessWidget {
+  const _HomeLearningCta({
+    required this.figma,
+    required this.canStartLearning,
+    required this.onTap,
+  });
+
+  final FigmaScale figma;
+  final bool canStartLearning;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    final v = _homeLearningCtaHeightScale;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: canStartLearning
+                  ? const Color(0xFF3CC6FF)
+                  : const Color(0xFF3CC6FF).withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(s(13 * v)),
+            ),
+            child: SizedBox(
+              width: s(_homeLearningCtaWidth),
+              height: s(_homeLearningCtaHeight),
+            ),
+          ),
+          Positioned(
+            left: s(15),
+            top: s(18 * v),
+            width: s(47 * v),
+            height: s(47 * v),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(s(7.5 * v)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    offset: Offset(s(3 * v), s(3 * v)),
+                    blurRadius: 0,
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: s(6 * v),
+                  top: s(9 * v),
+                  right: s(7 * v),
+                  bottom: s(10 * v),
+                ),
+                child: const FigmaSvg(
+                  FigmaAssets.homeBeginnerLearningQ,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: s(101),
+            top: s(24 * v),
+            child: Text(
+              canStartLearning ? '오늘의 학습' : '에너지 부족',
+              style: TextStyle(
+                fontSize: s(26 * v),
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                height: 1.1,
+              ),
+            ),
+          ),
+          Positioned(
+            left: s(275),
+            top: s(18 * v),
+            width: s(46.055 * v),
+            height: s(46.055 * v),
+            child: const FigmaSvg(
+              FigmaAssets.homeBeginnerChevronLearning,
+              fit: BoxFit.fill,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Figma 131:5322 / 131:5423 오각형 + 131:5421 / 131:5424 번호.
