@@ -26,12 +26,19 @@ class QuizSession {
   QuizSession({
     required this.sessionId,
     required this.questions,
+    this.source = energySessionSource,
   });
+
+  static const energySessionSource = 'energySession';
+  static const reviewSessionSource = 'reviewSession';
 
   final String sessionId;
   final List<QuizQuestionLearning> questions;
+  final String source;
 
   int get questionCount => questions.length;
+
+  bool get isReview => source == reviewSessionSource;
 }
 
 /// `submitAnswer` 서버 응답.

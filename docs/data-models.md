@@ -29,6 +29,7 @@
       "learningHistory": [],
       "categoryStats": {},
       "interestCategories": ["saving", "credit"],
+      "incorrectQuestionCount": 0,
       "seeds": 0,
       "ownedShopItemIds": []
     }
@@ -54,6 +55,7 @@
 | `learningHistory` | `LearningRecord` 목록 (최신 앞) |
 | `categoryStats` | 카테고리 label → `CategoryStat` |
 | `interestCategories` | 관심 카테고리 id 목록 |
+| `incorrectQuestionCount` | Firestore `incorrectQuestions`의 고유 문제 수. 10 초과 시 복습 홈 |
 | `seeds` | 상점 해바라기씨 잔액 |
 | `ownedShopItemIds` | 구매한 상점 아이템 id |
 
@@ -81,6 +83,11 @@
 | `QuizQuestion` | id, type, category, question, options, correctIndex, explanation |
 | `QuizAnswer` | questionId, selectedIndex, isCorrect |
 | `QuizSessionResult` | answers, xpEarned, leveledUp, levels, unlockedItems, newStreak |
+
+오답 상세는 `users/{uid}/incorrectQuestions/{questionId}`에 저장한다. 문제 id,
+카테고리, 난이도, 누적 오답 횟수와 최초·최근 오답 시각을 포함하며 같은 문제는
+문서 하나로 합친다. 복습 세션에서 맞추면 문서를 삭제하고
+`incorrectQuestionCount`를 줄인다.
 
 ## 정적 데이터
 

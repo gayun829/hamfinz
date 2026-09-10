@@ -12,6 +12,7 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 | 단계 | 진입점 | 구현 |
 |------|--------|------|
 | **출제** | `QuizService.startSession(profile)` | `QuizSessionRepository.startSession` (클라이언트) |
+| **오답 복습** | `QuizService.startReviewSession(profile)` | `QuizSessionRepository.startReviewSession` (클라이언트) |
 | **제출·채점** | `QuizService.submitAnswer(...)` | `QuizSessionRepository.submitAnswer` (클라이언트 트랜잭션) |
 | **세션 완료** | `QuizService.completeSession(...)` | `QuizSessionRepository.completeSession` (클라이언트 트랜잭션) |
 
@@ -33,6 +34,15 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 3. interestCategories별 quizQuestions 쿼리 (limit 200)
 4. 10문항 선정 → users/{uid}/sessions/{sessionId} 생성 (inProgress)
 5. QuizQuestionLearning 반환 (correctIndex 없음)
+```
+
+고유 오답이 10개를 넘으면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
+
+```
+1. Auth uid + energy >= 50
+2. users/{uid}/incorrectQuestions 조회 후 최대 10문항 선정
+3. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`)
+4. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
 
 ---
@@ -59,6 +69,11 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 3. `users.energy -= 5`
 4. `sessions/.../answers/{questionId}` 저장 (`isCorrect`, `categoryId`, …)
 5. 정답 시 `users/.../mastered/{questionId}` upsert
+   - 오답 목록에 있던 문제면 `incorrectQuestions/{questionId}` 삭제
+   - `users.incorrectQuestionCount`를 1 감소 (0 미만으로 내려가지 않음)
+6. 오답 시 `users/.../incorrectQuestions/{questionId}` upsert
+   - 최초 오답인 문제만 `users.incorrectQuestionCount`를 1 증가
+   - 반복 오답은 `wrongCount`와 최근 오답 정보만 갱신
 
 ### 응답
 
@@ -105,6 +120,7 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 |------|-------------------|
 | `quizQuestions` | read (`isActive`) |
 | `mastered` | read · create · update |
+| `incorrectQuestions` | read · create · update · delete |
 | `sessions` | read · create · update (`inProgress`만) |
 | `sessions/.../answers` | read · create |
 | `users` | read · write (본인) — energy/xp/seeds 등 트랜잭션 갱신 |

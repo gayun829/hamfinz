@@ -20,11 +20,18 @@ service cloud.firestore {
              'xp', 'energy', 'lastEnergyResetDate', 'streak',
              'lastQuizCompletedDate', 'todayQuizCompleted', 'categoryStats',
              'learningHistory', 'unlockedHamsterIds',
+             'incorrectQuestionCount',
              'seeds', 'ownedShopItemIds', 'studyGuardCount',
            ]);
 
       // 퀴즈: 맞춘 문제 id — 읽기만. 쓰기는 submitAnswer Functions.
       match /mastered/{questionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+
+      // 퀴즈: 고유 오답 문제 — 읽기만. 쓰기는 submitAnswer Functions.
+      match /incorrectQuestions/{questionId} {
         allow read: if request.auth != null && request.auth.uid == uid;
         allow write: if false;
       }

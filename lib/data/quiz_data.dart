@@ -3,6 +3,10 @@ class QuizData {
   QuizData._();
 
   static const int dailyQuestionCount = 10;
+
+  /// 고유 오답 수가 이 값을 초과하면 다음 홈부터 복습 단계를 보여준다.
+  static const int reviewQuestionThreshold = 10;
+
   static const int correctXp = 10;
   static const int wrongXp = 2;
 

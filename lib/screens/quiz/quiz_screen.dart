@@ -15,10 +15,16 @@ import '../../widgets/quiz_widgets.dart';
 import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key, required this.profile, this.session});
+  const QuizScreen({
+    super.key,
+    required this.profile,
+    this.session,
+    this.isReview = false,
+  });
 
   final UserProfile profile;
   final QuizSession? session;
+  final bool isReview;
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -48,8 +54,11 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _loadSession() async {
     try {
-      final session =
-          await QuizService.instance.startSession(profile: widget.profile);
+      final session = widget.isReview
+          ? await QuizService.instance.startReviewSession(
+              profile: widget.profile,
+            )
+          : await QuizService.instance.startSession(profile: widget.profile);
       if (!mounted) return;
       setState(() {
         _session = session;
@@ -99,18 +108,16 @@ class _QuizScreenState extends State<QuizScreen> {
     } on QuizSessionException catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      final mapped = e is QuizSessionException
-          ? e
-          : mapQuizSubmitError(e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapped.message)),
-      );
+      final mapped = e is QuizSessionException ? e : mapQuizSubmitError(e);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mapped.message)));
     }
   }
 
@@ -119,16 +126,10 @@ class _QuizScreenState extends State<QuizScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          '풀이',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: const Text('풀이', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
           question.explanation,
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            height: 1.5,
-          ),
+          style: const TextStyle(color: AppTheme.textPrimary, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -171,9 +172,9 @@ class _QuizScreenState extends State<QuizScreen> {
         );
       } on QuizSessionException catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
       return;
     }
@@ -189,9 +190,7 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_loadError != null) {
@@ -249,7 +248,9 @@ class _QuizScreenState extends State<QuizScreen> {
                     onPressed: () => _showExplanationDialog(question),
                   ),
                 ),
-                SizedBox(width: s(FigmaQuizTokens.dualButtonGap).clamp(8.0, 16.0)),
+                SizedBox(
+                  width: s(FigmaQuizTokens.dualButtonGap).clamp(8.0, 16.0),
+                ),
                 Expanded(
                   child: QuizFooterPrimaryButton(
                     label: isLast ? '결과 보기' : '다음문제',
@@ -263,8 +264,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Widget _buildSubmitButton({required bool compact}) {
-    final canSubmit =
-        _selectedIndex != null && !_submitting && !_showResult;
+    final canSubmit = _selectedIndex != null && !_submitting && !_showResult;
 
     return SizedBox(
       width: double.infinity,
@@ -273,8 +273,9 @@ class _QuizScreenState extends State<QuizScreen> {
         style: FilledButton.styleFrom(
           backgroundColor: FigmaQuizTokens.footerButtonTop,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              FigmaQuizTokens.footerButtonTop.withValues(alpha: 0.45),
+          disabledBackgroundColor: FigmaQuizTokens.footerButtonTop.withValues(
+            alpha: 0.45,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -282,17 +283,13 @@ class _QuizScreenState extends State<QuizScreen> {
         onPressed: canSubmit ? _confirmAnswer : null,
         child: Text(
           _submitting ? '제출 중…' : '정답 제출',
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
         ),
       ),
     );
   }
 
-  double _quizFooterReserveHeight({required bool compact}) =>
-      compact ? 72 : 80;
+  double _quizFooterReserveHeight({required bool compact}) => compact ? 72 : 80;
 
   Widget _buildQuizShell({
     required Widget content,
