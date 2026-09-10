@@ -540,17 +540,18 @@ List<Widget> _buildFigmaHomeLayers({
     ),
 
     // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 ──
+    // Figma vector bbox는 drop-shadow 여백 때문에 타원 중심과 어긋난다.
+    // flutter_svg는 filter 미지원 → 타원(154/155) 중심에 오각형을 맞춘다.
     _HomeStagePentagon(
       figma: figma,
-      left: 304.9996337890625,
-      top: 181.42132568359375,
+      centerX: 219 + 131 / 2,
+      centerY: 186 + 66 / 2,
       width: 40.99964304702837,
       height: 41.66641630988579,
       asset: tier.decoVector2,
       label: '1',
       fontSize: 15.167,
       shadowOffset: Offset(0.782, 0.782),
-      svgBleed: const EdgeInsets.only(right: 0.0523, bottom: 0.0536),
     ),
     FigmaBox(
       figma: figma,
@@ -562,15 +563,14 @@ List<Widget> _buildFigmaHomeLayers({
     ),
     _HomeStagePentagon(
       figma: figma,
-      left: 294.0031433105469,
-      top: 502.0601501464844,
+      centerX: 145 + 210 / 2,
+      centerY: 514 + 119 / 2,
       width: 77.00312867523678,
       height: 78.25542120861064,
       asset: tier.node3Flag,
       label: '3',
       fontSize: 28.485,
       shadowOffset: Offset(-1.453, 1.468),
-      svgBleed: const EdgeInsets.only(left: 0.0432, bottom: 0.0773),
     ),
 
     // ── 162:421 햄스터 (최상단) ──
@@ -683,25 +683,23 @@ class _HomeLearningCta extends StatelessWidget {
 
 /// Figma 131:5322 / 131:5423 오각형 + 131:5421 / 131:5424 번호.
 ///
-/// Figma MCP 기준 번호는 오각형 bounds 안에서 center 정렬된다.
-/// SVG는 inset bleed(그림자)만큼 box 밖으로 확장한다.
+/// [centerX]/[centerY]는 맵 타원(154·155) 중심 — 번호·오각형 모두 여기에 맞춘다.
 class _HomeStagePentagon extends StatelessWidget {
   const _HomeStagePentagon({
     required this.figma,
-    required this.left,
-    required this.top,
+    required this.centerX,
+    required this.centerY,
     required this.width,
     required this.height,
     required this.asset,
     required this.label,
     required this.fontSize,
     required this.shadowOffset,
-    required this.svgBleed,
   });
 
   final FigmaScale figma;
-  final double left;
-  final double top;
+  final double centerX;
+  final double centerY;
   final double width;
   final double height;
   final String asset;
@@ -709,29 +707,20 @@ class _HomeStagePentagon extends StatelessWidget {
   final double fontSize;
   final Offset shadowOffset;
 
-  /// Figma export `inset-[...]` — 비율(0~1)로 box 대비 bleed.
-  final EdgeInsets svgBleed;
-
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
     return FigmaBox(
       figma: figma,
-      left: left,
-      top: top,
+      left: centerX - width / 2,
+      top: centerY - height / 2,
       width: width,
       height: height,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          Positioned(
-            left: -width * svgBleed.left,
-            top: -height * svgBleed.top,
-            right: -width * svgBleed.right,
-            bottom: -height * svgBleed.bottom,
-            child: FigmaSvg(asset, fit: BoxFit.fill),
-          ),
+          Positioned.fill(child: FigmaSvg(asset, fit: BoxFit.fill)),
           Text(
             label,
             style: TextStyle(
