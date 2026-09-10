@@ -1,6 +1,7 @@
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
+ * News — fetchNewsFeed (웹 빌드용 구글뉴스 RSS 프록시)
  *
  * deploy: firebase deploy --only functions
  */
@@ -466,4 +467,52 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
     });
     return { seeds: newSeeds, ownedShopItemIds: [...ownedShopItemIds, itemId] };
   });
+});
+
+// ── 뉴스 RSS 프록시 ─────────────────────────────────────────────────────────
+//
+// 구글뉴스 RSS는 CORS 헤더가 없어서 웹(Chrome) 빌드에서는 브라우저가 응답을
+// 막는다. 서버에서 대신 받아 XML 문자열로 돌려주면 `flutter run -d chrome`만으로
+// 뉴스가 뜬다 (로컬 `tool/cors_proxy.dart`를 따로 띄울 필요가 없다).
+// 열린 프록시가 되지 않도록 구글뉴스 RSS 경로만 허용하고, 로그인 사용자만 부른다.
+const NEWS_FEED_HOST = 'news.google.com';
+const NEWS_FEED_PATH_PREFIX = '/rss/';
+
+exports.fetchNewsFeed = onCall({ region: 'asia-northeast3' }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', '로그인이 필요해요.');
+  }
+
+  const raw = request.data?.url;
+  let target;
+  try {
+    target = new URL(String(raw ?? ''));
+  } catch (_) {
+    throw new HttpsError('invalid-argument', 'url이 올바르지 않아요.');
+  }
+  if (
+    target.protocol !== 'https:' ||
+    target.hostname !== NEWS_FEED_HOST ||
+    !target.pathname.startsWith(NEWS_FEED_PATH_PREFIX)
+  ) {
+    throw new HttpsError('invalid-argument', '구글뉴스 RSS 주소만 받을 수 있어요.');
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  let res;
+  try {
+    res = await fetch(target, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'hamfinz-news/1.0' },
+    });
+  } catch (e) {
+    throw new HttpsError('unavailable', `구글뉴스에 연결하지 못했어요: ${e.message}`);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    throw new HttpsError('unavailable', `구글뉴스 응답 오류 (${res.status})`);
+  }
+  return { xml: await res.text() };
 });

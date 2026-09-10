@@ -1,6 +1,6 @@
 {
   "name": "hamfinz-functions",
-  "description": "Hamfinz Cloud Functions — quiz submitAnswer · completeSession, shop purchaseShopItem",
+  "description": "Hamfinz Cloud Functions — quiz submitAnswer · completeSession, shop purchaseShopItem, news fetchNewsFeed",
   "main": "index.js",
   "engines": {
     "node": "20"

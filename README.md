@@ -34,12 +34,14 @@ flutter run
 
 테스트 계정: `test@finquiz.com` / `test1234`
 
-웹에서 뉴스:
+웹에서 뉴스 (cmd 두 개):
 
 ```bash
 dart run tool/cors_proxy.dart
 flutter run -d chrome --dart-define=NEWS_PROXY=http://localhost:8766
 ```
+
+Cloud Functions `fetchNewsFeed`를 배포하면 `NEWS_PROXY` 없이 `flutter run -d chrome`만으로 뜬다 — [docs/news.md](./docs/news.md)
 
 ## 앱 흐름 (요약)
 
