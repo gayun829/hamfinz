@@ -557,20 +557,20 @@ List<Widget> _buildFigmaHomeLayers({
       child: const SizedBox.expand(),
     ),
 
-    // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 ──
-    // Figma vector bbox는 drop-shadow 여백 때문에 타원 중심과 어긋난다.
-    // flutter_svg는 filter 미지원 → 타원(154/155) 중심에 오각형을 맞춘다.
+    // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 (Figma bbox 그대로) ──
     _HomeStagePentagon(
       figma: figma,
-      centerX: 219 + 131 / 2,
-      centerY: 186 + 66 / 2,
+      left: 304.9996337890625,
+      top: 181.42132568359375,
       width: 40.99964304702837,
       height: 41.66641630988579,
+      labelLeft: 279.6324462890625,
+      labelTop: 186.87835693359375,
       pngAsset: tier.node1Pentagon,
       svgFallback: tier.decoVector2,
       label: '1',
       fontSize: 15.167,
-      shadowOffset: Offset(0.782, 0.782),
+      shadowOffset: const Offset(0.782, 0.782),
     ),
     FigmaBox(
       figma: figma,
@@ -582,15 +582,17 @@ List<Widget> _buildFigmaHomeLayers({
     ),
     _HomeStagePentagon(
       figma: figma,
-      centerX: 145 + 210 / 2,
-      centerY: 514 + 119 / 2,
+      left: 294.0031433105469,
+      top: 502.0601501464844,
       width: 77.00312867523678,
       height: 78.25542120861064,
+      labelLeft: 246.0578155517578,
+      labelTop: 511.7925720214844,
       pngAsset: tier.node3Pentagon,
       svgFallback: tier.node3Flag,
       label: '3',
       fontSize: 28.485,
-      shadowOffset: Offset(-1.453, 1.468),
+      shadowOffset: const Offset(-1.453, 1.468),
     ),
 
     // ── 162:421 햄스터 (최상단) ──
@@ -701,16 +703,18 @@ class _HomeLearningCta extends StatelessWidget {
   }
 }
 
-/// Figma 131:5322 / 131:5423 오각형 + 131:5421 / 131:5424 번호.
+/// Figma `131:5322`/`131:5423` 오각형 + `131:5421`/`131:5424` 번호.
 ///
-/// [centerX]/[centerY]는 맵 타원(154·155) 중심 — 번호·오각형 모두 여기에 맞춘다.
+/// shape bbox와 text layer 좌표를 Figma export 값 그대로 쓴다.
 class _HomeStagePentagon extends StatelessWidget {
   const _HomeStagePentagon({
     required this.figma,
-    required this.centerX,
-    required this.centerY,
+    required this.left,
+    required this.top,
     required this.width,
     required this.height,
+    required this.labelLeft,
+    required this.labelTop,
     required this.pngAsset,
     required this.svgFallback,
     required this.label,
@@ -719,10 +723,12 @@ class _HomeStagePentagon extends StatelessWidget {
   });
 
   final FigmaScale figma;
-  final double centerX;
-  final double centerY;
+  final double left;
+  final double top;
   final double width;
   final double height;
+  final double labelLeft;
+  final double labelTop;
   final String pngAsset;
   final String svgFallback;
   final String label;
@@ -732,26 +738,28 @@ class _HomeStagePentagon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    return FigmaBox(
-      figma: figma,
-      left: centerX - width / 2,
-      top: centerY - height / 2,
-      width: width,
-      height: height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              pngAsset,
-              fit: BoxFit.fill,
-              gaplessPlayback: true,
-              errorBuilder: (context, error, stackTrace) =>
-                  FigmaSvg(svgFallback, fit: BoxFit.fill),
-            ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        FigmaBox(
+          figma: figma,
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+          child: Image.asset(
+            pngAsset,
+            fit: BoxFit.fill,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) =>
+                FigmaSvg(svgFallback, fit: BoxFit.fill),
           ),
-          Text(
+        ),
+        FigmaBox(
+          figma: figma,
+          left: labelLeft,
+          top: labelTop,
+          child: Text(
             label,
             style: TextStyle(
               fontSize: s(fontSize),
@@ -766,8 +774,8 @@ class _HomeStagePentagon extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
