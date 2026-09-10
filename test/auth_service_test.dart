@@ -11,6 +11,7 @@ void main() {
       streak: 4,
       energy: 30,
       seeds: 12,
+      incorrectQuestionCount: 11,
       selectedHamsterId: 'hamster_streak',
     );
 
@@ -28,6 +29,7 @@ void main() {
       'learningHistory',
       'categoryStats',
       'unlockedHamsterIds',
+      'incorrectQuestionCount',
       'seeds',
       'ownedShopItemIds',
       'studyGuardCount',

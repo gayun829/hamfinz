@@ -148,14 +148,16 @@ class AuthService {
   /// 카카오 계정(OIDC)으로 로그인/가입. 처음 로그인하는 계정이면 프로필 문서를 새로 만든다.
   Future<String?> signInWithKakao() async {
     try {
-      final provider = OAuthProvider('oidc.kakao')..addScope('profile_nickname');
+      final provider = OAuthProvider('oidc.kakao')
+        ..addScope('profile_nickname');
       final credential = kIsWeb
           ? await _auth.signInWithPopup(provider)
           : await _auth.signInWithProvider(provider);
       final profile = credential.additionalUserInfo?.profile;
       await _ensureProfileDoc(
         credential.user!,
-        nickname: credential.user!.displayName ?? profile?['nickname'] as String?,
+        nickname:
+            credential.user!.displayName ?? profile?['nickname'] as String?,
       );
       await _backfillSearchIndexes(credential.user!);
       return null;
@@ -224,11 +226,17 @@ class AuthService {
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
         // 그 닉네임이 이미 다른 uid로 예약돼 있음(기존 데이터라 흔함) — uid 뒷자리를 붙여 재시도.
-        await _reserveNickname(user.uid, '$nickname${user.uid.substring(0, 4)}');
+        await _reserveNickname(
+          user.uid,
+          '$nickname${user.uid.substring(0, 4)}',
+        );
       }
     }
 
-    final hasEmail = await _emails.where('uid', isEqualTo: user.uid).limit(1).get();
+    final hasEmail = await _emails
+        .where('uid', isEqualTo: user.uid)
+        .limit(1)
+        .get();
     if (hasEmail.docs.isEmpty) {
       await _reserveEmail(user.uid, nickname, user.email);
     }
@@ -342,9 +350,7 @@ class AuthService {
     final normalized = normalizeLearningStage(stage);
 
     try {
-      await _users.doc(user.uid).update({
-        'learningStage': normalized,
-      });
+      await _users.doc(user.uid).update({'learningStage': normalized});
       return null;
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -436,6 +442,7 @@ class AuthService {
     'categoryStats': <String, dynamic>{},
     'interestCategories': <String>[],
     'learningStage': kMinLearningStage,
+    'incorrectQuestionCount': 0,
     'seeds': 0,
     'ownedShopItemIds': <String>[],
     'consents': {
@@ -499,13 +506,18 @@ class AuthService {
       unlockedHamsterIds: List<String>.from(
         data['unlockedHamsterIds'] as List? ?? ['hamster_basic'],
       ),
-      selectedHamsterId: data['selectedHamsterId'] as String? ?? 'hamster_basic',
+      selectedHamsterId:
+          data['selectedHamsterId'] as String? ?? 'hamster_basic',
       learningHistory: historyRaw,
       categoryStats: stats,
       interestCategories: List<String>.from(
         data['interestCategories'] as List? ?? [],
       ),
-      learningStage: normalizeLearningStage(readLearningStageField(data['learningStage'])),
+      learningStage: normalizeLearningStage(
+        readLearningStageField(data['learningStage']),
+      ),
+      incorrectQuestionCount:
+          (data['incorrectQuestionCount'] as num?)?.toInt() ?? 0,
       seeds: data['seeds'] as int? ?? 0,
       ownedShopItemIds: List<String>.from(
         data['ownedShopItemIds'] as List? ?? [],

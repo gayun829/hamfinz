@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -20,26 +21,27 @@ import '../news/term_quiz_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
-/// Figma `131:5342` 오늘의 학습 CTA — 하단 고정 오버레이용.
-const _homeLearningCtaLeft = 34.0;
+/// Figma `131:5342` / `137:1375` / `137:1489` 오늘의 학습 CTA.
 const _homeLearningCtaDesignHeight = 84.247;
-const _homeLearningCtaHeightScale = 0.75;
-const _homeLearningCtaHeight =
-    _homeLearningCtaDesignHeight * _homeLearningCtaHeightScale;
-const _homeLearningCtaTop = 666.0;
+const _homeLearningCtaHeight = _homeLearningCtaDesignHeight * 0.75;
 const _homeLearningCtaWidth = 328.0;
-const _homeLearningCtaBottomDesign =
-    _homeLearningCtaTop + _homeLearningCtaDesignHeight;
-const _homeLearningCtaBottomGap =
-    FigmaScale.homeContentHeight - _homeLearningCtaBottomDesign;
-const _homeLearningCtaScrollPadding = FigmaScale.homeContentHeight -
-    (_homeLearningCtaBottomDesign - _homeLearningCtaHeight);
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.profile});
+  const HomeScreen({
+    super.key,
+    this.profile,
+    this.showReviewStage,
+    this.tierOverride,
+  });
 
   /// [MainShell]에서 내려주면 학습과정 변경 시 홈 티어가 즉시 반영된다.
   final UserProfile? profile;
+
+  /// 복습 기능 연결 전, Figma 복습 홈의 집 단계를 표시하는 화면 변형.
+  final bool? showReviewStage;
+
+  /// 복습 홈 3종을 학습 진도와 독립적으로 미리 보여주기 위한 티어 지정.
+  final HomeTierTheme? tierOverride;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -115,6 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final profile = _profile;
     if (profile == null) return;
 
+    final isReview =
+        profile.incorrectQuestionCount > QuizData.reviewQuestionThreshold;
+
     if (profile.energy < QuizData.sessionEnergyCost) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -128,23 +133,24 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (resolveActiveInterestCategoryId(profile.interestCategories) == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('학습 카테고리를 먼저 선택해 주세요.')),
-      );
+    if (!isReview &&
+        resolveActiveInterestCategoryId(profile.interestCategories) == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('학습 카테고리를 먼저 선택해 주세요.')));
       await _openCategorySwitcher();
       return;
     }
 
     if (!mounted) return;
-    final completed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => QuizScreen(profile: profile)),
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => QuizScreen(profile: profile, isReview: isReview),
+      ),
     );
 
     if (!mounted) return;
-    if (completed == true) {
-      await _loadProfile();
-    }
+    await _loadProfile();
   }
 
   Future<void> _openCategorySwitcher() async {
@@ -209,9 +215,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openShop() async {
     final profile = _profile;
     if (profile == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ShopScreen(profile: profile)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ShopScreen(profile: profile)));
     await _loadProfile();
   }
 
@@ -242,13 +248,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final profile = _profile;
     if (profile == null) {
-      return const Scaffold(
-        body: Center(child: Text('사용자 정보를 불러올 수 없습니다.')),
-      );
+      return const Scaffold(body: Center(child: Text('사용자 정보를 불러올 수 없습니다.')));
     }
 
     final canStart = profile.energy >= QuizData.sessionEnergyCost;
-    final homeTier = HomeTierTheme.forStage(profile.learningStage);
+    final homeTier =
+        widget.tierOverride ?? HomeTierTheme.forStage(profile.learningStage);
+    final showReviewStage =
+        widget.showReviewStage ??
+        profile.incorrectQuestionCount > QuizData.reviewQuestionThreshold;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -269,7 +277,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 fit: FigmaCanvasFit.widthScroll,
                 scrollable: true,
                 clipContent: false,
-                extraBottomPaddingDesign: _homeLearningCtaScrollPadding,
+                extraBottomPaddingDesign:
+                    FigmaScale.homeContentHeight -
+                    (homeTier.learningCtaTop +
+                        _homeLearningCtaDesignHeight -
+                        _homeLearningCtaHeight),
                 builder: (context, figma) => _buildFigmaHomeLayers(
                   figma: figma,
                   tier: homeTier,
@@ -277,6 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   coin: profile.seeds,
                   streak: profile.streak,
                   newsTitle: _newsBarTitle,
+                  showReviewStage: showReviewStage,
                   onMenu: _openCategorySwitcher,
                   onNews: _openNews,
                   onShop: _openShop,
@@ -284,8 +297,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Positioned(
-                left: figma.s(_homeLearningCtaLeft),
-                bottom: figma.s(_homeLearningCtaBottomGap),
+                left: figma.s(homeTier.learningCtaLeft),
+                bottom: figma.s(
+                  FigmaScale.homeContentHeight -
+                      homeTier.learningCtaTop -
+                      _homeLearningCtaDesignHeight,
+                ),
                 width: figma.s(_homeLearningCtaWidth),
                 height: figma.s(_homeLearningCtaHeight),
                 child: _HomeLearningCta(
@@ -310,6 +327,7 @@ List<Widget> _buildFigmaHomeLayers({
   required int coin,
   required int streak,
   required String newsTitle,
+  required bool showReviewStage,
   required VoidCallback onMenu,
   required VoidCallback onNews,
   required VoidCallback onShop,
@@ -338,22 +356,15 @@ List<Widget> _buildFigmaHomeLayers({
       height: 66,
       child: FigmaSvg(tier.ellipse154, fit: BoxFit.fill),
     ),
-    FigmaBox(
-      figma: figma,
-      left: 302.0035400390625,
-      top: 210.01507568359375,
-      width: 29.65591569747437,
-      height: 12.33499826037405,
-      child: FigmaSvg(tier.node1Overlay, fit: BoxFit.fill),
-    ),
-    FigmaBox(
-      figma: figma,
-      left: 145,
-      top: 514,
-      width: 210,
-      height: 119,
-      child: FigmaSvg(tier.ellipse155, fit: BoxFit.fill),
-    ),
+    if (!showReviewStage)
+      FigmaBox(
+        figma: figma,
+        left: 145,
+        top: 514,
+        width: 210,
+        height: 119,
+        child: FigmaSvg(tier.ellipse155, fit: BoxFit.fill),
+      ),
     FigmaBox(
       figma: figma,
       left: 45,
@@ -557,39 +568,48 @@ List<Widget> _buildFigmaHomeLayers({
       child: const SizedBox.expand(),
     ),
 
-    // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 ──
+    // ── Figma stage nodes: transformed wrapper·overlay·text 좌표 그대로 ──
     _HomeStagePentagon(
       figma: figma,
-      left: 304.9996337890625,
-      top: 181.42132568359375,
-      width: 40.99964304702837,
-      height: 41.66641630988579,
-      asset: tier.decoVector2,
+      left: 263.6324462890625,
+      top: 175,
+      width: 38,
+      height: 38,
+      shadowLeft: 272.742,
+      shadowTop: 210.018,
+      shadowWidth: 29.6715,
+      shadowHeight: 12.354,
+      labelLeft: 279.6324462890625,
+      labelTop: 186.87835693359375,
+      pngAsset: tier.node1Pentagon,
+      svgFallback: tier.decoVector2,
       label: '1',
       fontSize: 15.167,
-      shadowOffset: Offset(0.782, 0.782),
-      svgBleed: const EdgeInsets.only(right: 0.0523, bottom: 0.0536),
+      shadowBlurSigma: 1.84902,
+      shadowOffset: const Offset(0.782, 0.782),
     ),
-    FigmaBox(
-      figma: figma,
-      left: 222.1222686767578,
-      top: 556.8336181640625,
-      width: 55.69799777731794,
-      height: 23.166871005831126,
-      child: FigmaSvg(tier.node3Overlay, fit: BoxFit.fill),
-    ),
-    _HomeStagePentagon(
-      figma: figma,
-      left: 294.0031433105469,
-      top: 502.0601501464844,
-      width: 77.00312867523678,
-      height: 78.25542120861064,
-      asset: tier.node3Flag,
-      label: '3',
-      fontSize: 28.485,
-      shadowOffset: Offset(-1.453, 1.468),
-      svgBleed: const EdgeInsets.only(left: 0.0432, bottom: 0.0773),
-    ),
+    if (showReviewStage)
+      _HomeReviewHouse(figma: figma, tier: tier)
+    else
+      _HomeStagePentagon(
+        figma: figma,
+        left: 219.0578155517578,
+        top: 490,
+        width: 71,
+        height: 72,
+        shadowLeft: 221.3769,
+        shadowTop: 556.8672,
+        shadowWidth: 55.6881,
+        shadowHeight: 23.1744,
+        labelLeft: 246.0578155517578,
+        labelTop: 511.7925720214844,
+        pngAsset: tier.node3Pentagon,
+        svgFallback: tier.node3Flag,
+        label: '3',
+        fontSize: 28.485,
+        shadowBlurSigma: 2.3,
+        shadowOffset: const Offset(-1.453, 1.468),
+      ),
 
     // ── 162:421 햄스터 (최상단) ──
     FigmaBox(
@@ -601,6 +621,85 @@ List<Widget> _buildFigmaHomeLayers({
       child: FigmaSvg(tier.hamsterMap, fit: BoxFit.contain),
     ),
   ];
+}
+
+/// Figma `268:3644` / `268:3808` / `137:1610`의 복습 집 단계.
+class _HomeReviewHouse extends StatelessWidget {
+  const _HomeReviewHouse({required this.figma, required this.tier});
+
+  final FigmaScale figma;
+  final HomeTierTheme tier;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+
+    return Stack(
+      key: ValueKey('home-review-house-${tier.tier.name}'),
+      clipBehavior: Clip.none,
+      children: [
+        FigmaBox(
+          figma: figma,
+          left: 195,
+          top: 619,
+          width: 101,
+          height: 29,
+          child: ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: s(3.9), sigmaY: s(3.9)),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: tier.reviewHouseShadowColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+        if (tier.hasCompositeReviewHouse)
+          FigmaBox(
+            figma: figma,
+            left: 186.9993896484375,
+            top: 488,
+            width: 119.23079681396484,
+            height: 145.61891174316406,
+            child: FigmaSvg(tier.reviewHouseComposite, fit: BoxFit.fill),
+          )
+        else ...[
+          FigmaBox(
+            figma: figma,
+            left: 186.9994354248047,
+            top: 523.082275390625,
+            width: 119.23079681396484,
+            height: 110.53688049316406,
+            child: FigmaSvg(tier.reviewHouseBody, fit: BoxFit.fill),
+          ),
+          FigmaBox(
+            figma: figma,
+            left: 221.00048828125,
+            top: 590.1487426757812,
+            width: 50.95686340332031,
+            height: 36.018959045410156,
+            child: FigmaSvg(tier.reviewHouseIcon, fit: BoxFit.fill),
+          ),
+          FigmaBox(
+            figma: figma,
+            left: 235,
+            top: 488,
+            width: 22.35577392578125,
+            height: 22.35577392578125,
+            child: FigmaSvg(tier.reviewHouseDot, fit: BoxFit.fill),
+          ),
+        ],
+        FigmaBox(
+          figma: figma,
+          left: 178.5615,
+          top: 513.1188,
+          width: 135.877,
+          height: 65.8812,
+          child: FigmaSvg(tier.reviewHouseRoof, fit: BoxFit.fill),
+        ),
+      ],
+    );
+  }
 }
 
 /// Figma `131:5342` — 맵 스크롤과 무관하게 하단에 고정.
@@ -620,7 +719,11 @@ class _HomeLearningCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    final v = _homeLearningCtaHeightScale;
+    final originX = tier.learningCtaLeft;
+    const iconSize = 47.0;
+    const chevronDesignSize = 46.055;
+    const chevronSize = chevronDesignSize * 0.75;
+    const textHeight = 33.8;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -632,7 +735,15 @@ class _HomeLearningCta extends StatelessWidget {
               color: canStartLearning
                   ? tier.learningCtaColor
                   : tier.learningCtaColor.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(s(13 * v)),
+              borderRadius: BorderRadius.circular(s(13)),
+              boxShadow: tier.hasLearningCtaShadow
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFE5E5E5),
+                        blurRadius: s(6.372),
+                      ),
+                    ]
+                  : null,
             ),
             child: SizedBox(
               width: s(_homeLearningCtaWidth),
@@ -640,58 +751,52 @@ class _HomeLearningCta extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: s(15),
-            top: s(18 * v),
-            width: s(47 * v),
-            height: s(47 * v),
+            left: s(49 - originX),
+            top: s((_homeLearningCtaHeight - iconSize) / 2),
+            width: s(iconSize),
+            height: s(iconSize),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(s(7.5 * v)),
+                borderRadius: BorderRadius.circular(s(7.5)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.25),
-                    offset: Offset(s(3 * v), s(3 * v)),
+                    offset: Offset(s(3), s(3)),
                     blurRadius: 0,
                   ),
                 ],
               ),
               child: Padding(
                 padding: EdgeInsets.only(
-                  left: s(6 * v),
-                  top: s(9 * v),
-                  right: s(7 * v),
-                  bottom: s(10 * v),
+                  left: s(6),
+                  top: s(9),
+                  right: s(7),
+                  bottom: s(10),
                 ),
-                child: const FigmaSvg(
-                  FigmaAssets.homeBeginnerLearningQ,
-                  fit: BoxFit.contain,
-                ),
+                child: FigmaSvg(tier.learningQ, fit: BoxFit.contain),
               ),
             ),
           ),
           Positioned(
-            left: s(101),
-            top: s(24 * v),
+            left: s(135 - originX),
+            top: s((_homeLearningCtaHeight - textHeight) / 2),
             child: Text(
               canStartLearning ? '오늘의 학습' : '에너지 부족',
               style: TextStyle(
-                fontSize: s(26 * v),
+                fontSize: s(26),
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
-                height: 1.1,
+                height: 1.3,
               ),
             ),
           ),
           Positioned(
-            left: s(275),
-            top: s(18 * v),
-            width: s(46.055 * v),
-            height: s(46.055 * v),
-            child: const FigmaSvg(
-              FigmaAssets.homeBeginnerChevronLearning,
-              fit: BoxFit.fill,
-            ),
+            left: s(309 - originX + (chevronDesignSize - chevronSize) / 2),
+            top: s((_homeLearningCtaHeight - chevronSize) / 2),
+            width: s(chevronSize),
+            height: s(chevronSize),
+            child: FigmaSvg(tier.chevronLearning, fit: BoxFit.fill),
           ),
         ],
       ),
@@ -699,10 +804,9 @@ class _HomeLearningCta extends StatelessWidget {
   }
 }
 
-/// Figma 131:5322 / 131:5423 오각형 + 131:5421 / 131:5424 번호.
+/// Figma `131:5322`/`131:5423` 오각형 + `131:5421`/`131:5424` 번호.
 ///
-/// Figma MCP 기준 번호는 오각형 bounds 안에서 center 정렬된다.
-/// SVG는 inset bleed(그림자)만큼 box 밖으로 확장한다.
+/// 회전된 shape의 시각 중심을 Figma text layer 중심에 맞춘다.
 class _HomeStagePentagon extends StatelessWidget {
   const _HomeStagePentagon({
     required this.figma,
@@ -710,11 +814,18 @@ class _HomeStagePentagon extends StatelessWidget {
     required this.top,
     required this.width,
     required this.height,
-    required this.asset,
+    required this.shadowLeft,
+    required this.shadowTop,
+    required this.shadowWidth,
+    required this.shadowHeight,
+    required this.labelLeft,
+    required this.labelTop,
+    required this.pngAsset,
+    required this.svgFallback,
     required this.label,
     required this.fontSize,
+    required this.shadowBlurSigma,
     required this.shadowOffset,
-    required this.svgBleed,
   });
 
   final FigmaScale figma;
@@ -722,35 +833,54 @@ class _HomeStagePentagon extends StatelessWidget {
   final double top;
   final double width;
   final double height;
-  final String asset;
+  final double shadowLeft;
+  final double shadowTop;
+  final double shadowWidth;
+  final double shadowHeight;
+  final double labelLeft;
+  final double labelTop;
+  final String pngAsset;
+  final String svgFallback;
   final String label;
   final double fontSize;
+  final double shadowBlurSigma;
   final Offset shadowOffset;
-
-  /// Figma export `inset-[...]` — 비율(0~1)로 box 대비 bleed.
-  final EdgeInsets svgBleed;
 
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    return FigmaBox(
-      figma: figma,
-      left: left,
-      top: top,
-      width: width,
-      height: height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            left: -width * svgBleed.left,
-            top: -height * svgBleed.top,
-            right: -width * svgBleed.right,
-            bottom: -height * svgBleed.bottom,
-            child: FigmaSvg(asset, fit: BoxFit.fill),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        FigmaBox(
+          figma: figma,
+          left: shadowLeft,
+          top: shadowTop,
+          width: shadowWidth,
+          height: shadowHeight,
+          child: CustomPaint(
+            painter: _FigmaPentagonShadowPainter(sigma: s(shadowBlurSigma)),
           ),
-          Text(
+        ),
+        FigmaBox(
+          figma: figma,
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+          child: Image.asset(
+            pngAsset,
+            fit: BoxFit.fill,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) =>
+                FigmaSvg(svgFallback, fit: BoxFit.fill),
+          ),
+        ),
+        FigmaBox(
+          figma: figma,
+          left: labelLeft,
+          top: labelTop,
+          child: Text(
             label,
             style: TextStyle(
               fontSize: s(fontSize),
@@ -765,10 +895,81 @@ class _HomeStagePentagon extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
+
+/// Figma `node_1_overlay` / `node_3_overlay`의 path와 효과.
+///
+/// SVG filter와 mix-blend-mode를 flutter_svg가 지원하지 않아 Canvas에서
+/// Figma 값(`#2A1D00`, Overlay, Gaussian blur)을 그대로 그린다.
+class _FigmaPentagonShadowPainter extends CustomPainter {
+  const _FigmaPentagonShadowPainter({required this.sigma});
+
+  final double sigma;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const sourceWidth = 18.6856;
+    const sourceHeight = 36.6648;
+
+    Offset point(double x, double y) => Offset(
+      y / sourceHeight * size.width,
+      (sourceWidth - x) / sourceWidth * size.height,
+    );
+
+    final path = Path();
+    var p = point(8.17691, 4.7124);
+    path.moveTo(p.dx, p.dy);
+
+    var c1 = point(8.87195, 3.35991);
+    var c2 = point(9.8142, 3.35991);
+    p = point(10.5092, 4.7124);
+    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
+
+    p = point(14.1696, 11.8331);
+    path.lineTo(p.dx, p.dy);
+    c1 = point(14.8647, 13.1856);
+    c2 = point(15.1565, 15.5843);
+    p = point(14.8899, 17.7727);
+    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
+
+    p = point(13.492, 29.2961);
+    path.lineTo(p.dx, p.dy);
+    c1 = point(13.2264, 31.4845);
+    c2 = point(12.4645, 32.9668);
+    p = point(11.6046, 32.9668);
+    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
+
+    p = point(7.08053, 32.9668);
+    path.lineTo(p.dx, p.dy);
+    c1 = point(6.22069, 32.9668);
+    c2 = point(5.45875, 31.4845);
+    p = point(5.19314, 29.2961);
+    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
+
+    p = point(3.79529, 17.7727);
+    path.lineTo(p.dx, p.dy);
+    c1 = point(3.52968, 15.5843);
+    c2 = point(3.82049, 13.1856);
+    p = point(4.51651, 11.8331);
+    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFF2A1D00)
+        ..blendMode = BlendMode.overlay
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, sigma),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _FigmaPentagonShadowPainter oldDelegate) =>
+      oldDelegate.sigma != sigma;
 }
 
 class _BeginnerMenuButton extends StatelessWidget {
@@ -799,10 +1000,7 @@ class _BeginnerMenuButton extends StatelessWidget {
             top: s(16.1),
             child: _square(s, const Color(0xFFFFCA55)),
           ),
-          Positioned(
-            top: s(16.1),
-            child: _square(s, const Color(0xFFFFCA55)),
-          ),
+          Positioned(top: s(16.1), child: _square(s, const Color(0xFFFFCA55))),
           Positioned(
             top: s(1.03),
             child: FigmaSvg(

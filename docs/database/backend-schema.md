@@ -59,6 +59,8 @@ quizQuestions/{questionId}
 legalDocuments/{docType}_{version}
 
 users/{uid}                          # Auth uid
+  ├── mastered/{questionId}
+  ├── incorrectQuestions/{questionId}
   └── sessions/{sessionId}
         └── answers/{questionId}
 
@@ -80,6 +82,8 @@ flowchart TB
   auth --> users["users/{uid}"]
   users --> sessions["sessions/{sessionId}"]
   sessions --> answers["answers/{questionId}"]
+  users --> mastered["mastered/{questionId}"]
+  users --> incorrect["incorrectQuestions/{questionId}"]
 
   cats[categories]
   ham[hamsters]
@@ -207,6 +211,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
     "saving": { "correct": 3, "total": 5 },
     "credit": { "correct": 1, "total": 2 }
   },
+  "incorrectQuestionCount": 11,
   "consents": {
     "termsVersion": "draft-1",
     "privacyVersion": "draft-1",
@@ -228,6 +233,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 | `unlockedHamsterIds`       | 배열 (최대 6)                   |                                         |
 | `interestCategoryIds`      | 배열 (1~6, 최소 1)              |                                         |
 | `categoryStats`            | map                             | 카테고리 6개뿐이라 문서에 포함          |
+| `incorrectQuestionCount`   | number                          | 고유 오답 문서 수. 11개부터 복습 홈     |
 | `consents`                 | 약관 체크                       | 버전 바뀌면 재동의 필드 추가 가능       |
 | `providers`                | 예정 소셜                       | `password`, `google`, `apple`, `kakao`  |
 
@@ -273,6 +279,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 }
 ```
 
+`source`: `energySession` | `reviewSession`  
 `status`: `inProgress` | `completed` | `abandoned`
 
 ### `users/{uid}/sessions/{sessionId}/answers/{questionId}`
@@ -283,10 +290,33 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 {
   "selectedIndex": 1,
   "isCorrect": true,
+  "categoryId": "saving",
   "energySpent": 5,
   "answeredAt": "<timestamp>"
 }
 ```
+
+### `users/{uid}/incorrectQuestions/{questionId}`
+
+오답이 제출되는 즉시 생성하거나 갱신한다. 문서 id가 문제 id이므로 같은 문제를
+여러 번 틀려도 `incorrectQuestionCount`는 한 번만 증가한다.
+
+```json
+{
+  "questionId": "q0001",
+  "categoryId": "saving",
+  "difficulty": 3,
+  "wrongCount": 2,
+  "lastSelectedIndex": 1,
+  "lastSessionId": "<sessionId>",
+  "firstWrongAt": "<timestamp>",
+  "lastWrongAt": "<timestamp>"
+}
+```
+
+- `incorrectQuestionCount > 10`이면 해당 티어의 복습 집 홈을 표시한다.
+- 복습 세션(`source: reviewSession`)에서 정답을 맞추면 해당 문서를 삭제하고
+  `incorrectQuestionCount`를 1 줄인다. 개수가 10 이하가 되면 일반 홈으로 돌아간다.
 
 **쓰기 권장 경로 (Cloud Function)**
 

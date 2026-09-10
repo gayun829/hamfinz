@@ -26,28 +26,48 @@ class HomeTierTheme {
     required this.tier,
     required this.assetFolder,
     required this.learningCtaColor,
+    required this.reviewHouseShadowColor,
+    required this.learningCtaLeft,
+    required this.learningCtaTop,
+    required this.hasLearningCtaShadow,
   });
 
   final HomeTier tier;
   final String assetFolder;
   final Color learningCtaColor;
+  final Color reviewHouseShadowColor;
+  final double learningCtaLeft;
+  final double learningCtaTop;
+  final bool hasLearningCtaShadow;
 
   static const beginner = HomeTierTheme._(
     tier: HomeTier.beginner,
     assetFolder: 'beginner',
     learningCtaColor: Color(0xFF3CC6FF),
+    reviewHouseShadowColor: Color(0xFFF2EFDF),
+    learningCtaLeft: 34,
+    learningCtaTop: 666,
+    hasLearningCtaShadow: false,
   );
 
   static const intermediate = HomeTierTheme._(
     tier: HomeTier.intermediate,
     assetFolder: 'intermediate',
     learningCtaColor: Color(0xFFB3EA70),
+    reviewHouseShadowColor: Color(0xFFE5EFE2),
+    learningCtaLeft: 32,
+    learningCtaTop: 665,
+    hasLearningCtaShadow: true,
   );
 
   static const advanced = HomeTierTheme._(
     tier: HomeTier.advanced,
     assetFolder: 'advanced',
     learningCtaColor: Color(0xFFFD9068),
+    reviewHouseShadowColor: Color(0xFFF8E5E5),
+    learningCtaLeft: 32,
+    learningCtaTop: 665,
+    hasLearningCtaShadow: true,
   );
 
   static HomeTierTheme forStage(int stage) {
@@ -75,4 +95,17 @@ class HomeTierTheme {
   String get decoVector4 => _asset('deco_vector_4.svg');
   String get node3Overlay => _asset('node_3_overlay.svg');
   String get node3Flag => _asset('node_3_flag.svg');
+  String get learningQ => _asset('learning_q.svg');
+  String get chevronLearning => _asset('chevron_learning.svg');
+  String get reviewHouseBody => _asset('review_house_body.svg');
+  String get reviewHouseIcon => _asset('review_house_icon.svg');
+  String get reviewHouseDot => _asset('review_house_dot.svg');
+  String get reviewHouseRoof => _asset('review_house_roof.svg');
+  String get reviewHouseComposite => _asset('review_house_composite.svg');
+
+  bool get hasCompositeReviewHouse => tier == HomeTier.advanced;
+
+  /// Figma PNG export — drop-shadow·3D 두께 포함 (flutter_svg filter 미지원).
+  String get node1Pentagon => _asset('node_1_pentagon.png');
+  String get node3Pentagon => _asset('node_3_pentagon.png');
 }

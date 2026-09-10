@@ -15,6 +15,12 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // 퀴즈: 고유 오답 문제. 개발 — submitAnswer 클라이언트 트랜잭션에서 upsert.
+      match /incorrectQuestions/{questionId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create, update, delete: if request.auth != null && request.auth.uid == uid;
+      }
+
       // 퀴즈: 세션 · answers. inProgress 생성/갱신 — 클라이언트(개발) · Functions(배포) 예정.
       match /sessions/{sessionId} {
         allow read, create: if request.auth != null && request.auth.uid == uid;

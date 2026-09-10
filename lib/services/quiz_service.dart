@@ -18,6 +18,11 @@ class QuizService {
     return QuizSessionRepository.instance.startSession(profile: profile);
   }
 
+  /// 저장된 오답에서 최대 10문항을 다시 출제한다.
+  Future<QuizSession> startReviewSession({required UserProfile profile}) {
+    return QuizSessionRepository.instance.startReviewSession(profile: profile);
+  }
+
   /// 채점 · answers · mastered · energy 차감.
   /// 백엔드: [QuizBackendConfig.submitBackend]
   Future<SubmitAnswerResult> submitAnswer({
@@ -27,7 +32,9 @@ class QuizService {
     required UserProfile profile,
   }) async {
     if (kDebugMode) {
-      debugPrint('Quiz submit backend: ${QuizBackendConfig.submitBackend.name}');
+      debugPrint(
+        'Quiz submit backend: ${QuizBackendConfig.submitBackend.name}',
+      );
     }
     final SubmitAnswerResult result;
     if (QuizBackendConfig.usesCloudFunctions) {
@@ -85,6 +92,7 @@ class QuizService {
     target.selectedHamsterId = source.selectedHamsterId;
     target.learningHistory = List<LearningRecord>.from(source.learningHistory);
     target.categoryStats = Map<String, CategoryStat>.from(source.categoryStats);
+    target.incorrectQuestionCount = source.incorrectQuestionCount;
     target.seeds = source.seeds;
   }
 }

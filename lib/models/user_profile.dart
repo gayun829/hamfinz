@@ -14,6 +14,7 @@ class UserProfile {
     this.categoryStats = const {},
     this.interestCategories = const [],
     this.learningStage = 1,
+    this.incorrectQuestionCount = 0,
     this.seeds = 0,
     this.ownedShopItemIds = const [],
     this.studyGuardCount = 0,
@@ -47,6 +48,9 @@ class UserProfile {
   /// 학습과정 1~10 — `quizQuestions.difficulty`와 동일.
   int learningStage;
 
+  /// `users/{uid}/incorrectQuestions`에 저장된 고유 오답 문제 수.
+  int incorrectQuestionCount;
+
   /// 상점 해바라기씨 잔액.
   int seeds;
 
@@ -68,6 +72,7 @@ class UserProfile {
   int get xpForNextLevel => LevelUtils.xpForNextLevel(xp);
   int get xpInCurrentLevel => LevelUtils.xpInCurrentLevel(xp);
 }
+
 class LearningRecord {
   LearningRecord({
     required this.date,
@@ -82,18 +87,18 @@ class LearningRecord {
   final int xpEarned;
 
   Map<String, dynamic> toJson() => {
-        'date': date,
-        'correctCount': correctCount,
-        'totalCount': totalCount,
-        'xpEarned': xpEarned,
-      };
+    'date': date,
+    'correctCount': correctCount,
+    'totalCount': totalCount,
+    'xpEarned': xpEarned,
+  };
 
   factory LearningRecord.fromJson(Map<String, dynamic> json) => LearningRecord(
-        date: json['date'] as String,
-        correctCount: json['correctCount'] as int,
-        totalCount: json['totalCount'] as int,
-        xpEarned: json['xpEarned'] as int,
-      );
+    date: json['date'] as String,
+    correctCount: json['correctCount'] as int,
+    totalCount: json['totalCount'] as int,
+    xpEarned: json['xpEarned'] as int,
+  );
 }
 
 class CategoryStat {
@@ -107,9 +112,9 @@ class CategoryStat {
   Map<String, dynamic> toJson() => {'correct': correct, 'total': total};
 
   factory CategoryStat.fromJson(Map<String, dynamic> json) => CategoryStat(
-        correct: json['correct'] as int? ?? 0,
-        total: json['total'] as int? ?? 0,
-      );
+    correct: json['correct'] as int? ?? 0,
+    total: json['total'] as int? ?? 0,
+  );
 }
 
 class HamsterItem {

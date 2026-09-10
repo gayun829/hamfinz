@@ -40,7 +40,9 @@
    - `selectedIndex` vs DB `correctIndex` **서버 채점**  
    - `users.energy -= 5`  
    - 정답 시 `mastered/{questionId}` upsert  
-3. 정·오답 UI + XP 배너  
+   - 오답 시 `incorrectQuestions/{questionId}` upsert  
+   - 복습 세션에서 정답이면 `incorrectQuestions/{questionId}` 삭제 + 카운트 −1  
+4. 정·오답 UI + XP 배너  
 4. 풀이확인 / 다음문제  
 5. 마지막 문제 → `completeSession` → `QuizResultScreen`  
 

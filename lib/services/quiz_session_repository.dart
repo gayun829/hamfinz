@@ -11,6 +11,7 @@ import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../utils/date_helper.dart';
+import '../utils/incorrect_questions.dart';
 import '../utils/quiz_text_helper.dart';
 
 /// Firestore `quizQuestions` + `mastered` — 출제 · 제출 · 세션 완료.
@@ -74,10 +75,7 @@ class QuizSessionRepository {
       );
     }
 
-    final selected = _selectQuestions(
-      candidates,
-      count: sessionCount,
-    );
+    final selected = _selectQuestions(candidates, count: sessionCount);
 
     final sessionRef = _firestore
         .collection('users')
@@ -98,21 +96,68 @@ class QuizSessionRepository {
       'completedAt': null,
     });
 
-    return QuizSession(
+    return _learningSession(sessionId: sessionRef.id, selected: selected);
+  }
+
+  /// 오답 목록에서 최대 10문항을 다시 출제한다.
+  Future<QuizSession> startReviewSession({required UserProfile profile}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      throw QuizSessionException('로그인이 필요해요.');
+    }
+
+    if (profile.energy < QuizData.sessionEnergyCost) {
+      throw QuizSessionException(
+        '에너지가 부족해요. ${QuizData.sessionEnergyCost} 이상 필요해요.',
+      );
+    }
+
+    final userRef = _firestore.collection('users').doc(uid);
+    final incorrectSnap = await userRef.collection('incorrectQuestions').get();
+    final incorrectIds = incorrectSnap.docs.map((doc) => doc.id).toList()
+      ..shuffle(_random);
+
+    if (incorrectIds.isEmpty) {
+      throw QuizSessionException('복습할 오답이 없어요.');
+    }
+
+    final selected = <_QuestionDoc>[];
+    for (var i = 0; i < incorrectIds.length; i += 10) {
+      if (selected.length >= QuizData.dailyQuestionCount) break;
+      final chunk = incorrectIds.skip(i).take(10);
+      final docs = await Future.wait(
+        chunk.map((id) => _firestore.collection('quizQuestions').doc(id).get()),
+      );
+      for (final doc in docs) {
+        if (selected.length >= QuizData.dailyQuestionCount) break;
+        if (doc.data()?['isActive'] != true) continue;
+        final parsed = _parseQuestionDoc(doc);
+        if (parsed != null) selected.add(parsed);
+      }
+    }
+
+    if (selected.isEmpty) {
+      throw QuizSessionException('복습할 문제를 불러오지 못했어요.');
+    }
+
+    final sessionRef = userRef.collection('sessions').doc();
+    await sessionRef.set({
+      'source': QuizSession.reviewSessionSource,
+      'questionIds': selected.map((q) => q.id).toList(),
+      'questionCount': selected.length,
+      'correctCount': 0,
+      'xpEarned': 0,
+      'energySpent': 0,
+      'seedDate': DateHelper.todayKey(),
+      'status': 'inProgress',
+      'startedAt': FieldValue.serverTimestamp(),
+      'completedAt': null,
+    });
+
+    return _learningSession(
       sessionId: sessionRef.id,
-      questions: selected
-          .map(
-            (q) => QuizQuestionLearning(
-              id: q.id,
-              type: q.type,
-              category: q.category,
-              difficulty: q.difficulty,
-              question: q.question,
-              options: q.options,
-              explanation: q.explanation,
-            ),
-          )
-          .toList(),
+      selected: selected,
+      source: QuizSession.reviewSessionSource,
     );
   }
 
@@ -129,19 +174,24 @@ class QuizSessionRepository {
     final sessionRef = userRef.collection('sessions').doc(sessionId);
     final answerRef = sessionRef.collection('answers').doc(questionId);
     final questionRef = _firestore.collection('quizQuestions').doc(questionId);
+    final incorrectRef = userRef
+        .collection('incorrectQuestions')
+        .doc(questionId);
 
     // 웹: runTransaction 콜백 안에서 throw/reject 하면 Firestore JS SDK가
     // HTTP BodyStream을 abort → AbortError · 무한 대기. 검증은 null 반환 후 처리.
     final txError = <String>[];
 
     try {
-      final txResult = await _firestore.runTransaction<Map<String, dynamic>?>(
-        (tx) async {
+      final txResult = await _firestore.runTransaction<Map<String, dynamic>?>((
+        tx,
+      ) async {
         txError.clear();
         final userSnap = await tx.get(userRef);
         final sessionSnap = await tx.get(sessionRef);
         final answerSnap = await tx.get(answerRef);
         final questionSnap = await tx.get(questionRef);
+        final incorrectSnap = await tx.get(incorrectRef);
 
         if (!userSnap.exists) {
           txError.add('유저 프로필을 찾을 수 없어요.');
@@ -201,7 +251,18 @@ class QuizSessionRepository {
           QuizData.maxEnergy,
         );
 
-        tx.update(userRef, {'energy': energy});
+        final currentCount =
+            (user['incorrectQuestionCount'] as num?)?.toInt() ?? 0;
+        final nextCount = nextIncorrectQuestionCount(
+          currentCount: currentCount,
+          isCorrect: isCorrect,
+          alreadyTracked: incorrectSnap.exists,
+        );
+        final userUpdate = <String, dynamic>{'energy': energy};
+        if (nextCount != currentCount) {
+          userUpdate['incorrectQuestionCount'] = nextCount;
+        }
+        tx.update(userRef, userUpdate);
 
         tx.set(answerRef, {
           'selectedIndex': selectedIndex,
@@ -217,6 +278,25 @@ class QuizSessionRepository {
             {'answeredAt': FieldValue.serverTimestamp()},
             SetOptions(merge: true),
           );
+          if (incorrectSnap.exists) {
+            tx.delete(incorrectRef);
+          }
+        } else {
+          final previousWrongCount =
+              (incorrectSnap.data()?['wrongCount'] as num?)?.toInt() ?? 0;
+          final incorrectUpdate = <String, dynamic>{
+            'questionId': questionId,
+            'categoryId': q['categoryId'] ?? 'allowance',
+            'difficulty': (q['difficulty'] as num?)?.toInt() ?? 1,
+            'wrongCount': previousWrongCount + 1,
+            'lastSelectedIndex': selectedIndex,
+            'lastSessionId': sessionId,
+            'lastWrongAt': FieldValue.serverTimestamp(),
+          };
+          if (!incorrectSnap.exists) {
+            incorrectUpdate['firstWrongAt'] = FieldValue.serverTimestamp();
+          }
+          tx.set(incorrectRef, incorrectUpdate, SetOptions(merge: true));
         }
 
         final sessionUpdate = <String, dynamic>{
@@ -236,8 +316,7 @@ class QuizSessionRepository {
           'correctIndex': correctIndex,
           'energyRemaining': energy,
         };
-      },
-      );
+      });
 
       if (txError.isNotEmpty) {
         throw QuizSessionException(txError.first);
@@ -254,9 +333,7 @@ class QuizSessionRepository {
   }
 
   /// answers 집계 · XP · 씨앗 · streak · categoryStats · 세션 completed.
-  Future<QuizSessionResult> completeSession({
-    required String sessionId,
-  }) async {
+  Future<QuizSessionResult> completeSession({required String sessionId}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw QuizSessionException('로그인이 필요해요.');
 
@@ -266,8 +343,9 @@ class QuizSessionRepository {
     final txError = <String>[];
 
     try {
-      final txResult = await _firestore.runTransaction<Map<String, dynamic>?>(
-        (tx) async {
+      final txResult = await _firestore.runTransaction<Map<String, dynamic>?>((
+        tx,
+      ) async {
         txError.clear();
         final sessionSnap = await tx.get(sessionRef);
         if (!sessionSnap.exists) {
@@ -388,11 +466,9 @@ class QuizSessionRepository {
             xpEarned: xpEarned,
           ),
           ...List<LearningRecord>.from(
-            ((user['learningHistory'] as List?) ?? [])
-                .cast<Map>()
-                .map(
-                  (e) => LearningRecord.fromJson(Map<String, dynamic>.from(e)),
-                ),
+            ((user['learningHistory'] as List?) ?? []).cast<Map>().map(
+              (e) => LearningRecord.fromJson(Map<String, dynamic>.from(e)),
+            ),
           ),
         ].take(50).toList();
 
@@ -448,8 +524,7 @@ class QuizSessionRepository {
           'newStreak': streak,
           'energyRemaining': energyRemaining,
         };
-      },
-      );
+      });
 
       if (txError.isNotEmpty) {
         throw QuizSessionException(txError.first);
@@ -575,7 +650,9 @@ class QuizSessionRepository {
   }
 
   List<String> _targetCategories(UserProfile profile) {
-    final activeId = resolveActiveInterestCategoryId(profile.interestCategories);
+    final activeId = resolveActiveInterestCategoryId(
+      profile.interestCategories,
+    );
     if (activeId == null) {
       throw QuizSessionException('학습 카테고리를 선택해 주세요.');
     }
@@ -652,8 +729,7 @@ class QuizSessionRepository {
         );
       }
 
-      final hasRemaining =
-          stageQuestionIds.any((id) => !mastered.contains(id));
+      final hasRemaining = stageQuestionIds.any((id) => !mastered.contains(id));
 
       if (hasRemaining) break;
 
@@ -775,6 +851,30 @@ class QuizSessionRepository {
   }) {
     final pool = List<_QuestionDoc>.from(candidates)..shuffle(_random);
     return pool.take(count).toList();
+  }
+
+  QuizSession _learningSession({
+    required String sessionId,
+    required List<_QuestionDoc> selected,
+    String source = QuizSession.energySessionSource,
+  }) {
+    return QuizSession(
+      sessionId: sessionId,
+      source: source,
+      questions: selected
+          .map(
+            (q) => QuizQuestionLearning(
+              id: q.id,
+              type: q.type,
+              category: q.category,
+              difficulty: q.difficulty,
+              question: q.question,
+              options: q.options,
+              explanation: q.explanation,
+            ),
+          )
+          .toList(),
+    );
   }
 }
 

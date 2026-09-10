@@ -125,13 +125,15 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
   const sessionRef = userRef.collection('sessions').doc(sessionId);
   const answerRef = sessionRef.collection('answers').doc(questionId);
   const questionRef = db.collection('quizQuestions').doc(questionId);
+  const incorrectRef = userRef.collection('incorrectQuestions').doc(questionId);
 
   return db.runTransaction(async (tx) => {
-    const [userSnap, sessionSnap, answerSnap, questionSnap] = await Promise.all([
+    const [userSnap, sessionSnap, answerSnap, questionSnap, incorrectSnap] = await Promise.all([
       tx.get(userRef),
       tx.get(sessionRef),
       tx.get(answerRef),
       tx.get(questionRef),
+      tx.get(incorrectRef),
     ]);
 
     if (!userSnap.exists) {
@@ -179,7 +181,21 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     const isCorrect = selected === correctIndex;
     energy = Math.max(0, energy - ENERGY_PER_QUESTION);
 
-    tx.update(userRef, { energy, lastEnergyResetDate });
+    const userUpdate = { energy, lastEnergyResetDate };
+    const currentCount = Number(user.incorrectQuestionCount ?? 0);
+    const alreadyTracked = incorrectSnap.exists;
+    let nextCount = currentCount;
+    if (isCorrect) {
+      if (alreadyTracked) {
+        nextCount = Math.max(0, currentCount - 1);
+      }
+    } else if (!alreadyTracked) {
+      nextCount = currentCount + 1;
+    }
+    if (nextCount !== currentCount) {
+      userUpdate.incorrectQuestionCount = nextCount;
+    }
+    tx.update(userRef, userUpdate);
 
     tx.set(answerRef, {
       selectedIndex: selected,
@@ -195,6 +211,24 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
         { answeredAt: FieldValue.serverTimestamp() },
         { merge: true },
       );
+      if (incorrectSnap.exists) {
+        tx.delete(incorrectRef);
+      }
+    } else {
+      const previousWrongCount = Number(incorrectSnap.data()?.wrongCount ?? 0);
+      const incorrectUpdate = {
+        questionId,
+        categoryId: q.categoryId || 'allowance',
+        difficulty: Number(q.difficulty ?? 1),
+        wrongCount: previousWrongCount + 1,
+        lastSelectedIndex: selected,
+        lastSessionId: sessionId,
+        lastWrongAt: FieldValue.serverTimestamp(),
+      };
+      if (!incorrectSnap.exists) {
+        incorrectUpdate.firstWrongAt = FieldValue.serverTimestamp();
+      }
+      tx.set(incorrectRef, incorrectUpdate, { merge: true });
     }
 
     const sessionUpdate = {
