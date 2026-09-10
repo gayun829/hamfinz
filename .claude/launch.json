@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "flutter-web",
-      "runtimeExecutable": "flutter",
+      "runtimeExecutable": "/Users/gayun/flutter/bin/flutter",
       "runtimeArgs": [
         "run",
         "-d",

@@ -5,6 +5,7 @@ class FigmaAssets {
   static const _quiz = 'assets/figma/quiz';
   static const _shop = 'assets/figma/shop';
   static const _calendar = 'assets/figma/calendar';
+  static const _friends = 'assets/figma/friends';
   static const _iconsAuth = 'assets/icons/auth';
 
   // Home
@@ -85,6 +86,11 @@ class FigmaAssets {
   static const calendarPodium2 = '$_calendar/podium_2.svg';
   static const calendarPodium3 = '$_calendar/podium_3.svg';
   static const calendarPodium4 = '$_calendar/podium_4.svg';
+
+  // Friends (node 270:9)
+  static const friendsBackChevron = '$_friends/back_chevron.svg';
+  static const friendsSearchIcon = '$_friends/search_icon.svg';
+  static const friendsHeroHamster = '$_friends/hero_hamster.svg';
 
   // Quiz
   static const quizHamster = '$_quiz/hamster_quiz.png';
