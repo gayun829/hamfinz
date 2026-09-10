@@ -332,17 +332,57 @@ class _NewsRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppTheme.textSecondary,
-              ),
-            ),
+            const SizedBox(width: 10),
+            _Thumbnail(item: item),
           ],
         ),
       ),
     );
   }
+}
+
+/// 기사 대표 사진. 연합뉴스 RSS의 `<media:content>`를 그대로 쓴다.
+///
+/// 사진이 없거나(속보·표 기사) 못 받아오면 같은 크기 자리에 용어 이모지를 띄워서
+/// 열 줄의 오른쪽 세로선이 흔들리지 않게 한다.
+class _Thumbnail extends StatelessWidget {
+  const _Thumbnail({required this.item});
+
+  final NewsItem item;
+
+  static const _width = 76.0;
+  static const _height = 56.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = item.imageUrl;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: _width,
+        height: _height,
+        child: url == null
+            ? _placeholder()
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                // 사진 크기가 제각각이라 목록 폭에 맞춰 줄여 받아 메모리를 아낀다.
+                cacheWidth: (_width * 3).round(),
+                errorBuilder: (_, _, _) => _placeholder(),
+                loadingBuilder: (_, child, progress) =>
+                    progress == null ? child : _placeholder(),
+              ),
+      ),
+    );
+  }
+
+  Widget _placeholder() => ColoredBox(
+    color: AppTheme.figmaMintLight,
+    child: Center(
+      child: Text(
+        _emoji(item.term.categoryId),
+        style: const TextStyle(fontSize: 22),
+      ),
+    ),
+  );
 }

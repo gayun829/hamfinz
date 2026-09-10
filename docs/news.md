@@ -8,15 +8,32 @@
 
 ## 소스
 
-Google News **비즈니스 토픽 헤드라인** 1회 호출.
+**연합뉴스 경제 RSS** 1회 호출.
 
 ```
-news.google.com/rss/headlines/section/topic/BUSINESS?hl=ko&gl=KR&ceid=KR:ko
+www.yna.co.kr/rss/economy.xml
 ```
 
-검색 질의가 아니라 구글이 직접 고르고 순서를 매긴 묶음이라, 넓은 검색어(`금융 OR 경제`)보다 큰 기사가 위로 온다. 순서는 구글이 준 그대로 쓴다.
+기사마다 `<media:content>`로 대표 사진이 붙어 있고(실측 120건 중 111건), `<link>`가 기사 원문이라 WebView에서 바로 열린다. 순서는 피드가 준 최신순.
 
-> **조회수 순은 만들 수 없다.** RSS item이 주는 건 `title / link / source / pubDate / guid / description`뿐이라 조회수 필드가 없다.
+### 왜 구글뉴스에서 바꿨나
+
+처음엔 Google News 비즈니스 토픽 헤드라인(`news.google.com/rss/headlines/section/topic/BUSINESS`)을 썼다. 구글이 고른 큰 기사가 위로 오는 건 장점이었지만,
+
+- RSS에 **사진이 없다** (`title / link / source / pubDate / description`뿐)
+- `<link>`가 `news.google.com/rss/articles/...` 리다이렉트라 원문 og:image를 긁을 수도 없다 (2024년부터 디코딩도 막힘)
+
+그래서 목록에 사진을 띄우려면 소스를 바꿔야 했다. 후보 실측(용어 필터 통과 / 사진):
+
+| 피드 | 건수 | 용어 매칭 | 사진 |
+|---|---:|---:|---:|
+| 연합뉴스 경제 | 120 | 22 | 20 |
+| 동아일보 경제 | 50 | 3 | 3 |
+| 조선비즈 | 100 | 1 | 1 |
+| 한국경제 경제 | 50 | – | 없음 |
+| 매일경제 | 403 | – | – |
+
+> **조회수 순은 만들 수 없다.** 어느 RSS도 조회수 필드가 없다.
 
 ### 왜 카테고리를 안 나누나
 
@@ -60,12 +77,12 @@ news.google.com/rss/headlines/section/topic/BUSINESS?hl=ko&gl=KR&ceid=KR:ko
 
 ## 웹 CORS
 
-브라우저는 구글뉴스에 CORS가 없어 직접 호출이 막힌다. 웹 빌드는 두 경로 중 하나로 우회한다.
+브라우저는 언론사 RSS에 CORS가 없어 직접 호출이 막힌다. 웹 빌드는 두 경로 중 하나로 우회한다.
 
 | 경로 | 조건 | 비고 |
 |---|---|---|
 | 로컬 프록시 `tool/cors_proxy.dart` (포트 8766) | `--dart-define=NEWS_PROXY=http://localhost:8766` | 지금 쓰는 방식. cmd 하나 더 띄움 |
-| Cloud Functions `fetchNewsFeed` (asia-northeast3) | `NEWS_PROXY` 없이 웹 빌드 | 배포(`firebase deploy --only functions`) 후 사용. 로그인 필수, `https://news.google.com/rss/*`만 허용 |
+| Cloud Functions `fetchNewsFeed` (asia-northeast3) | `NEWS_PROXY` 없이 웹 빌드 | 배포(`firebase deploy --only functions`) 후 사용. 로그인 필수, `www.yna.co.kr/rss/*`·`news.google.com/rss/*`만 허용 |
 
 - 모바일·데스크톱은 CORS가 없어 직접 RSS 호출
 
@@ -105,7 +122,7 @@ news.google.com/rss/headlines/section/topic/BUSINESS?hl=ko&gl=KR&ceid=KR:ko
 
 ## 뉴스 용어 학습
 
-RSS는 제목만 주고 구글뉴스 링크는 리다이렉트라 본문을 못 읽는다. 그래서 기사 본문을 시험 보지 않고, **제목에서 잡은 용어 하나를 가르치고 그걸 묻는다.**
+RSS는 제목·요약만 주고 본문은 안 준다. 그래서 기사 본문을 시험 보지 않고, **제목에서 잡은 용어 하나를 가르치고 그걸 묻는다.**
 
 ```
 기사 → 용어 카드(용어 / 한 줄 정의 / 나한테는?) → OX 2문제(해설 포함) → 결과

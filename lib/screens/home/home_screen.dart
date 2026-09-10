@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 뉴스바에 지금 떠 있는 기사를 연다 — 뉴스 탭에서 누른 것과 같은 경로다.
-  /// 아직 못 불러왔으면 구글뉴스 비즈니스 섹션으로 보낸다(빈 탭 방지).
+  /// 아직 못 불러왔으면 연합뉴스 경제 섹션으로 보낸다(빈 탭 방지).
   void _openNews() {
     if (_news.isEmpty) {
       ArticleScreen.open(context, NewsService.morePageUri, '금융 뉴스');

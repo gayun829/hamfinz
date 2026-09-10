@@ -39,6 +39,38 @@ void main() {
     expect(items.last.relativeTime, '');
   });
 
+  test('연합뉴스 피드: <source> 없는 기사는 연합뉴스로, 사진과 +0900 시각을 읽는다', () {
+    const yna = '''
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel>
+<item>
+  <title><![CDATA[국고채 금리 대체로 상승…3년물 연 3.930%]]></title>
+  <link>https://www.yna.co.kr/view/AKR1</link>
+  <pubDate>Thu, 10 Sep 2026 19:21:09 +0900</pubDate>
+  <description><![CDATA[(서울=연합뉴스) ...]]></description>
+  <media:content url="https://img.yna.co.kr/photo/a.jpg" type="image/jpeg"></media:content>
+  <media:content url="https://img.yna.co.kr/photo/b.jpg" type="image/jpeg"></media:content>
+</item>
+<item>
+  <title><![CDATA[환율 3.1원 오른 1,339.2원]]></title>
+  <link>https://www.yna.co.kr/view/AKR2</link>
+  <pubDate>Thu, 10 Sep 2026 19:00:00 +0900</pubDate>
+</item>
+</channel></rss>
+''';
+    final items = NewsService.parseRss(yna);
+
+    expect(items.length, 2);
+    expect(items.first.source, '연합뉴스');
+    // 제목에 " - 언론사" 꼬리가 없으니 그대로 둔다.
+    expect(items.first.title, '국고채 금리 대체로 상승…3년물 연 3.930%');
+    // 첫 사진만 쓴다.
+    expect(items.first.imageUrl, 'https://img.yna.co.kr/photo/a.jpg');
+    // +0900은 UTC로 환산한다.
+    expect(items.first.publishedAt, DateTime.utc(2026, 9, 10, 10, 21, 9));
+    // 사진이 없는 기사는 null — 화면에서 이모지 자리로 대체한다.
+    expect(items.last.imageUrl, isNull);
+  });
+
   test('RFC 822 pubDate를 읽고 깨진 값은 버린다', () {
     // HttpDate.parse는 dart:io라 웹 빌드에서 못 써서 직접 읽는다.
     expect(
@@ -47,6 +79,10 @@ void main() {
     );
     expect(NewsService.parsePubDate('Mon, 9 Jun 2025 23:00:00 GMT'),
         DateTime.utc(2025, 6, 9, 23));
+    expect(NewsService.parsePubDate('Thu, 10 Sep 2026 19:21:09 +0900'),
+        DateTime.utc(2026, 9, 10, 10, 21, 9));
+    expect(NewsService.parsePubDate('Thu, 10 Sep 2026 01:00:00 -0500'),
+        DateTime.utc(2026, 9, 10, 6));
     expect(NewsService.parsePubDate('Tue, 02 Xyz 2025 01:23:45 GMT'), isNull);
     expect(NewsService.parsePubDate('어제'), isNull);
     expect(NewsService.parsePubDate(null), isNull);
@@ -87,12 +123,11 @@ void main() {
     }
   });
 
-  test('더보기는 같은 비즈니스 섹션 페이지를 가리킨다', () {
+  test('더보기는 같은 연합뉴스 경제 섹션 페이지를 가리킨다', () {
     final uri = NewsService.morePageUri;
 
-    expect(uri.host, 'news.google.com');
-    expect(uri.path, '/headlines/section/topic/BUSINESS');
-    expect(uri.queryParameters['hl'], 'ko');
+    expect(uri.host, 'www.yna.co.kr');
+    expect(uri.path, '/economy/all');
   });
 
   test('학습이 붙은 용어는 OX 2문제와 해설을 다 갖고 있다', () {
