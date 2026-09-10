@@ -539,10 +539,12 @@ List<Widget> _buildFigmaHomeLayers({
       child: const SizedBox.expand(),
     ),
 
-    // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 (Figma bbox 그대로) ──
+    // ── 131:5322/5421, 131:5423/5424 스테이지 오각형 + 번호 ──
+    // Figma의 rotated vector x는 transform 전 bbox라 화면상의 위치와 다르다.
+    // PNG의 시각 중심을 Figma text layer 중심에 맞춘다.
     _HomeStagePentagon(
       figma: figma,
-      left: 304.9996337890625,
+      left: 262.1326247655483,
       top: 181.42132568359375,
       width: 40.99964304702837,
       height: 41.66641630988579,
@@ -564,7 +566,7 @@ List<Widget> _buildFigmaHomeLayers({
     ),
     _HomeStagePentagon(
       figma: figma,
-      left: 294.0031433105469,
+      left: 216.0562512141394,
       top: 502.0601501464844,
       width: 77.00312867523678,
       height: 78.25542120861064,
@@ -687,7 +689,7 @@ class _HomeLearningCta extends StatelessWidget {
 
 /// Figma `131:5322`/`131:5423` 오각형 + `131:5421`/`131:5424` 번호.
 ///
-/// shape bbox와 text layer 좌표를 Figma export 값 그대로 쓴다.
+/// 회전된 shape의 시각 중심을 Figma text layer 중심에 맞춘다.
 class _HomeStagePentagon extends StatelessWidget {
   const _HomeStagePentagon({
     required this.figma,
