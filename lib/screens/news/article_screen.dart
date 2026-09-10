@@ -81,7 +81,7 @@ class _ArticleScreenState extends State<ArticleScreen> {
   @override
   void initState() {
     super.initState();
-    // 구글뉴스 링크는 자바스크립트로 언론사 페이지에 넘겨주므로 JS를 켜둬야 한다.
+    // 언론사 페이지는 JS 없이는 본문이 안 뜨는 곳이 많아서 JS를 켜둔다.
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
