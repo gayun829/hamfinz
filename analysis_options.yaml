@@ -9,6 +9,20 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # Exclude generated files and vendored build artifacts (e.g. iOS Swift
+  # Package Manager checkouts under build/) from analysis. Without this,
+  # the analyzer picks up third-party packages' own test files (which pull
+  # in dev-only deps like mockito) and reports hundreds of false-positive
+  # errors that have nothing to do with this app's code.
+  exclude:
+    - "build/**"
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "ios/**"
+    - "macos/**"
+    - "android/**"
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
