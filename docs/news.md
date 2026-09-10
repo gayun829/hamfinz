@@ -60,15 +60,14 @@ news.google.com/rss/headlines/section/topic/BUSINESS?hl=ko&gl=KR&ceid=KR:ko
 
 ## 웹 CORS
 
-브라우저는 구글뉴스에 CORS가 없어 직접 호출이 막힌다.
+브라우저는 구글뉴스에 CORS가 없어 직접 호출이 막힌다. 웹 빌드는 두 경로 중 하나로 우회한다.
 
-```bash
-dart run tool/cors_proxy.dart
-flutter run -d chrome
-```
+| 경로 | 조건 | 비고 |
+|---|---|---|
+| 로컬 프록시 `tool/cors_proxy.dart` (포트 8766) | `--dart-define=NEWS_PROXY=http://localhost:8766` | 지금 쓰는 방식. cmd 하나 더 띄움 |
+| Cloud Functions `fetchNewsFeed` (asia-northeast3) | `NEWS_PROXY` 없이 웹 빌드 | 배포(`firebase deploy --only functions`) 후 사용. 로그인 필수, `https://news.google.com/rss/*`만 허용 |
 
-- 프록시: `tool/cors_proxy.dart` (포트 **8766**)
-- 앱: 웹이면 기본 `http://localhost:8766`, `--dart-define=NEWS_PROXY=`로 덮어쓰기 / 모바일·데스크톱은 직접 RSS 호출
+- 모바일·데스크톱은 CORS가 없어 직접 RSS 호출
 
 ## 화면
 

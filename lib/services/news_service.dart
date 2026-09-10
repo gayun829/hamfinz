@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
@@ -63,14 +64,15 @@ class NewsService {
     const {'hl': 'ko', 'gl': 'KR', 'ceid': 'KR:ko'},
   );
 
-  /// 웹으로 띄웠을 때만 쓰는 우회로. 브라우저는 구글뉴스 응답에 CORS 헤더가
-  /// 없어서 막아버린다. 기본값은 로컬 `dart run tool/cors_proxy.dart`이고,
-  /// 다른 주소를 쓰려면 `--dart-define=NEWS_PROXY=...`로 덮어쓴다.
-  /// 모바일/데스크톱 빌드는 CORS가 없으므로 구글뉴스를 그대로 호출한다.
+  /// 웹 빌드에서만 쓰는 우회로. 브라우저는 구글뉴스 응답에 CORS 헤더가 없어서
+  /// 막아버린다. `dart run tool/cors_proxy.dart`를 띄우고
+  /// `--dart-define=NEWS_PROXY=http://localhost:8766`으로 넘기면 그 프록시를 쓰고,
+  /// 안 넘기면 Cloud Functions `fetchNewsFeed`가 대신 받아온다(배포돼 있어야 함).
+  /// 모바일/데스크톱은 CORS가 없어서 구글뉴스를 직접 부른다.
   static const _definedProxy = String.fromEnvironment('NEWS_PROXY');
-  static String get _proxy => _definedProxy.isNotEmpty
-      ? _definedProxy
-      : (kIsWeb ? 'http://localhost:8766?url=' : '');
+
+  static FirebaseFunctions get _functions =>
+      FirebaseFunctions.instanceFor(region: 'asia-northeast3');
 
   /// 목록 갱신 주기.
   ///
@@ -113,9 +115,30 @@ class NewsService {
   }
 
   static Future<List<NewsItem>> _fetch(int limit) async {
-    final target = _proxy.isEmpty
+    final xml = kIsWeb && _definedProxy.isEmpty
+        ? await _fetchViaFunction()
+        : await _fetchViaHttp();
+    return parseRss(xml, limit: limit);
+  }
+
+  /// 웹 기본 경로. 서버가 XML 문자열을 그대로 돌려준다.
+  static Future<String> _fetchViaFunction() async {
+    final callable = _functions.httpsCallable('fetchNewsFeed');
+    final response = await callable.call<Map<String, dynamic>>({
+      'url': _feedUri.toString(),
+    });
+    final xml = response.data['xml'] as String?;
+    if (xml == null || xml.isEmpty) {
+      throw Exception('구글뉴스 응답이 비어 있어요.');
+    }
+    return xml;
+  }
+
+  /// 모바일/데스크톱 직접 호출. 웹에서 `NEWS_PROXY`를 넘겼을 때도 이 경로다.
+  static Future<String> _fetchViaHttp() async {
+    final target = _definedProxy.isEmpty
         ? _feedUri
-        : Uri.parse(_proxy).replace(
+        : Uri.parse(_definedProxy).replace(
             queryParameters: {'url': _feedUri.toString()},
           );
 
@@ -133,7 +156,7 @@ class NewsService {
       throw Exception('구글뉴스 응답 오류 (${res.statusCode})');
     }
     // http 패키지는 charset 헤더가 없으면 latin1로 디코딩하므로 직접 utf8로 읽는다.
-    return parseRss(utf8.decode(res.bodyBytes), limit: limit);
+    return utf8.decode(res.bodyBytes);
   }
 
   static final _itemPattern = RegExp(r'<item>(.*?)</item>', dotAll: true);

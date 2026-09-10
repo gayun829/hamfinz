@@ -54,9 +54,9 @@
 | 뉴스 용어 학습 | ✅ | 용어 카드 + OX 2문제. 내용 있는 용어 17개 |
 | 1시간 주기 갱신 | ✅ | TTL 캐시 · 앱 복귀 시 재확인 |
 | 당겨서 새로고침 | ✅ | 주기 무시하고 즉시 |
-| 홈 뉴스바 슬라이드 | ✅ | 10초 간격, 누르면 그 기사로 |
+| 홈 뉴스바 슬라이드 | ✅ | 7초 간격 위로 밀려 넘어감, 누르면 그 기사로 |
 | 기사 WebView | ✅ | Android/iOS |
-| 웹 CORS | ✅ | `tool/cors_proxy.dart` |
+| 웹 CORS | ✅ | `tool/cors_proxy.dart` + `NEWS_PROXY` / 배포 후엔 Cloud Functions `fetchNewsFeed` |
 | 기사→용어 학습·퀴즈 | ⏳ | `onStartQuiz` 미연결 |
 
 상세: [news.md](./news.md)

@@ -32,7 +32,7 @@ flutter run -d android
 
 ## 웹에서 뉴스 보기
 
-Chrome 등에서는 구글뉴스 CORS 때문에 프록시가 필요하다.
+Chrome 등에서는 구글뉴스 CORS 때문에 직접 호출이 막힌다. 지금은 로컬 프록시를 같이 띄운다.
 
 터미널 1:
 
@@ -43,11 +43,13 @@ dart run tool/cors_proxy.dart
 터미널 2:
 
 ```bash
-flutter run -d chrome
+flutter run -d chrome --dart-define=NEWS_PROXY=http://localhost:8766
 ```
 
-- 프록시 포트: **8766**  
-- 모바일 빌드는 `NEWS_PROXY` 없이 RSS 직접 호출  
+- 프록시 포트: **8766**
+- 모바일·데스크톱 빌드는 `NEWS_PROXY` 없이 RSS 직접 호출
+- Cloud Functions `fetchNewsFeed`(`functions/index.js`)를 `firebase deploy --only functions`로 올리면,
+  `NEWS_PROXY` 없이 `flutter run -d chrome`만으로 뉴스가 뜬다 (웹은 함수를 거쳐 RSS를 받는다)
 
 ## 프로젝트 디렉터리 (요약)
 

@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _newsTimer;
 
   /// 뉴스바가 한 건을 보여주는 시간.
-  static const _newsSlideInterval = Duration(seconds: 10);
+  static const _newsSlideInterval = Duration(seconds: 7);
 
   @override
   void dispose() {
@@ -193,6 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _news = items;
         _newsIndex = 0;
       });
+      // 목록이 들어온 시점부터 다시 세서 첫 기사도 다른 기사만큼 보이게 한다.
+      _newsTimer?.cancel();
+      _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
     } catch (_) {
       // 뉴스는 홈의 곁다리라, 실패해도 홈 전체를 오류로 만들지 않는다.
     }
@@ -413,10 +416,25 @@ List<Widget> _buildFigmaHomeLayers({
       height: 16,
       child: ClipRect(
         child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: child,
+          duration: const Duration(milliseconds: 450),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          // 전광판처럼 새 제목은 아래에서 올라오고, 이전 제목은 위로 밀려 나간다.
+          // 나가는 쪽은 애니메이션이 거꾸로(1→0) 돌아서 0→(0,-1)로 움직인다.
+          transitionBuilder: (child, animation) {
+            final incoming = child.key == ValueKey(newsLine);
+            final slide = Tween<Offset>(
+              begin: incoming ? const Offset(0, 1) : const Offset(0, -1),
+              end: Offset.zero,
+            );
+            return SlideTransition(
+              position: animation.drive(slide),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.centerLeft,
+            children: [...previousChildren, ?currentChild],
           ),
           child: Align(
             key: ValueKey(newsLine),

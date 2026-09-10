@@ -55,7 +55,11 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
 
   void _refreshIfStale() {
     if (!mounted || !NewsService.isStale) return;
-    setState(() => _future = NewsService.topFinance());
+    // 화살표 함수로 쓰면 Future를 반환해서 setState가 디버그에서 assert를 던진다.
+    final future = NewsService.topFinance();
+    setState(() {
+      _future = future;
+    });
   }
 
   /// 당겨서 새로고침 — 주기와 상관없이 바로 받아온다.

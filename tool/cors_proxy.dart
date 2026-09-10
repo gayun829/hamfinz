@@ -1,9 +1,9 @@
 // 개발 전용 CORS 프록시.
 //
 // 구글뉴스 RSS는 Access-Control-Allow-Origin을 안 주기 때문에 웹(Chrome)으로
-// 띄운 앱에서는 브라우저가 응답을 막는다. 안드로이드/iOS에는 없는 문제라
-// 앱 코드를 고치는 대신, 로컬에서 이 프록시를 띄우고 --dart-define으로
-// 붙여 쓴다.
+// 띄운 앱에서는 브라우저가 응답을 막는다. 이 프록시를 띄우고 --dart-define으로
+// 붙여 쓴다. Cloud Functions `fetchNewsFeed`를 배포하면 NEWS_PROXY 없이도
+// 웹에서 뉴스가 뜨므로 그때는 안 띄워도 된다.
 //
 //   1) dart run tool/cors_proxy.dart
 //   2) flutter run -d chrome --dart-define=NEWS_PROXY=http://localhost:8766
