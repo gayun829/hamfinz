@@ -68,6 +68,8 @@ flutter:
     - assets/icons/auth/
     - assets/figma/home/
     - assets/figma/home/beginner/
+    - assets/figma/home/intermediate/
+    - assets/figma/home/advanced/
     - assets/figma/auth/
     - assets/figma/quiz/
     - assets/figma/shop/

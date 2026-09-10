@@ -8,6 +8,7 @@ import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/news_service.dart';
+import '../../theme/home_tier_theme.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/category_switcher_sheet.dart';
 import '../../widgets/figma/figma_asset_image.dart';
@@ -35,7 +36,10 @@ const _homeLearningCtaScrollPadding = FigmaScale.homeContentHeight -
     (_homeLearningCtaBottomDesign - _homeLearningCtaHeight);
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.profile});
+
+  /// [MainShell]에서 내려주면 학습과정 변경 시 홈 티어가 즉시 반영된다.
+  final UserProfile? profile;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -45,6 +49,33 @@ class _HomeScreenState extends State<HomeScreen> {
   UserProfile? _profile;
   bool _loading = true;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.profile != null) {
+      _profile = widget.profile;
+      _loading = false;
+    }
+    _loadNews();
+    _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
+    if (widget.profile == null) {
+      _loadProfile();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.profile != null &&
+        (widget.profile!.learningStage != oldWidget.profile?.learningStage ||
+            widget.profile != oldWidget.profile)) {
+      setState(() {
+        _profile = widget.profile;
+        _loading = false;
+      });
+    }
+  }
+
   /// 뉴스바에 돌릴 TOP 10. 뉴스 탭과 같은 캐시를 쓴다(1시간 TTL).
   List<NewsItem> _news = const [];
   int _newsIndex = 0;
@@ -52,14 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 뉴스바가 한 건을 보여주는 시간.
   static const _newsSlideInterval = Duration(seconds: 10);
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-    _loadNews();
-    _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
-  }
 
   @override
   void dispose() {
@@ -72,15 +95,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadProfile() async {
-    final profile = await AuthService.instance.getCurrentUser();
-    if (!mounted) return;
-    setState(() {
-      _profile = profile;
-      _loading = false;
-    });
+    try {
+      final profile = await AuthService.instance.getCurrentUser();
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   Future<void> _startQuiz() async {
+    await _loadProfile();
     final profile = _profile;
     if (profile == null) return;
 
@@ -214,6 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final canStart = profile.energy >= QuizData.sessionEnergyCost;
+    final homeTier = HomeTierTheme.forStage(profile.learningStage);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -237,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 extraBottomPaddingDesign: _homeLearningCtaScrollPadding,
                 builder: (context, figma) => _buildFigmaHomeLayers(
                   figma: figma,
+                  tier: homeTier,
                   energy: profile.energy,
                   coin: profile.seeds,
                   streak: profile.streak,
@@ -254,6 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: figma.s(_homeLearningCtaHeight),
                 child: _HomeLearningCta(
                   figma: figma,
+                  tier: homeTier,
                   canStartLearning: canStart,
                   onTap: _startQuiz,
                 ),
@@ -268,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 List<Widget> _buildFigmaHomeLayers({
   required FigmaScale figma,
+  required HomeTierTheme tier,
   required int energy,
   required int coin,
   required int streak,
@@ -290,7 +323,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 143,
       width: 485.3046875,
       height: 541.802734375,
-      child: const FigmaSvg(FigmaAssets.homePathMap, fit: BoxFit.fill),
+      child: FigmaSvg(tier.pathMap, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -298,7 +331,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 186,
       width: 131,
       height: 66,
-      child: const FigmaSvg(FigmaAssets.homeEllipse154, fit: BoxFit.fill),
+      child: FigmaSvg(tier.ellipse154, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -306,7 +339,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 210.01507568359375,
       width: 29.65591569747437,
       height: 12.33499826037405,
-      child: const FigmaSvg(FigmaAssets.homeNode1Overlay, fit: BoxFit.fill),
+      child: FigmaSvg(tier.node1Overlay, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -314,7 +347,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 514,
       width: 210,
       height: 119,
-      child: const FigmaSvg(FigmaAssets.homeEllipse155, fit: BoxFit.fill),
+      child: FigmaSvg(tier.ellipse155, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -322,7 +355,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 373,
       width: 166,
       height: 95,
-      child: const FigmaSvg(FigmaAssets.homeEllipse100, fit: BoxFit.fill),
+      child: FigmaSvg(tier.ellipse100, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -330,7 +363,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 359.197265625,
       width: 46.0875624669402,
       height: 46.427402590952624,
-      child: const FigmaSvg(FigmaAssets.homeDecoVector1, fit: BoxFit.fill),
+      child: FigmaSvg(tier.decoVector1, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -338,7 +371,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 399.357421875,
       width: 18.94550179868429,
       height: 18.72608362290339,
-      child: const FigmaSvg(FigmaAssets.homeDecoVector3, fit: BoxFit.fill),
+      child: FigmaSvg(tier.decoVector3, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
@@ -346,7 +379,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 356.4765625,
       width: 24.489221139918072,
       height: 23.995337006143018,
-      child: const FigmaSvg(FigmaAssets.homeDecoVector4, fit: BoxFit.fill),
+      child: FigmaSvg(tier.decoVector4, fit: BoxFit.fill),
     ),
 
     // ── 131:5325 뉴스 배너 ──
@@ -511,7 +544,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 181.42132568359375,
       width: 40.99964304702837,
       height: 41.66641630988579,
-      asset: FigmaAssets.homeDecoVector2,
+      asset: tier.decoVector2,
       label: '1',
       fontSize: 15.167,
       shadowOffset: Offset(0.782, 0.782),
@@ -523,7 +556,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 556.8336181640625,
       width: 55.69799777731794,
       height: 23.166871005831126,
-      child: const FigmaSvg(FigmaAssets.homeNode3Overlay, fit: BoxFit.fill),
+      child: FigmaSvg(tier.node3Overlay, fit: BoxFit.fill),
     ),
     _HomeStagePentagon(
       figma: figma,
@@ -531,7 +564,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 502.0601501464844,
       width: 77.00312867523678,
       height: 78.25542120861064,
-      asset: FigmaAssets.homeNode3Flag,
+      asset: tier.node3Flag,
       label: '3',
       fontSize: 28.485,
       shadowOffset: Offset(-1.453, 1.468),
@@ -545,7 +578,7 @@ List<Widget> _buildFigmaHomeLayers({
       top: 324,
       width: 152,
       height: 144,
-      child: const FigmaSvg(FigmaAssets.homeHamsterMap, fit: BoxFit.contain),
+      child: FigmaSvg(tier.hamsterMap, fit: BoxFit.contain),
     ),
   ];
 }
@@ -554,11 +587,13 @@ List<Widget> _buildFigmaHomeLayers({
 class _HomeLearningCta extends StatelessWidget {
   const _HomeLearningCta({
     required this.figma,
+    required this.tier,
     required this.canStartLearning,
     required this.onTap,
   });
 
   final FigmaScale figma;
+  final HomeTierTheme tier;
   final bool canStartLearning;
   final VoidCallback onTap;
 
@@ -575,8 +610,8 @@ class _HomeLearningCta extends StatelessWidget {
           DecoratedBox(
             decoration: BoxDecoration(
               color: canStartLearning
-                  ? const Color(0xFF3CC6FF)
-                  : const Color(0xFF3CC6FF).withValues(alpha: 0.55),
+                  ? tier.learningCtaColor
+                  : tier.learningCtaColor.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(s(13 * v)),
             ),
             child: SizedBox(

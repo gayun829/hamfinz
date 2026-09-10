@@ -13,6 +13,7 @@ class UserProfile {
     this.learningHistory = const [],
     this.categoryStats = const {},
     this.interestCategories = const [],
+    this.learningStage = 1,
     this.seeds = 0,
     this.ownedShopItemIds = const [],
     this.studyGuardCount = 0,
@@ -42,6 +43,9 @@ class UserProfile {
   /// QuizCategory enum의 name과 동일한 문자열을 저장한다.
   /// (allowance / saving / stock / insurance / tax / credit)
   List<String> interestCategories;
+
+  /// 학습과정 1~10 — `quizQuestions.difficulty`와 동일.
+  int learningStage;
 
   /// 상점 해바라기씨 잔액.
   int seeds;

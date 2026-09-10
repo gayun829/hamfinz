@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../data/learning_stages.dart';
 import '../../constants/figma_assets.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/learning_stage_sheet.dart';
 import '../../widgets/settings_menu_button.dart';
 import '../friends/add_friend_screen.dart';
 import '../legal/legal_document_screen.dart';
@@ -15,11 +17,13 @@ class SettingsScreen extends StatelessWidget {
     required this.profile,
     required this.onLogout,
     this.onComplete,
+    this.onProfileChanged,
   });
 
   final UserProfile profile;
   final VoidCallback onLogout;
   final VoidCallback? onComplete;
+  final ValueChanged<int>? onProfileChanged;
 
   Future<void> _logout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -167,6 +171,14 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  void _openLearningStage(BuildContext context) {
+    showLearningStageSheet(
+      context: context,
+      initialStage: profile.learningStage,
+      onStageChanged: (stage) => onProfileChanged?.call(stage),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final figma = FigmaScale.ofContext(
@@ -185,7 +197,10 @@ class SettingsScreen extends StatelessWidget {
         },
       ),
       ('연락처 연동', () => _showComingSoon(context, '연락처 연동')),
-      ('학습과정', () => _showComingSoon(context, '학습과정')),
+      (
+        '학습과정 (${learningStageLabel(profile.learningStage)})',
+        () => _openLearningStage(context),
+      ),
       ('개인정보 설정', () => _showComingSoon(context, '개인정보 설정')),
       ('규정& 개인정보 처리 방침', () => _openLegal(context)),
       ('피드백', () => _showComingSoon(context, '피드백')),

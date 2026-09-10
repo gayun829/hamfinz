@@ -27,6 +27,7 @@ class FigmaSvg extends StatelessWidget {
       height: height,
       fit: fit,
       colorFilter: colorFilter,
+      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
     );
     if (opacity >= 1) return svg;
     return Opacity(opacity: opacity, child: svg);

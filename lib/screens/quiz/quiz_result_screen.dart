@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/learning_stages.dart';
 import '../../data/hamster_data.dart';
 import '../../models/quiz_question.dart';
 import '../../models/user_profile.dart';
@@ -45,12 +46,34 @@ class QuizResultScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
+                      if (result.advancedLearningStage != null) ...[
+                        Card(
+                          color: AppTheme.primaryGreen.withValues(alpha: 0.08),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              '🎓 ${learningStageLabel(result.advancedLearningStage!)}로 '
+                              '넘어갔어요!',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryGreen,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              _ResultRow(label: '정답', value: '$correctCount / ${result.answers.length}'),
+                              _ResultRow(
+                                label: '정답',
+                                value: '$correctCount / ${result.answers.length}',
+                              ),
                               const SizedBox(height: 12),
                               _ResultRow(label: '획득 XP', value: '+${result.xpEarned}'),
                               const SizedBox(height: 12),
@@ -63,7 +86,8 @@ class QuizResultScreen extends StatelessWidget {
                               const SizedBox(height: 12),
                               _ResultRow(
                                 label: '현재 레벨',
-                                value: 'Lv.${result.newLevel} ${LevelUtils.titleForLevel(result.newLevel)}',
+                                value:
+                                    'Lv.${result.newLevel} ${LevelUtils.titleForLevel(result.newLevel)}',
                               ),
                               const SizedBox(height: 12),
                               ClipRRect(

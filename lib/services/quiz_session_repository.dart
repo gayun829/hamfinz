@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../data/interest_categories.dart';
+import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
+import '../services/auth_service.dart';
 import '../utils/date_helper.dart';
 import '../utils/quiz_text_helper.dart';
 
@@ -47,26 +49,34 @@ class QuizSessionRepository {
 
     final mastered = await _fetchMasteredIds(uid);
     final targetCategories = _targetCategories(profile);
+    final categoryId = targetCategories.first;
+    final categoryLabel =
+        interestCategoryById(categoryId)?.name ??
+        _categoryLabels[categoryId] ??
+        categoryId;
 
-    var candidates = await _fetchCandidates(
-      categoryIds: targetCategories,
-      excludeIds: mastered,
+    final resolved = await _resolveStageCandidates(
+      profile: profile,
+      uid: uid,
+      categoryId: categoryId,
+      categoryLabel: categoryLabel,
+      mastered: mastered,
     );
 
-    if (candidates.length < QuizData.dailyQuestionCount) {
-      final categoryLabel =
-          interestCategoryById(targetCategories.first)?.name ??
-          _categoryLabels[targetCategories.first] ??
-          targetCategories.first;
+    final candidates = resolved.candidates;
+    final sessionCount = candidates.length < QuizData.dailyQuestionCount
+        ? candidates.length
+        : QuizData.dailyQuestionCount;
+
+    if (sessionCount == 0) {
       throw QuizSessionException(
-        '$categoryLabel 카테고리의 출제 가능한 문제가 부족해요. '
-        '(${candidates.length}/${QuizData.dailyQuestionCount}문항)',
+        '$categoryLabel ${resolved.stage}단계의 출제 가능한 문제가 없어요.',
       );
     }
 
     final selected = _selectQuestions(
       candidates,
-      count: QuizData.dailyQuestionCount,
+      count: sessionCount,
     );
 
     final sessionRef = _firestore
@@ -447,7 +457,39 @@ class QuizSessionRepository {
       if (txResult == null) {
         throw QuizSessionException('세션 완료 처리에 실패했어요.');
       }
-      return _sessionResultFromTx(txResult);
+      var result = _sessionResultFromTx(txResult);
+
+      final userData = (await userRef.get()).data() ?? {};
+      final categoryId = resolveActiveInterestCategoryId(
+        List<String>.from(userData['interestCategories'] as List? ?? []),
+      );
+      if (categoryId != null) {
+        final currentStage = normalizeLearningStage(
+          readLearningStageField(userData['learningStage']),
+        );
+        final masteredAfter = await _fetchMasteredIds(uid);
+        final advancedStage = await _advanceStageIfComplete(
+          categoryId: categoryId,
+          currentStage: currentStage,
+          mastered: masteredAfter,
+        );
+        if (advancedStage != null) {
+          result = QuizSessionResult(
+            answers: result.answers,
+            xpEarned: result.xpEarned,
+            seedsEarned: result.seedsEarned,
+            leveledUp: result.leveledUp,
+            newLevel: result.newLevel,
+            previousLevel: result.previousLevel,
+            unlockedItems: result.unlockedItems,
+            newStreak: result.newStreak,
+            energyRemaining: result.energyRemaining,
+            advancedLearningStage: advancedStage,
+          );
+        }
+      }
+
+      return result;
     } on QuizSessionException {
       rethrow;
     } on FirebaseException catch (e) {
@@ -552,6 +594,7 @@ class QuizSessionRepository {
   Future<List<_QuestionDoc>> _fetchCandidates({
     required List<String> categoryIds,
     required Set<String> excludeIds,
+    required int difficulty,
   }) async {
     final results = <_QuestionDoc>[];
 
@@ -560,6 +603,7 @@ class QuizSessionRepository {
           .collection('quizQuestions')
           .where('categoryId', isEqualTo: categoryId)
           .where('isActive', isEqualTo: true)
+          .where('difficulty', isEqualTo: difficulty)
           .limit(_poolPerCategory)
           .get();
 
@@ -571,6 +615,117 @@ class QuizSessionRepository {
     }
 
     return results;
+  }
+
+  Future<List<String>> _fetchStageQuestionIds({
+    required String categoryId,
+    required int difficulty,
+  }) async {
+    final snap = await _firestore
+        .collection('quizQuestions')
+        .where('categoryId', isEqualTo: categoryId)
+        .where('isActive', isEqualTo: true)
+        .where('difficulty', isEqualTo: difficulty)
+        .get();
+    return snap.docs.map((doc) => doc.id).toList();
+  }
+
+  Future<({int stage, List<_QuestionDoc> candidates})> _resolveStageCandidates({
+    required UserProfile profile,
+    required String uid,
+    required String categoryId,
+    required String categoryLabel,
+    required Set<String> mastered,
+  }) async {
+    var stage = normalizeLearningStage(profile.learningStage);
+
+    // 현재 단계 문제를 전부 풀었으면 프로필 학습과정을 다음 단계로 올린다.
+    while (stage <= kMaxLearningStage) {
+      final stageQuestionIds = await _fetchStageQuestionIds(
+        categoryId: categoryId,
+        difficulty: stage,
+      );
+
+      if (stageQuestionIds.isEmpty) {
+        throw QuizSessionException(
+          '$categoryLabel ${learningStageLabel(stage)} 문제가 아직 준비되지 않았어요.',
+        );
+      }
+
+      final hasRemaining =
+          stageQuestionIds.any((id) => !mastered.contains(id));
+
+      if (hasRemaining) break;
+
+      if (stage >= kMaxLearningStage) {
+        throw QuizSessionException(
+          '$categoryLabel의 모든 학습과정(1~10단계) 문제를 완료했어요!',
+        );
+      }
+
+      final nextStage = stage + 1;
+      final error = await AuthService.instance.saveLearningStage(nextStage);
+      if (error != null) {
+        throw QuizSessionException(error);
+      }
+      profile.learningStage = nextStage;
+      stage = nextStage;
+    }
+
+    final targetCount = QuizData.dailyQuestionCount;
+    final collected = <_QuestionDoc>[];
+    final pickedIds = <String>{...mastered};
+    var fetchStage = stage;
+
+    while (collected.length < targetCount && fetchStage <= kMaxLearningStage) {
+      final batch = await _fetchCandidates(
+        categoryIds: [categoryId],
+        excludeIds: pickedIds,
+        difficulty: fetchStage,
+      );
+      batch.shuffle(_random);
+
+      for (final question in batch) {
+        if (collected.length >= targetCount) break;
+        if (pickedIds.add(question.id)) {
+          collected.add(question);
+        }
+      }
+
+      // 10단계는 다음 단계가 없으므로 남은 만큼만 출제한다.
+      if (fetchStage >= kMaxLearningStage) break;
+
+      if (collected.length < targetCount) {
+        fetchStage++;
+      }
+    }
+
+    if (collected.isEmpty) {
+      throw QuizSessionException(
+        '$categoryLabel ${learningStageLabel(stage)}의 출제 가능한 문제가 없어요.',
+      );
+    }
+
+    return (stage: stage, candidates: collected);
+  }
+
+  Future<int?> _advanceStageIfComplete({
+    required String categoryId,
+    required int currentStage,
+    required Set<String> mastered,
+  }) async {
+    final stageQuestionIds = await _fetchStageQuestionIds(
+      categoryId: categoryId,
+      difficulty: currentStage,
+    );
+    if (stageQuestionIds.isEmpty) return null;
+    if (!stageQuestionIds.every(mastered.contains)) return null;
+    if (currentStage >= kMaxLearningStage) return null;
+
+    final nextStage = currentStage + 1;
+    final error = await AuthService.instance.saveLearningStage(nextStage);
+    if (error != null) return null;
+    return nextStage;
   }
 
   _QuestionDoc? _parseQuestionDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -619,32 +774,7 @@ class QuizSessionRepository {
     required int count,
   }) {
     final pool = List<_QuestionDoc>.from(candidates)..shuffle(_random);
-
-    // 난이도 1~10 구간에서 무작위 목표를 두고 가까운 순으로 1차 정렬 후 셔플.
-    final targetDifficulty = _random.nextInt(10) + 1;
-    pool.sort(
-      (a, b) => (a.difficulty - targetDifficulty)
-          .abs()
-          .compareTo((b.difficulty - targetDifficulty).abs()),
-    );
-
-    final picked = <_QuestionDoc>[];
-
-    for (final question in pool) {
-      if (picked.length >= count) break;
-      picked.add(question);
-    }
-
-    if (picked.length < count) {
-      for (final question in pool) {
-        if (picked.length >= count) break;
-        if (picked.any((q) => q.id == question.id)) continue;
-        picked.add(question);
-      }
-    }
-
-    picked.shuffle(_random);
-    return picked.take(count).toList();
+    return pool.take(count).toList();
   }
 }
 
