@@ -75,4 +75,8 @@ class HomeTierTheme {
   String get decoVector4 => _asset('deco_vector_4.svg');
   String get node3Overlay => _asset('node_3_overlay.svg');
   String get node3Flag => _asset('node_3_flag.svg');
+
+  /// Figma PNG export — drop-shadow·3D 두께 포함 (flutter_svg filter 미지원).
+  String get node1Pentagon => _asset('node_1_pentagon.png');
+  String get node3Pentagon => _asset('node_3_pentagon.png');
 }
