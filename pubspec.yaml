@@ -68,8 +68,14 @@ flutter:
     - assets/icons/auth/
     - assets/figma/home/
     - assets/figma/home/beginner/
+    - assets/figma/home/beginner/node_1_pentagon.png
+    - assets/figma/home/beginner/node_3_pentagon.png
     - assets/figma/home/intermediate/
+    - assets/figma/home/intermediate/node_1_pentagon.png
+    - assets/figma/home/intermediate/node_3_pentagon.png
     - assets/figma/home/advanced/
+    - assets/figma/home/advanced/node_1_pentagon.png
+    - assets/figma/home/advanced/node_3_pentagon.png
     - assets/figma/auth/
     - assets/figma/quiz/
     - assets/figma/shop/

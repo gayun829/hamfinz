@@ -548,7 +548,8 @@ List<Widget> _buildFigmaHomeLayers({
       centerY: 186 + 66 / 2,
       width: 40.99964304702837,
       height: 41.66641630988579,
-      asset: tier.node1Pentagon,
+      pngAsset: tier.node1Pentagon,
+      svgFallback: tier.decoVector2,
       label: '1',
       fontSize: 15.167,
       shadowOffset: Offset(0.782, 0.782),
@@ -567,7 +568,8 @@ List<Widget> _buildFigmaHomeLayers({
       centerY: 514 + 119 / 2,
       width: 77.00312867523678,
       height: 78.25542120861064,
-      asset: tier.node3Pentagon,
+      pngAsset: tier.node3Pentagon,
+      svgFallback: tier.node3Flag,
       label: '3',
       fontSize: 28.485,
       shadowOffset: Offset(-1.453, 1.468),
@@ -691,7 +693,8 @@ class _HomeStagePentagon extends StatelessWidget {
     required this.centerY,
     required this.width,
     required this.height,
-    required this.asset,
+    required this.pngAsset,
+    required this.svgFallback,
     required this.label,
     required this.fontSize,
     required this.shadowOffset,
@@ -702,7 +705,8 @@ class _HomeStagePentagon extends StatelessWidget {
   final double centerY;
   final double width;
   final double height;
-  final String asset;
+  final String pngAsset;
+  final String svgFallback;
   final String label;
   final double fontSize;
   final Offset shadowOffset;
@@ -720,7 +724,15 @@ class _HomeStagePentagon extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          Positioned.fill(child: FigmaPng(asset, fit: BoxFit.fill)),
+          Positioned.fill(
+            child: Image.asset(
+              pngAsset,
+              fit: BoxFit.fill,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stackTrace) =>
+                  FigmaSvg(svgFallback, fit: BoxFit.fill),
+            ),
+          ),
           Text(
             label,
             style: TextStyle(
