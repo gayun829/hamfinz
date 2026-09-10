@@ -110,11 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _startQuiz() async {
     await _loadProfile();
+    if (!mounted) return;
+
     final profile = _profile;
     if (profile == null) return;
 
     if (profile.energy < QuizData.sessionEnergyCost) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -128,7 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (resolveActiveInterestCategoryId(profile.interestCategories) == null) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('학습 카테고리를 먼저 선택해 주세요.')),
       );
@@ -136,11 +136,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    if (!mounted) return;
     final completed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => QuizScreen(profile: profile)),
     );
 
-    if (completed == true || mounted) {
+    if (!mounted) return;
+    if (completed == true) {
       await _loadProfile();
     }
   }
