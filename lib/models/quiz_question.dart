@@ -57,6 +57,7 @@ class QuizSessionResult {
     required this.unlockedItems,
     required this.newStreak,
     this.energyRemaining,
+    this.advancedLearningStage,
   });
 
   final List<QuizAnswer> answers;
@@ -68,4 +69,7 @@ class QuizSessionResult {
   final List<String> unlockedItems;
   final int newStreak;
   final int? energyRemaining;
+
+  /// 현재 카테고리·단계 문제를 모두 풀어 자동으로 넘어간 학습과정.
+  final int? advancedLearningStage;
 }

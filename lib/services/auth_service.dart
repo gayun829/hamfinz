@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../data/interest_categories.dart';
 import '../data/legal_documents.dart';
+import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
@@ -333,6 +334,31 @@ class AuthService {
     }
   }
 
+  /// 학습과정 저장 (1~10). 실패 시 사용자용 메시지, 성공 시 null.
+  Future<String?> saveLearningStage(int stage) async {
+    final user = _auth.currentUser;
+    if (user == null) return '로그인 정보가 없어요.';
+
+    final normalized = normalizeLearningStage(stage);
+
+    try {
+      await _users.doc(user.uid).update({
+        'learningStage': normalized,
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return '학습과정 저장 권한이 없어요. Firestore 규칙 배포를 확인해 주세요.';
+      }
+      if (e.code == 'not-found') {
+        return '프로필을 찾을 수 없어요. 다시 로그인해 주세요.';
+      }
+      return '학습과정 저장에 실패했어요. (${e.code})';
+    } catch (e) {
+      return '학습과정 저장에 실패했어요. (${e.runtimeType})';
+    }
+  }
+
   /// 학습 카테고리 저장 (6개 중 1개). 실패 시 사용자용 메시지, 성공 시 null.
   Future<String?> saveInterestCategories(List<String> categoryIds) async {
     final user = _auth.currentUser;
@@ -409,6 +435,7 @@ class AuthService {
     'learningHistory': <Map<String, dynamic>>[],
     'categoryStats': <String, dynamic>{},
     'interestCategories': <String>[],
+    'learningStage': kMinLearningStage,
     'seeds': 0,
     'ownedShopItemIds': <String>[],
     'consents': {
@@ -478,6 +505,7 @@ class AuthService {
       interestCategories: List<String>.from(
         data['interestCategories'] as List? ?? [],
       ),
+      learningStage: normalizeLearningStage(readLearningStageField(data['learningStage'])),
       seeds: data['seeds'] as int? ?? 0,
       ownedShopItemIds: List<String>.from(
         data['ownedShopItemIds'] as List? ?? [],
@@ -499,6 +527,7 @@ class AuthService {
     'nickname': profile.nickname,
     'selectedHamsterId': profile.selectedHamsterId,
     'interestCategories': profile.interestCategories,
+    'learningStage': normalizeLearningStage(profile.learningStage),
     'equippedSkinId': profile.equippedSkinId,
     'equippedPatternId': profile.equippedPatternId,
     'equippedBackgroundId': profile.equippedBackgroundId,

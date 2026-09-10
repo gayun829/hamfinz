@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/learning_stages.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
@@ -29,12 +30,24 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _loadProfile() async {
-    final profile = await AuthService.instance.getCurrentUser();
-    if (!mounted) return;
+    try {
+      final profile = await AuthService.instance.getCurrentUser();
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _loadingProfile = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingProfile = false);
+    }
+  }
+
+  void _onLearningStageChanged(int stage) {
     setState(() {
-      _profile = profile;
-      _loadingProfile = false;
+      _profile?.learningStage = normalizeLearningStage(stage);
     });
+    _loadProfile();
   }
 
   void _onNavTap(int index) {
@@ -77,11 +90,15 @@ class _MainShellState extends State<MainShell> {
               index: _currentIndex,
               children: [
                 const NewsScreen(),
-                const HomeScreen(),
+                HomeScreen(
+                  key: ValueKey(profile.learningStage),
+                  profile: profile,
+                ),
                 SettingsScreen(
                   profile: profile,
                   onLogout: widget.onLogout,
                   onComplete: () => setState(() => _currentIndex = 1),
+                  onProfileChanged: _onLearningStageChanged,
                 ),
               ],
             ),

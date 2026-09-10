@@ -28,6 +28,7 @@ class FigmaCanvas extends StatelessWidget {
     this.fit = FigmaCanvasFit.width,
     this.fillWidth = false,
     this.clipContent = true,
+    this.extraBottomPaddingDesign = 0,
   });
 
   final double designWidth;
@@ -41,6 +42,9 @@ class FigmaCanvas extends StatelessWidget {
 
   /// false면 맵 등 프레임 밖으로 나가는 요소를 잘리지 않는다.
   final bool clipContent;
+
+  /// 스크롤 콘텐츠 하단 여백(Figma px). 고정 오버레이 CTA 등에 맞춘다.
+  final double extraBottomPaddingDesign;
   final List<Widget> Function(BuildContext context, FigmaScale figma) builder;
 
   @override
@@ -71,8 +75,10 @@ class FigmaCanvas extends StatelessWidget {
             ? constraints.maxWidth
             : figma.s(designWidth);
         final contentHeight = figma.s(designHeight);
+        final bottomPadding = figma.s(extraBottomPaddingDesign);
+        final scrollContentHeight = contentHeight + bottomPadding;
         final fitsInViewport = hasBoundedHeight &&
-            contentHeight <= maxHeight + 0.5;
+            scrollContentHeight <= maxHeight + 0.5;
 
         final frame = SizedBox(
           width: contentWidth,
@@ -86,6 +92,13 @@ class FigmaCanvas extends StatelessWidget {
           ),
         );
 
+        final paddedFrame = bottomPadding <= 0
+            ? frame
+            : Padding(
+                padding: EdgeInsets.only(bottom: bottomPadding),
+                child: frame,
+              );
+
         final alignWhenFits = fit == FigmaCanvasFit.widthScroll ||
                 fit == FigmaCanvasFit.viewport
             ? Alignment.bottomCenter
@@ -93,7 +106,7 @@ class FigmaCanvas extends StatelessWidget {
 
         final alignedFrame = Align(
           alignment: fitsInViewport ? alignWhenFits : Alignment.topCenter,
-          child: frame,
+          child: paddedFrame,
         );
 
         if (fit == FigmaCanvasFit.width && !scrollable) {
@@ -121,8 +134,8 @@ class FigmaCanvas extends StatelessWidget {
         }
 
         final scrollMinHeight = hasBoundedHeight
-            ? (fitsInViewport ? maxHeight : contentHeight)
-            : contentHeight;
+            ? (fitsInViewport ? maxHeight : scrollContentHeight)
+            : scrollContentHeight;
 
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
