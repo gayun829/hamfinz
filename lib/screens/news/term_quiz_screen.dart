@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/figma_assets.dart';
 import '../../data/finance_terms.dart';
-import '../../data/interest_categories.dart';
+import '../../services/news_quiz_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/figma/figma_asset_image.dart';
+import '../../widgets/home_bottom_nav.dart';
 
-/// 기사에서 잡은 금융 용어 하나를 가르치고 바로 묻는다.
+/// 기사에서 잡은 금융 용어 하나를 3지선다 한 문제로 묻는다.
+///
+/// Figma `뉴스_퀴즈창 → 뉴스_정오답 → 뉴스_해설` 세 장면을 한 화면의 상태로 돈다.
+///
+/// | 단계 | 보기 | 버튼 |
+/// |---|---|---|
+/// | 문제 | 고른 보기만 하늘색 테두리 | 정답 보기 |
+/// | 정오답 | 정답은 하늘색, 내가 틀리게 고른 건 빨강 | 해설 보기 |
+/// | 해설 | 정답 하나만 노랑으로 남기고 아래에 해설 상자 | 나가기 |
 ///
 /// 홈 퀴즈([QuizScreen])와 **일부러 안 엮었다.** 그쪽은 에너지를 쓰고 XP를 주고
-/// 채점을 서버가 한다(`QuizSession`에 정답이 안 실려 온다). 뉴스에서 들어오는
-/// 이 학습은 기사를 읽다 곁다리로 보는 거라, 에너지도 기록도 없이 그 자리에서
-/// 채점하고 끝낸다. 진도로 세고 싶어지면 그때 `QuizService`에 붙이면 된다.
+/// 채점을 서버가 한다. 뉴스에서 들어오는 이 퀴즈는 기사를 읽다 곁다리로 보는
+/// 거라 그 자리에서 채점하고, 맞히면 씨앗 +3만 준다([NewsQuizRepository]).
 class TermQuizScreen extends StatefulWidget {
   const TermQuizScreen({super.key, required this.term, required this.headline});
 
   final FinanceTerm term;
 
-  /// 어떤 기사에서 왔는지. 카드 맨 위에 한 줄로 붙는다.
+  /// 어떤 기사에서 왔는지. 지금 화면에는 안 그리지만 다음 단계(기사 기반 문제)를
+  /// 위해 받아 둔다.
   final String headline;
 
-  /// 학습 내용이 있는 용어일 때만 띄운다.
+  /// 문제가 있는 용어일 때만 띄운다.
   static Future<void> open(
     BuildContext context,
     FinanceTerm term,
@@ -35,222 +46,90 @@ class TermQuizScreen extends StatefulWidget {
   State<TermQuizScreen> createState() => _TermQuizScreenState();
 }
 
+enum _Stage { question, graded, explain }
+
 class _TermQuizScreenState extends State<TermQuizScreen> {
-  /// 0 = 용어 카드, 1..n = 문제, n+1 = 결과.
-  int _step = 0;
+  _Stage _stage = _Stage.question;
 
-  /// 지금 문제에 고른 답. null이면 아직 안 골랐다.
-  bool? _picked;
-  final List<bool> _correct = [];
+  /// 고른 보기. null이면 아직 안 골랐다.
+  int? _picked;
 
-  List<TermOx> get _quiz => widget.term.quiz;
-  bool get _isResult => _step > _quiz.length;
+  /// 이번에 실제로 받은 씨앗. 이미 받은 용어를 다시 풀면 0.
+  int _earned = 0;
 
-  void _pick(bool answer) {
-    if (_picked != null) return;
-    setState(() {
-      _picked = answer;
-      _correct.add(answer == _quiz[_step - 1].answer);
-    });
+  TermQuiz get _quiz => widget.term.quiz!;
+  bool get _isCorrect => _picked == _quiz.answer;
+
+  void _pick(int index) {
+    if (_stage != _Stage.question) return;
+    setState(() => _picked = index);
   }
 
-  void _next() {
-    setState(() {
-      _step += 1;
-      _picked = null;
-    });
+  Future<void> _reveal() async {
+    if (_picked == null) return;
+    setState(() => _stage = _Stage.graded);
+    if (!_isCorrect) return;
+    final earned = await NewsQuizRepository.instance.rewardCorrect(
+      widget.term.term,
+    );
+    if (!mounted) return;
+    setState(() => _earned = earned);
   }
+
+  void _explain() => setState(() => _stage = _Stage.explain);
+
+  void _exit() => Navigator.of(context).pop();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.figmaHomeBackground,
-      appBar: AppBar(
-        backgroundColor: AppTheme.card,
-        foregroundColor: AppTheme.textPrimary,
-        elevation: 0,
-        title: const Text(
-          '용어 학습',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(3),
-          child: LinearProgressIndicator(
-            value: _step / (_quiz.length + 1),
-            minHeight: 3,
-            backgroundColor: AppTheme.figmaMintLight,
-            color: AppTheme.figmaTeal,
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: _isResult
-              ? _buildResult()
-              : _step == 0
-              ? _buildCard()
-              : _buildQuestion(),
-        ),
-      ),
-    );
-  }
-
-  /// 용어 카드 — 용어 / 한 줄 정의 / 나한테는?
-  Widget _buildCard() {
-    final term = widget.term;
-    final emoji = findInterestCategory(term.categoryId)?.emoji ?? '📰';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.headline,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.figmaMintLight),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$emoji ${term.term}',
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    term.summary,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    '나한테는?',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.figmaTeal,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    term.forMe,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      height: 1.5,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        _PrimaryButton(label: '문제 풀기 (${_quiz.length}문제)', onPressed: _next),
-      ],
-    );
-  }
-
-  Widget _buildQuestion() {
-    final index = _step - 1;
-    final question = _quiz[index];
-    final picked = _picked;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '${index + 1} / ${_quiz.length}',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.figmaTeal,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          question.statement,
-          style: const TextStyle(
-            fontSize: 20,
-            height: 1.4,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: _OxButton(
-                label: 'O',
-                value: true,
-                picked: picked,
-                answer: question.answer,
-                onTap: () => _pick(true),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _OxButton(
-                label: 'X',
-                value: false,
-                picked: picked,
-                answer: question.answer,
-                onTap: () => _pick(false),
-              ),
-            ),
-          ],
-        ),
-        if (picked != null) ...[
-          const SizedBox(height: 20),
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
           Expanded(
-            child: SingleChildScrollView(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.figmaMintCard,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _BackChevron(onTap: _exit),
+                    const SizedBox(height: 28),
+                    _QuestionHeader(
+                      reward: NewsQuizRepository.seedsPerCorrect,
+                      // 이미 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
+                      showReward:
+                          _earned > 0 ||
+                          !NewsQuizRepository.instance.isRewarded(
+                            widget.term.term,
+                          ),
+                    ),
+                    const SizedBox(height: 10),
                     Text(
-                      picked == question.answer ? '맞았어요' : '아쉬워요',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: picked == question.answer
-                            ? AppTheme.figmaTeal
-                            : AppTheme.figmaOrange,
+                      _quiz.question,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        height: 1.45,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      question.why,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        height: 1.5,
-                        color: AppTheme.textPrimary,
+                    const SizedBox(height: 22),
+                    // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_stage == _Stage.explain)
+                              _buildExplain()
+                            else
+                              _buildOptions(),
+                            const SizedBox(height: 28),
+                            _buildButton(),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -258,117 +137,259 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _PrimaryButton(
-            label: index + 1 == _quiz.length ? '결과 보기' : '다음 문제',
-            onPressed: _next,
+          // 퀴즈도 탭 안의 한 장면처럼 보이게 하단 탭을 그대로 둔다.
+          // 누르면 뉴스 탭으로 돌아간다 — 탭 전환은 MainShell 몫이라 여기서 안 한다.
+          HomeBottomNav(currentIndex: 0, onTap: (_) => _exit()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptions() {
+    final options = _quiz.options;
+    return Column(
+      children: [
+        for (var i = 0; i < options.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _OptionBox(
+            label: options[i],
+            style: _styleFor(i),
+            onTap: _stage == _Stage.question ? () => _pick(i) : null,
           ),
-        ] else
-          const Spacer(),
+        ],
       ],
     );
   }
 
-  Widget _buildResult() {
-    final score = _correct.where((ok) => ok).length;
-    final perfect = score == _quiz.length;
+  _OptionStyle _styleFor(int index) {
+    final isAnswer = index == _quiz.answer;
+    final isPicked = index == _picked;
+    switch (_stage) {
+      case _Stage.question:
+        return isPicked ? _OptionStyle.picked : _OptionStyle.idle;
+      case _Stage.graded:
+        if (isAnswer) return _OptionStyle.correct;
+        if (isPicked) return _OptionStyle.wrong;
+        return _OptionStyle.idle;
+      case _Stage.explain:
+        return _OptionStyle.answer;
+    }
+  }
 
+  /// 해설 — 정답 보기 하나만 노랗게 남기고 그 아래에 해설 상자.
+  Widget _buildExplain() {
+    final term = widget.term;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Spacer(),
-        Text(
-          perfect ? '🎉' : '💪',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 56),
+        _OptionBox(
+          label: _quiz.options[_quiz.answer],
+          style: _OptionStyle.answer,
+          onTap: null,
         ),
-        const SizedBox(height: 12),
-        Text(
-          '${_quiz.length}문제 중 $score개',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.textPrimary,
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _OptionStyle.idle.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _isCorrect ? '정답이에요!' : '아쉬워요, 정답은 위와 같아요.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: _isCorrect ? AppTheme.figmaTeal : _OptionStyle.wrong.border,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _quiz.why,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.55,
+                  color: Colors.black,
+                ),
+              ),
+              if (term.summary.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '「${term.term}」 ${term.summary}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.5,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+              if (_earned > 0) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '🌱 씨앗 +$_earned',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.figmaTeal,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          perfect ? '「${widget.term.term}」 확실히 알고 있네요.' : '해설을 한 번 더 읽어 보면 남아요.',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppTheme.textSecondary),
+      ],
+    );
+  }
+
+  Widget _buildButton() {
+    switch (_stage) {
+      case _Stage.question:
+        return _PrimaryButton(
+          label: '정답 보기',
+          onPressed: _picked == null ? null : _reveal,
+        );
+      case _Stage.graded:
+        return _PrimaryButton(label: '해설 보기', onPressed: _explain);
+      case _Stage.explain:
+        return _PrimaryButton(label: '나가기', onPressed: _exit);
+    }
+  }
+}
+
+/// Figma 좌상단 `<`. 얇고 연한 회색이라 기본 AppBar 화살표 대신 직접 그린다.
+class _BackChevron extends StatelessWidget {
+  const _BackChevron({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: const Padding(
+          padding: EdgeInsets.all(8),
+          child: Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFFB0B0B0)),
         ),
-        const Spacer(),
-        _PrimaryButton(
-          label: '다시 풀기',
-          onPressed: () => setState(() {
-            _step = 1;
-            _picked = null;
-            _correct.clear();
-          }),
+      ),
+    );
+  }
+}
+
+/// `Q` 마크 + 씨앗 `+3` 배지.
+class _QuestionHeader extends StatelessWidget {
+  const _QuestionHeader({required this.reward, required this.showReward});
+
+  final int reward;
+  final bool showReward;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text(
+          'Q',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: _OptionStyle.accent,
+            height: 1,
+          ),
         ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(foregroundColor: AppTheme.textSecondary),
-          child: const Text('닫기'),
-        ),
+        if (showReward) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+            decoration: BoxDecoration(
+              color: AppTheme.figmaMintCard,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: FigmaSvg(FigmaAssets.shopSeedPouch),
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  '+$reward',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _OxButton extends StatelessWidget {
-  const _OxButton({
+/// 보기 상자의 색 조합. Figma 네 장면에서 쓰인 다섯 가지.
+enum _OptionStyle {
+  idle(Colors.white, Color(0xFFDADADA)),
+  picked(Colors.white, accent),
+  correct(Color(0xFFD6F4FF), Color(0xFF7DD3F7)),
+  wrong(Color(0xFFF8C9C9), Color(0xFFE5484D)),
+  answer(Color(0xFFFFF5C2), Color(0xFFF3D66B));
+
+  const _OptionStyle(this.background, this.border);
+
+  final Color background;
+  final Color border;
+
+  /// 홈 '오늘의 학습' CTA와 같은 하늘색. `Q` 마크·버튼·고른 보기 테두리에 쓴다.
+  static const accent = Color(0xFF3CC6FF);
+}
+
+class _OptionBox extends StatelessWidget {
+  const _OptionBox({
     required this.label,
-    required this.value,
-    required this.picked,
-    required this.answer,
+    required this.style,
     required this.onTap,
   });
 
   final String label;
-  final bool value;
-  final bool? picked;
-  final bool answer;
-  final VoidCallback onTap;
+  final _OptionStyle style;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    // 답을 고른 뒤에는 정답 쪽을 민트로, 잘못 고른 쪽을 주황으로 칠한다.
-    final decided = picked != null;
-    final isAnswer = value == answer;
-    final isPicked = value == picked;
-
-    Color background = AppTheme.card;
-    Color border = AppTheme.figmaMintLight;
-    Color text = AppTheme.textPrimary;
-    if (decided && isAnswer) {
-      background = AppTheme.figmaMintDeep;
-      border = AppTheme.figmaMintDeep;
-      text = Colors.white;
-    } else if (decided && isPicked) {
-      background = AppTheme.figmaOrange;
-      border = AppTheme.figmaOrange;
-      text = Colors.white;
-    }
-
-    return GestureDetector(
-      onTap: decided ? null : onTap,
-      child: Container(
-        height: 88,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: border, width: 2),
+          color: style.background,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: style.border,
+            width: style == _OptionStyle.idle ? 1 : 1.5,
+          ),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            color: text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.3,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
           ),
         ),
       ),
@@ -380,23 +401,28 @@ class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({required this.label, required this.onPressed});
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 46,
+      width: double.infinity,
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: AppTheme.figmaTeal,
+          backgroundColor: _OptionStyle.accent,
+          disabledBackgroundColor: _OptionStyle.accent.withValues(alpha: 0.45),
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
     );

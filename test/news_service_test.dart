@@ -130,28 +130,30 @@ void main() {
     expect(uri.path, '/economy/all');
   });
 
-  test('학습이 붙은 용어는 OX 2문제와 해설을 다 갖고 있다', () {
+  test('학습이 붙은 용어는 3지선다 한 문제와 해설을 다 갖고 있다', () {
     final lessons = kFinanceTerms.where((t) => t.hasLesson).toList();
-    // 자주 걸리는 용어부터 채운다. 하나도 없으면 뉴스 학습이 통째로 안 뜬다.
+    // 자주 걸리는 용어부터 채운다. 하나도 없으면 뉴스 퀴즈가 통째로 안 뜬다.
     expect(lessons.length, greaterThanOrEqualTo(10));
 
     for (final term in lessons) {
       expect(term.summary.trim(), isNotEmpty, reason: term.term);
       expect(term.forMe.trim(), isNotEmpty, reason: term.term);
-      expect(term.quiz.length, 2, reason: term.term);
-      for (final q in term.quiz) {
-        expect(q.statement.trim(), isNotEmpty, reason: term.term);
-        // 해설이 없으면 틀려도 왜 틀렸는지를 못 알려준다.
-        expect(q.why.trim(), isNotEmpty, reason: term.term);
-      }
-      // O만 둘, X만 둘이면 찍어서 맞는다.
-      expect(term.quiz.map((q) => q.answer).toSet().length, 2,
-          reason: term.term);
+      final q = term.quiz!;
+      expect(q.question.trim(), isNotEmpty, reason: term.term);
+      // 화면(뉴스_퀴즈창)은 보기 셋이 기본이다.
+      expect(q.options.length, 3, reason: term.term);
+      expect(q.options.map((o) => o.trim()).toSet().length, 3,
+          reason: '${term.term}: 보기가 겹친다');
+      expect(q.answer, inInclusiveRange(0, 2), reason: term.term);
+      // 해설이 없으면 틀려도 왜 틀렸는지를 못 알려준다.
+      expect(q.why.trim(), isNotEmpty, reason: term.term);
     }
+    // 정답이 늘 같은 자리면 찍어서 맞는다.
+    expect(lessons.map((t) => t.quiz!.answer).toSet().length, 3);
   });
 
   test('설명이 없는 용어는 학습으로 안 이어진다', () {
-    final bare = kFinanceTerms.firstWhere((t) => t.quiz.isEmpty);
+    final bare = kFinanceTerms.firstWhere((t) => t.quiz == null);
     expect(bare.hasLesson, isFalse);
   });
 }
