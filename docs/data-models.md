@@ -65,7 +65,8 @@
 
 ### CategoryStat
 
-`correct`, `total` → `accuracy`
+`correct`, `total`, `completedSessions` → `accuracy`  
+에너지 학습 세션을 끝낼 때마다 해당 카테고리 `completedSessions`가 1 늘어난다. 홈 맵 숫자는 `completedSessions + 1` (1~200). 복습 세션은 세지 않는다.
 
 ### LevelUtils
 
