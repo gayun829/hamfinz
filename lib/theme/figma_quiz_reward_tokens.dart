@@ -25,7 +25,7 @@ abstract final class FigmaQuizRewardTokens {
   static const sparkleLeftTop = Offset(61, 318);
   static const sparkleRightTop = Offset(304, 446);
 
-  /// 세 보상 수치는 Inter SemiBold였지만 번들된 Pretendard로 대체한다.
+  /// 세 보상 수치는 Inter SemiBold (`assets/fonts/Inter-SemiBold.ttf`).
   static const statFontSize = 14.024;
   static const statLineHeight = 17.53 / 14.024;
 

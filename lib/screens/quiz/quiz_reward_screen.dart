@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
+import '../../theme/figma_quiz_fonts.dart';
 import '../../theme/figma_quiz_reward_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
@@ -90,6 +91,7 @@ class QuizRewardScreen extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         style: TextStyle(
+          fontFamily: FigmaQuizFonts.pretendard,
           fontSize: figma.s(FigmaQuizRewardTokens.titleFontSize),
           height: 1,
           fontWeight: FontWeight.w700,
@@ -193,6 +195,7 @@ class QuizRewardScreen extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         style: TextStyle(
+          fontFamily: FigmaQuizFonts.inter,
           fontSize: figma.s(FigmaQuizRewardTokens.statFontSize),
           height: FigmaQuizRewardTokens.statLineHeight,
           fontWeight: FontWeight.w600,

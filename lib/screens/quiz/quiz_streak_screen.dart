@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
+import '../../theme/figma_quiz_fonts.dart';
 import '../../theme/figma_quiz_streak_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
@@ -252,6 +253,7 @@ class QuizStreakScreen extends StatelessWidget {
                 Text(
                   '$streak',
                   style: TextStyle(
+                    fontFamily: FigmaQuizFonts.pretendard,
                     fontSize: figma.s(
                       FigmaQuizStreakTokens.streakNumberFontSize,
                     ),
@@ -264,6 +266,7 @@ class QuizStreakScreen extends StatelessWidget {
                 Text(
                   'day',
                   style: TextStyle(
+                    fontFamily: FigmaQuizFonts.pretendard,
                     fontSize: figma.s(FigmaQuizStreakTokens.streakDayFontSize),
                     height: 1,
                     fontWeight: FontWeight.w700,
@@ -276,6 +279,7 @@ class QuizStreakScreen extends StatelessWidget {
             Text(
               'streak!',
               style: TextStyle(
+                fontFamily: FigmaQuizFonts.pretendard,
                 fontSize: figma.s(FigmaQuizStreakTokens.streakSuffixFontSize),
                 height: 1,
                 fontWeight: FontWeight.w400,
