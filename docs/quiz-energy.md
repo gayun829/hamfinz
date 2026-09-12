@@ -18,6 +18,13 @@
 | 일일 학습 횟수 제한 | **없음** (에너지만 있으면 반복) |
 | 에너지 회복 | 날짜가 바뀌면 100으로 리셋 |
 
+에너지 회복은 **읽을 때 계산하고 쓸 때 저장한다** (`lib/utils/energy_reset.dart`).
+`AuthService._profileFromJson`은 화면용으로만 계산하고 저장하지 않으므로,
+저장값을 깎는 쪽(`submitAnswer`·`completeSession`·`ShopPurchaseRepository`·
+Functions `resolveEnergy`)이 `energy`와 `lastEnergyResetDate`를 **같이** 써야 한다.
+한쪽만 빠지면 저장된 에너지가 날짜가 바뀌어도 깎이기만 해서, 화면은 100인데
+제출은 "에너지가 부족해요"로 막히는 상태가 된다.
+
 ## 출제
 
 `QuizService.startSession` → `QuizSessionRepository.startSession`:
