@@ -63,6 +63,7 @@ HomeScreen
 ```
 HomeScreen
   → QuizScreen (10문제)
+  → QuizCompleteScreen (마지막 문제 제출 후, pushReplacement / 터치하면 넘어감)
   → QuizResultScreen (pushReplacement)
   → pop(true) → HomeScreen 프로필 새로고침
 ```
@@ -70,6 +71,7 @@ HomeScreen
 | 화면 | 파일 |
 |------|------|
 | QuizScreen | `lib/screens/quiz/quiz_screen.dart` |
+| QuizCompleteScreen | `lib/screens/quiz/quiz_complete_screen.dart` |
 | QuizResultScreen | `lib/screens/quiz/quiz_result_screen.dart` |
 
 ## 뉴스 → 기사

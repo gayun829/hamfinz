@@ -12,6 +12,7 @@ import '../../theme/figma_quiz_tokens.dart';
 import '../../utils/quiz_text_helper.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/quiz_widgets.dart';
+import 'quiz_complete_screen.dart';
 import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -166,8 +167,14 @@ class _QuizScreenState extends State<QuizScreen> {
         if (!mounted) return;
         await Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) =>
-                QuizResultScreen(result: result, profile: widget.profile),
+            builder: (context) => QuizCompleteScreen(
+              onContinue: () => Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      QuizResultScreen(result: result, profile: widget.profile),
+                ),
+              ),
+            ),
           ),
         );
       } on QuizSessionException catch (e) {
