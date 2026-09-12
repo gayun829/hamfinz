@@ -87,6 +87,7 @@ flutter:
     - assets/figma/calendar/podium_2.svg
     - assets/figma/calendar/podium_3.svg
     - assets/figma/calendar/podium_4.svg
+    - assets/figma/settings/
     - assets/figma/friends/back_chevron.svg
     - assets/figma/friends/search_icon.svg
     - assets/figma/friends/hero_hamster.svg
