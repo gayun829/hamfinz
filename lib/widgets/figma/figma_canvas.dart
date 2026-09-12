@@ -346,6 +346,7 @@ class FigmaLabel extends StatelessWidget {
     required this.fontSize,
     this.color = Colors.black,
     this.fontWeight = FontWeight.w400,
+    this.fontFamily,
     this.width,
   });
 
@@ -356,6 +357,7 @@ class FigmaLabel extends StatelessWidget {
   final double fontSize;
   final Color color;
   final FontWeight fontWeight;
+  final String? fontFamily;
   final double? width;
 
   @override
@@ -368,6 +370,7 @@ class FigmaLabel extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
+          fontFamily: fontFamily,
           fontSize: figma.s(fontSize),
           fontWeight: fontWeight,
           color: color,

@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/interest_categories.dart';
+import '../../data/learning_steps.dart';
 import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/news_service.dart';
 import '../../theme/home_tier_theme.dart';
+import '../../theme/figma_home_fonts.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/category_switcher_sheet.dart';
 import '../../widgets/figma/figma_asset_image.dart';
@@ -288,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   energy: profile.energy,
                   coin: profile.seeds,
                   streak: profile.streak,
+                  currentStep: homeMapCurrentStep(profile),
                   newsTitle: _newsBarTitle,
                   showReviewStage: showReviewStage,
                   onMenu: _openCategorySwitcher,
@@ -326,6 +329,7 @@ List<Widget> _buildFigmaHomeLayers({
   required int energy,
   required int coin,
   required int streak,
+  required int currentStep,
   required String newsTitle,
   required bool showReviewStage,
   required VoidCallback onMenu,
@@ -455,7 +459,9 @@ List<Widget> _buildFigmaHomeLayers({
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                fontFamily: FigmaHomeFonts.inter,
                 fontSize: s(8.747),
+                fontWeight: FontWeight.w400,
                 height: 1.1,
                 color: Colors.black,
               ),
@@ -508,6 +514,7 @@ List<Widget> _buildFigmaHomeLayers({
       fontSize: 12,
       color: const Color(0xFFFBB03B),
       fontWeight: FontWeight.w600,
+      fontFamily: FigmaHomeFonts.inter,
     ),
     FigmaBox(
       figma: figma,
@@ -528,6 +535,7 @@ List<Widget> _buildFigmaHomeLayers({
       fontSize: 12,
       color: const Color(0xFFFFCA55),
       fontWeight: FontWeight.w600,
+      fontFamily: FigmaHomeFonts.inter,
     ),
     FigmaTapArea(
       figma: figma,
@@ -557,6 +565,7 @@ List<Widget> _buildFigmaHomeLayers({
       fontSize: 12,
       color: const Color(0xFFFB8B3B),
       fontWeight: FontWeight.w600,
+      fontFamily: FigmaHomeFonts.inter,
     ),
     FigmaTapArea(
       figma: figma,
@@ -579,11 +588,9 @@ List<Widget> _buildFigmaHomeLayers({
       shadowTop: 210.018,
       shadowWidth: 29.6715,
       shadowHeight: 12.354,
-      labelLeft: 279.6324462890625,
-      labelTop: 186.87835693359375,
       pngAsset: tier.node1Pentagon,
       svgFallback: tier.decoVector2,
-      label: '1',
+      label: '$currentStep',
       fontSize: 15.167,
       shadowBlurSigma: 1.84902,
       shadowOffset: const Offset(0.782, 0.782),
@@ -601,11 +608,9 @@ List<Widget> _buildFigmaHomeLayers({
         shadowTop: 556.8672,
         shadowWidth: 55.6881,
         shadowHeight: 23.1744,
-        labelLeft: 246.0578155517578,
-        labelTop: 511.7925720214844,
         pngAsset: tier.node3Pentagon,
         svgFallback: tier.node3Flag,
-        label: '3',
+        label: '${homeMapUpcomingStep(currentStep)}',
         fontSize: 28.485,
         shadowBlurSigma: 2.3,
         shadowOffset: const Offset(-1.453, 1.468),
@@ -784,6 +789,7 @@ class _HomeLearningCta extends StatelessWidget {
             child: Text(
               canStartLearning ? '오늘의 학습' : '에너지 부족',
               style: TextStyle(
+                fontFamily: FigmaHomeFonts.pretendard,
                 fontSize: s(26),
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
@@ -818,8 +824,6 @@ class _HomeStagePentagon extends StatelessWidget {
     required this.shadowTop,
     required this.shadowWidth,
     required this.shadowHeight,
-    required this.labelLeft,
-    required this.labelTop,
     required this.pngAsset,
     required this.svgFallback,
     required this.label,
@@ -837,14 +841,18 @@ class _HomeStagePentagon extends StatelessWidget {
   final double shadowTop;
   final double shadowWidth;
   final double shadowHeight;
-  final double labelLeft;
-  final double labelTop;
   final String pngAsset;
   final String svgFallback;
   final String label;
   final double fontSize;
   final double shadowBlurSigma;
   final Offset shadowOffset;
+
+  double get _fittedFontSize {
+    if (label.length >= 3) return fontSize * 0.62;
+    if (label.length == 2) return fontSize * 0.78;
+    return fontSize;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -868,32 +876,33 @@ class _HomeStagePentagon extends StatelessWidget {
           top: top,
           width: width,
           height: height,
-          child: Image.asset(
-            pngAsset,
-            fit: BoxFit.fill,
-            gaplessPlayback: true,
-            errorBuilder: (context, error, stackTrace) =>
-                FigmaSvg(svgFallback, fit: BoxFit.fill),
-          ),
-        ),
-        FigmaBox(
-          figma: figma,
-          left: labelLeft,
-          top: labelTop,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: s(fontSize),
-              fontWeight: FontWeight.w200,
-              color: Colors.white,
-              height: 1,
-              shadows: [
-                Shadow(
-                  offset: Offset(s(shadowOffset.dx), s(shadowOffset.dy)),
-                  color: const Color(0xFFCD5500).withValues(alpha: 0.25),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                pngAsset,
+                fit: BoxFit.fill,
+                gaplessPlayback: true,
+                errorBuilder: (context, error, stackTrace) =>
+                    FigmaSvg(svgFallback, fit: BoxFit.fill),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: FigmaHomeFonts.pretendard,
+                  fontSize: s(_fittedFontSize),
+                  fontWeight: FontWeight.w100,
+                  color: Colors.white,
+                  height: 1,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(s(shadowOffset.dx), s(shadowOffset.dy)),
+                      color: const Color(0xFFCD5500).withValues(alpha: 0.25),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],

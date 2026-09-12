@@ -12,10 +12,9 @@ class FigmaScale {
   static const authDesignWidth = 1212.67;
   static const authDesignHeight = 2629.0;
 
-  static const quizDesignWidth = authDesignWidth;
-  static const quizDesignHeight = authDesignHeight;
-  /// MC 퀴즈 1화면 — [QuizFigmaLayout.contentHeight]와 동기화.
-  static const quizContentHeight = 2072.0;
+  /// 퀴즈 화면 좌표계 (393×852) — 4지선다 `137:5521`, OX `137:5890`.
+  static const quizDesignWidth = homeDesignWidth;
+  static const quizDesignHeight = homeDesignHeight;
 
   final double scale;
 

@@ -424,6 +424,18 @@ class QuizSessionRepository {
           );
         }
 
+        final sessionSource =
+            session['source'] as String? ?? QuizSession.energySessionSource;
+        if (sessionSource != QuizSession.reviewSessionSource &&
+            answerResults.isNotEmpty) {
+          final firstCategoryId =
+              answers.first.data()?['categoryId'] as String? ?? 'allowance';
+          final sessionLabel =
+              _categoryLabels[firstCategoryId] ?? firstCategoryId;
+          categoryStats.putIfAbsent(sessionLabel, CategoryStat.new);
+          categoryStats[sessionLabel]!.completedSessions += 1;
+        }
+
         final seedsEarned = correctCount * QuizData.seedsPerCorrect;
         final newXp = previousXp + xpEarned;
         final newLevel = LevelUtils.levelFromXp(newXp);
