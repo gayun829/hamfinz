@@ -32,6 +32,8 @@ class AppTheme {
   static ThemeData get theme {
     return ThemeData(
       useMaterial3: true,
+      // Pretendard (SIL OFL) — assets/fonts/OFL.txt
+      fontFamily: 'Pretendard',
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryGreen,
         primary: primaryGreen,

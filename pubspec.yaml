@@ -87,6 +87,7 @@ flutter:
     - assets/figma/calendar/podium_2.svg
     - assets/figma/calendar/podium_3.svg
     - assets/figma/calendar/podium_4.svg
+    - assets/figma/settings/
     - assets/figma/friends/back_chevron.svg
     - assets/figma/friends/search_icon.svg
     - assets/figma/friends/hero_hamster.svg
@@ -110,6 +111,10 @@ flutter:
           weight: 600
         - asset: assets/fonts/Pretendard-Bold.otf
           weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.otf
+          weight: 800
+        - asset: assets/fonts/Pretendard-Black.otf
+          weight: 900
     - family: SUIT
       fonts:
         - asset: assets/fonts/SUIT-Thin.otf

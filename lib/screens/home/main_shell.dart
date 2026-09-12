@@ -97,7 +97,6 @@ class _MainShellState extends State<MainShell> {
                 SettingsScreen(
                   profile: profile,
                   onLogout: widget.onLogout,
-                  onComplete: () => setState(() => _currentIndex = 1),
                   onProfileChanged: _onLearningStageChanged,
                 ),
               ],

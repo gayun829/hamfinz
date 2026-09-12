@@ -6,6 +6,7 @@ class FigmaAssets {
   static const _shop = 'assets/figma/shop';
   static const _calendar = 'assets/figma/calendar';
   static const _friends = 'assets/figma/friends';
+  static const _settings = 'assets/figma/settings';
   static const _iconsAuth = 'assets/icons/auth';
 
   // Home
@@ -92,6 +93,13 @@ class FigmaAssets {
   static const friendsBackChevron = '$_friends/back_chevron.svg';
   static const friendsSearchIcon = '$_friends/search_icon.svg';
   static const friendsHeroHamster = '$_friends/hero_hamster.svg';
+
+  // Settings — 마이페이지 수정 (273:181)
+  /// 흰 원 + 햄스터 + 카메라 배지 (Group 466, 161×161).
+  static const settingsProfile = '$_settings/profile_group.svg';
+  static const settingsChevron = '$_settings/chevron.svg';
+  static const settingsChevronSmall = '$_settings/chevron_small.svg';
+  static const settingsPlus = '$_settings/plus_small.svg';
 
   // Quiz (Figma `137:5521` 퀴즈._객_문제)
   static const quizSpeechBubble = '$_quiz/speech_bubble.svg';

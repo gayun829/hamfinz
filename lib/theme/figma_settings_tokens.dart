@@ -1,63 +1,60 @@
 import 'package:flutter/material.dart';
 
-import 'app_theme.dart';
-
-/// Figma node `27:3` 설정 화면 Dev Mode CSS 토큰.
+/// Figma node `273:181` 마이페이지 수정 (393×852).
 abstract final class FigmaSettingsTokens {
-  static const designWidth = 1212.67;
+  static const designWidth = 393.0;
 
-  static const background = AppTheme.figmaAuthBackground; // #f5faff
-  static const profileLink = AppTheme.figmaLink; // #1ba1b9
-  static const completeButton = Color(0xFF9CE5FF);
-  static const destructive = AppTheme.error;
+  static const background = Color(0xFFFBFBFB);
 
-  static const profileSize = 280.0;
-  static const profileTop = 120.0;
-  static const profileLinkGap = 24.0;
-  static const sectionTopGap = 80.0;
-  static const sectionTitleGap = 48.0;
-  static const menuItemGap = 24.0;
-  static const withdrawTopGap = 32.0;
-  static const buttonHorizontal = 88.0;
-  static const buttonBottom = 48.0;
-  static const buttonHeight = 141.0;
-  static const buttonRadius = 46.285;
+  // 상단 그라데이션 헤더 (273:182) — linear-gradient(53.68deg, #3cc6ff 35.9%, #b7f0f2 98.7%)
+  static const headerHeight = 296.0;
+  static const headerGradientStart = Color(0xFF3CC6FF);
+  static const headerGradientEnd = Color(0xFFB7F0F2);
+  static const headerGradientFrom = Alignment(-1.009, 0.984);
+  static const headerGradientTo = Alignment(1.009, -0.984);
+  static const headerGradientStops = [0.359, 0.987];
 
-  static const menuButtonHeight = 110.0;
-  static const menuButtonRadius = 50.0;
-  static const menuButtonBorder = AppTheme.figmaInputBorder;
-  static const menuButtonBackground = Colors.white;
+  // 한줄소개 박스 (273:268) — rgba(251,251,251,0.3)
+  static const bioBoxFill = Color(0x4DFBFBFB);
+  static const bioBoxRadius = 13.0;
+  static const bioMaxLength = 30;
 
-  static const profileLinkFontSize = 32.0;
-  static const sectionFontSize = 42.0;
-  static const menuFontSize = 36.0;
-  static const buttonFontSize = 45.0;
+  // 메뉴 카드
+  static const cardRadius = 13.0;
+  static const cardShadow = Color(0xFFE5E5E5);
+  static const cardShadowBlur = 5.2; // Figma layer blur 3.5px
+  static const menuTop = 329.0;
+  static const menuHorizontal = 24.0;
+  static const menuGap = 16.0;
+  static const rowHeight = 40.0;
+  static const topRowHeight = 60.0;
+  static const textLeft = 15.0;
 
-  static TextStyle sectionTitleStyle(double scale) => TextStyle(
-        fontSize: sectionFontSize * scale,
-        fontWeight: FontWeight.w800,
-        color: Colors.black,
-        height: 1.2,
-      );
+  static const destructive = Color(0xFFFF6262);
 
-  static TextStyle menuItemStyle(double scale) => TextStyle(
-        fontSize: menuFontSize * scale,
-        fontWeight: FontWeight.w500,
-        color: Colors.black,
-        height: 1.3,
-      );
-
-  static TextStyle profileLinkStyle(double scale) => TextStyle(
-        fontSize: profileLinkFontSize * scale,
+  static TextStyle titleStyle(double scale) => TextStyle(
+        fontSize: 22 * scale,
         fontWeight: FontWeight.w600,
-        color: profileLink,
-        height: 1.2,
+        color: Colors.white,
       );
 
-  static TextStyle buttonStyle(double scale) => TextStyle(
-        fontSize: buttonFontSize * scale,
-        fontWeight: FontWeight.w700,
+  static TextStyle nicknameStyle(double scale) => TextStyle(
+        fontSize: 18 * scale,
+        fontWeight: FontWeight.w500,
         color: Colors.white,
-        height: 1.1,
+      );
+
+  static TextStyle bioStyle(double scale) => TextStyle(
+        fontSize: 13 * scale,
+        fontWeight: FontWeight.w500,
+        color: Colors.white,
+        height: 1.35,
+      );
+
+  static TextStyle menuStyle(double scale, {bool destructive = false}) =>
+      TextStyle(
+        fontSize: 16 * scale,
+        fontWeight: destructive ? FontWeight.w400 : FontWeight.w500,
+        color: destructive ? FigmaSettingsTokens.destructive : Colors.black,
       );
 }
