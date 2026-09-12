@@ -52,7 +52,8 @@ class FigmaAssets {
   static const homeNode3 = '$_homeBeginner/node_3.png';
   static const homeBeginnerMegaphone = '$_homeBeginner/megaphone.svg';
   static const homeBeginnerChevronNews = '$_homeBeginner/chevron_news.svg';
-  static const homeBeginnerChevronLearning = '$_homeBeginner/chevron_learning.svg';
+  static const homeBeginnerChevronLearning =
+      '$_homeBeginner/chevron_learning.svg';
   static const homeBeginnerLearningQ = '$_homeBeginner/learning_q.svg';
   static const homeBeginnerMenuIcon = '$_homeBeginner/menu_icon.svg';
   static const homeBeginnerStatEnergy = '$_homeBeginner/stat_energy.svg';
@@ -102,11 +103,22 @@ class FigmaAssets {
   static const settingsChevronSmall = '$_settings/chevron_small.svg';
   static const settingsPlus = '$_settings/plus_small.svg';
 
-  // Quiz
-  static const quizHamster = '$_quiz/hamster_quiz.png';
-  static const quizHamsterShadow = '$_quiz/hamster_shadow.svg';
-  static const quizBackChevron = '$_quiz/back_chevron.svg';
-  static const quizBgEllipse = '$_quiz/bg_ellipse.svg';
+  // Quiz (Figma `137:5521` 퀴즈._객_문제)
+  static const quizSpeechBubble = '$_quiz/speech_bubble.svg';
+  static const quizBackChevronQuestion = '$_quiz/back_chevron_question.svg';
+  static const quizQuestionIcon = '$_quiz/q_icon.svg';
+  static const quizCharacter = '$_quiz/character_group_502.svg';
+  static const quizCharacterShadow = '$_quiz/character_shadow.svg';
+  static const quizSpeechBubbleExplain = '$_quiz/speech_bubble_explain.svg';
+  static const quizQuestionIconExplain = '$_quiz/q_icon_explain.svg';
+
+  // OX 퀴즈 (Figma `137:5890` 퀴즈_ox) — Q 아이콘은 4지선다와 같은 에셋을 쓴다.
+  static const quizOxBackChevron = '$_quiz/ox_back_chevron.svg';
+  static const quizOxCharacter = '$_quiz/ox_character.svg';
+  static const quizOxCharacterExplain = '$_quiz/ox_character_explain.svg';
+  static const quizOxCharacterShadow = '$_quiz/ox_character_shadow.svg';
+  static const quizOxMarkO = '$_quiz/ox_mark_o.svg';
+  static const quizOxMarkX = '$_quiz/ox_mark_x.svg';
 
   // 퀴즈_중간 학습창 (293:1649)
   static const quizStreakCircleOuter = '$_quizStreak/circle_outer.svg';

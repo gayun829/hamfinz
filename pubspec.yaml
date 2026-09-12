@@ -96,8 +96,16 @@ flutter:
     - assets/figma/friends/hero_hamster.svg
 
   fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
     - family: Pretendard
       fonts:
+        - asset: assets/fonts/Pretendard-Thin.otf
+          weight: 100
         - asset: assets/fonts/Pretendard-Regular.otf
           weight: 400
         - asset: assets/fonts/Pretendard-Medium.otf
@@ -110,6 +118,10 @@ flutter:
           weight: 800
         - asset: assets/fonts/Pretendard-Black.otf
           weight: 900
+    - family: SUIT
+      fonts:
+        - asset: assets/fonts/SUIT-Thin.otf
+          weight: 100
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

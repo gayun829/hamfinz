@@ -6,7 +6,7 @@ import '../../constants/figma_assets.dart';
 import '../../theme/figma_quiz_streak_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
-import '../../widgets/quiz_widgets.dart';
+import '../../widgets/quiz_figma_cta_button.dart';
 
 const _degrees = math.pi / 180;
 

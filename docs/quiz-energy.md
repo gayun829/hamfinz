@@ -38,6 +38,9 @@ Functions `resolveEnergy`)이 `energy`와 `lastEnergyResetDate`를 **같이** �
 같은 유저라도 세션마다 문제 구성이 달라질 수 있다.  
 오답 문제는 `mastered`에 기록되지 않아 **다음 세션에 재출제**될 수 있다.
 
+홈 맵의 1~200 숫자는 **출제 step 표기**일 뿐, 숫자마다 고정 문제가 있지 않다.  
+한 세션(10문제)을 완료하면 활성 카테고리 `categoryStats.completedSessions`가 1 증가하고, 홈에는 `completedSessions + 1`과 그보다 2 큰 수(예: 1과 3)를 보여 준다. 단계당 문제 풀 200개 × 10단계 = 최대 200 step.
+
 자세한 API: [quiz-session-api.md](./quiz-session-api.md) §1
 
 ## 세션 진행 (`QuizScreen`)

@@ -6,7 +6,7 @@ import '../../constants/figma_assets.dart';
 import '../../theme/figma_quiz_reward_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
-import '../../widgets/quiz_widgets.dart';
+import '../../widgets/quiz_figma_cta_button.dart';
 
 /// 퀴즈_중간 학습창 다음에 뜨는 보상 확인창.
 ///

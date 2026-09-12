@@ -209,8 +209,8 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
   "unlockedHamsterIds": ["hamster_basic"],
   "interestCategoryIds": ["saving", "credit"],
   "categoryStats": {
-    "saving": { "correct": 3, "total": 5 },
-    "credit": { "correct": 1, "total": 2 }
+    "saving": { "correct": 3, "total": 5, "completedSessions": 2 },
+    "credit": { "correct": 1, "total": 2, "completedSessions": 0 }
   },
   "incorrectQuestionCount": 11,
   "consents": {
@@ -233,7 +233,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 | `todayQuizCompleted`       | **저장 안 함**                  | `lastQuizCompletedOn == today`로 계산   |
 | `unlockedHamsterIds`       | 배열 (최대 6)                   |                                         |
 | `interestCategoryIds`      | 배열 (1~6, 최소 1)              |                                         |
-| `categoryStats`            | map                             | 카테고리 6개뿐이라 문서에 포함          |
+| `categoryStats`            | map                             | `correct`/`total`/`completedSessions`. 홈 맵 step(1~200)은 활성 카테고리의 `completedSessions + 1` |
 | `incorrectQuestionCount`   | number                          | 고유 오답 문서 수. 11개부터 복습 홈     |
 | `consents`                 | 약관 체크                       | 버전 바뀌면 재동의 필드 추가 가능       |
 | `providers`                | 예정 소셜                       | `password`, `google`, `apple`, `kakao`  |
