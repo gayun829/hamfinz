@@ -2,6 +2,7 @@ class UserProfile {
   UserProfile({
     required this.email,
     required this.nickname,
+    this.bio = '',
     this.xp = 0,
     this.streak = 0,
     this.lastQuizCompletedDate,
@@ -26,6 +27,9 @@ class UserProfile {
 
   final String email;
   final String nickname;
+
+  /// 마이페이지 한줄소개. [AuthService.updateBio]로만 저장한다.
+  String bio;
   int xp;
   int streak;
   String? lastQuizCompletedDate;
