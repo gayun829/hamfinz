@@ -21,6 +21,8 @@ const MAX_ENERGY = 100;
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 10;
 const MAX_STUDY_GUARD = 3;
+// 세션 완료 보상 에너지 — Dart `QuizData.sessionCompleteEnergyReward`와 같아야 한다.
+const ENERGY_SESSION_COMPLETE_REWARD = 20;
 const ENERGY_PACK_AMOUNT = 20;
 
 // Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
@@ -356,8 +358,18 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
 
     const unlocks = computeUnlocks(user, streak, newXp);
 
+    // 세션을 끝냈으니 에너지를 일부 돌려준다. 최대치에 걸리면 채워진 만큼만
+    // 보상으로 잡아야 클라이언트에 실제와 다른 `+20`이 내려가지 않는다.
+    const energyBefore = user.energy ?? 0;
+    const energyRemaining = Math.min(
+      MAX_ENERGY,
+      energyBefore + ENERGY_SESSION_COMPLETE_REWARD,
+    );
+    const energyEarned = energyRemaining - energyBefore;
+
     tx.update(userRef, {
       xp: newXp,
+      energy: energyRemaining,
       seeds: (user.seeds ?? 0) + seedsEarned,
       streak,
       lastQuizCompletedDate,
@@ -373,6 +385,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       correctCount,
       xpEarned,
       energySpent: session.energySpent ?? answers.length * ENERGY_PER_QUESTION,
+      energyEarned,
       completedAt: FieldValue.serverTimestamp(),
     });
 
@@ -387,7 +400,8 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       previousLevel,
       unlockedItems: unlocks.newly,
       newStreak: streak,
-      energyRemaining: user.energy ?? 0,
+      energyRemaining,
+      energyEarned,
     };
   });
 });

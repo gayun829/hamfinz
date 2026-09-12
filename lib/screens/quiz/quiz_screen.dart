@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../data/learning_stages.dart';
 import '../../data/quiz_data.dart';
 import '../../models/quiz_question.dart';
 import '../../models/quiz_session.dart';
@@ -13,7 +14,7 @@ import '../../utils/quiz_text_helper.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/quiz_widgets.dart';
 import 'quiz_complete_screen.dart';
-import 'quiz_result_screen.dart';
+import 'quiz_reward_screen.dart';
 import 'quiz_streak_screen.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -175,9 +176,22 @@ class _QuizScreenState extends State<QuizScreen> {
                     streak: result.newStreak,
                     onContinue: () => Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (_) => QuizResultScreen(
-                          result: result,
-                          profile: widget.profile,
+                        builder: (context) => QuizRewardScreen(
+                          correctCount: result.answers
+                              .where((a) => a.isCorrect)
+                              .length,
+                          totalCount: result.answers.length,
+                          seedsEarned: result.seedsEarned,
+                          energyEarned: result.energyEarned,
+                          onClaim: () {
+                            // 결과창을 걷어냈으니 학습과정 진급 안내는
+                            // 홈으로 돌아가면서 스낵바로 남긴다.
+                            _notifyStageAdvance(
+                              context,
+                              result.advancedLearningStage,
+                            );
+                            Navigator.of(context).pop(true);
+                          },
                         ),
                       ),
                     ),
@@ -202,6 +216,15 @@ class _QuizScreenState extends State<QuizScreen> {
       _showResult = false;
       _submitResult = null;
     });
+  }
+
+  void _notifyStageAdvance(BuildContext context, int? advancedStage) {
+    if (advancedStage == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🎓 ${learningStageLabel(advancedStage)}로 넘어갔어요!'),
+      ),
+    );
   }
 
   @override

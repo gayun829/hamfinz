@@ -13,6 +13,7 @@
 | 정답당 씨앗 | +5 |
 | 최대 에너지 | 100 |
 | 문제 1개당 에너지 | −5 (잠정, 변동 가능) |
+| 세션 완료 에너지 보상 | **+20** (최대치까지만) |
 | 세션 시작 최소 에너지 | **50** (10×5) |
 | 일일 학습 횟수 제한 | **없음** (에너지만 있으면 반복) |
 | 에너지 회복 | 날짜가 바뀌면 100으로 리셋 |
@@ -44,7 +45,7 @@
    - 복습 세션에서 정답이면 `incorrectQuestions/{questionId}` 삭제 + 카운트 −1  
 4. 정·오답 UI + XP 배너  
 4. 풀이확인 / 다음문제  
-5. 마지막 문제 → `completeSession` → `QuizResultScreen`  
+5. 마지막 문제 → `completeSession` → 축하창 → 연속학습일 → 결과보기창  
 
 에너지가 부족하면 제출 시 스낵바 후 진행 중단.
 
@@ -56,6 +57,9 @@
 ## 세션 완료 (`completeSession`)
 
 - XP · 씨앗(`정답 수 × 5`) · 카테고리 통계 · `LearningRecord` · streak 갱신  
+- **에너지 보상:** `+20` (`QuizData.sessionCompleteEnergyReward`, 100을 넘지 않게 clamp)  
+  실제로 채워진 양만 `energyEarned`로 내려간다 — 98이었으면 `+2`.  
+  Functions 쪽 `ENERGY_SESSION_COMPLETE_REWARD`와 값을 맞춰야 한다.  
 - **Streak:** `todayQuizCompleted`가 false일 때만 (하루 첫 세션)  
   - 어제 완료 → +1  
   - 그 외 → 1  

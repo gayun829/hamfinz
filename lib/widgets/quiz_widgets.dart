@@ -72,8 +72,9 @@ class QuizProgressHeader extends StatelessWidget {
                         child: Container(
                           height: s(14),
                           decoration: BoxDecoration(
-                            color: FigmaQuizTokens.progressHighlight
-                                .withValues(alpha: 0.36),
+                            color: FigmaQuizTokens.progressHighlight.withValues(
+                              alpha: 0.36,
+                            ),
                             borderRadius: BorderRadius.circular(s(89)),
                           ),
                         ),
@@ -145,13 +146,12 @@ class QuizCategoryBadge extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(top: s(FigmaQuizTokens.categoryTopGap)),
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: s(28),
-          vertical: s(16),
-        ),
+        padding: EdgeInsets.symmetric(horizontal: s(28), vertical: s(16)),
         decoration: BoxDecoration(
           color: AppTheme.figmaMintCard,
-          borderRadius: BorderRadius.circular(s(FigmaQuizTokens.categoryHeight / 2)),
+          borderRadius: BorderRadius.circular(
+            s(FigmaQuizTokens.categoryHeight / 2),
+          ),
         ),
         child: Text(
           label,
@@ -192,7 +192,9 @@ class QuizOptionButton extends StatelessWidget {
     final colors = _colors();
 
     return SizedBox(
-      height: s(FigmaQuizTokens.optionHeight + FigmaQuizTokens.optionShadowOffset),
+      height: s(
+        FigmaQuizTokens.optionHeight + FigmaQuizTokens.optionShadowOffset,
+      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -204,11 +206,10 @@ class QuizOptionButton extends StatelessWidget {
               height: s(FigmaQuizTokens.optionHeight),
               decoration: BoxDecoration(
                 color: colors.shadow,
-                borderRadius: BorderRadius.circular(s(FigmaQuizTokens.optionRadius)),
-                border: Border.all(
-                  color: colors.shadow,
-                  width: s(3),
+                borderRadius: BorderRadius.circular(
+                  s(FigmaQuizTokens.optionRadius),
                 ),
+                border: Border.all(color: colors.shadow, width: s(3)),
               ),
             ),
           ),
@@ -219,7 +220,9 @@ class QuizOptionButton extends StatelessWidget {
             child: Material(
               color: colors.background,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(s(FigmaQuizTokens.optionRadius)),
+                borderRadius: BorderRadius.circular(
+                  s(FigmaQuizTokens.optionRadius),
+                ),
                 side: BorderSide(
                   color: colors.border,
                   width: s(FigmaQuizTokens.optionBorderWidth),
@@ -301,10 +304,7 @@ class QuizResultBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: s(36),
-        vertical: s(22),
-      ),
+      padding: EdgeInsets.symmetric(horizontal: s(36), vertical: s(22)),
       decoration: BoxDecoration(
         color: isCorrect
             ? FigmaQuizTokens.optionCorrectBg
@@ -350,7 +350,9 @@ class QuizSubmitButton extends StatelessWidget {
         height: s(FigmaQuizTokens.submitButtonHeight),
         child: Material(
           color: FigmaQuizTokens.submitButton,
-          borderRadius: BorderRadius.circular(s(FigmaQuizTokens.submitButtonRadius)),
+          borderRadius: BorderRadius.circular(
+            s(FigmaQuizTokens.submitButtonRadius),
+          ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: enabled ? onPressed : null,
@@ -454,7 +456,8 @@ class QuizOxHeroZone extends StatelessWidget {
         final zoneW = constraints.maxWidth;
         final zoneH = constraints.maxHeight;
         final hamsterW = zoneW * FigmaQuizTokens.oxHamsterWidthRatio;
-        final hamsterH = hamsterW * (FigmaQuizTokens.heroHeight / FigmaQuizTokens.heroWidth);
+        final hamsterH =
+            hamsterW * (FigmaQuizTokens.heroHeight / FigmaQuizTokens.heroWidth);
         final scale = (zoneH / hamsterH).clamp(0.0, 1.0);
         final displayW = hamsterW * scale;
         final displayH = hamsterH * scale;
@@ -518,19 +521,13 @@ class QuizOxHorizontalLayout extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxHeight < 420;
-        final heroFlex =
-            compact ? 24 : FigmaQuizTokens.oxHeroFlex;
+        final heroFlex = compact ? 24 : FigmaQuizTokens.oxHeroFlex;
         final cardFlex = compact ? 76 : FigmaQuizTokens.oxCardFlex;
 
         return Column(
           children: [
-            Expanded(
-              flex: heroFlex,
-              child: const QuizOxHeroZone(),
-            ),
-            SizedBox(
-              height: compact ? 0 : s(FigmaQuizTokens.oxHeroCardGap),
-            ),
+            Expanded(flex: heroFlex, child: const QuizOxHeroZone()),
+            SizedBox(height: compact ? 0 : s(FigmaQuizTokens.oxHeroCardGap)),
             Expanded(
               flex: cardFlex,
               child: QuizOxQuestionCard(
@@ -579,9 +576,9 @@ class QuizOxQuestionCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxQuestionHeight = (constraints.maxHeight *
-                FigmaQuizTokens.oxQuestionAreaMaxFraction)
-            .clamp(0.0, s(FigmaQuizTokens.oxQuestionAreaHeight));
+        final maxQuestionHeight =
+            (constraints.maxHeight * FigmaQuizTokens.oxQuestionAreaMaxFraction)
+                .clamp(0.0, s(FigmaQuizTokens.oxQuestionAreaHeight));
 
         return Stack(
           clipBehavior: Clip.none,
@@ -630,11 +627,15 @@ class QuizOxQuestionCard extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: FigmaQuizTokens.questionStyle(figma.scale)
-                                    .copyWith(
-                                  fontSize: s(FigmaQuizTokens.oxQuestionFontSize),
-                                  height: 1.28,
-                                ),
+                                style:
+                                    FigmaQuizTokens.questionStyle(
+                                      figma.scale,
+                                    ).copyWith(
+                                      fontSize: s(
+                                        FigmaQuizTokens.oxQuestionFontSize,
+                                      ),
+                                      height: 1.28,
+                                    ),
                               ),
                             ),
                           ),
@@ -642,19 +643,26 @@ class QuizOxQuestionCard extends StatelessWidget {
                       ),
                       Expanded(
                         child: Padding(
-                          padding: EdgeInsets.all(s(FigmaQuizTokens.oxCardInnerPadding)),
+                          padding: EdgeInsets.all(
+                            s(FigmaQuizTokens.oxCardInnerPadding),
+                          ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               for (var i = 0; i < options.length; i++) ...[
-                                if (i > 0) SizedBox(width: s(FigmaQuizTokens.oxChoiceGap)),
+                                if (i > 0)
+                                  SizedBox(
+                                    width: s(FigmaQuizTokens.oxChoiceGap),
+                                  ),
                                 Expanded(
                                   child: QuizOxChoiceButton(
                                     label: options[i],
                                     isSelected: selectedIndex == i,
                                     isCorrectOption: correctIndex == i,
                                     showResult: showResult,
-                                    onTap: showResult ? null : () => onSelect(i),
+                                    onTap: showResult
+                                        ? null
+                                        : () => onSelect(i),
                                   ),
                                 ),
                               ],
@@ -782,7 +790,9 @@ class QuizFooterOutlinedButton extends StatelessWidget {
       child: Material(
         color: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(s(FigmaQuizTokens.footerButtonRadius)),
+          borderRadius: BorderRadius.circular(
+            s(FigmaQuizTokens.footerButtonRadius),
+          ),
           side: BorderSide(color: AppTheme.figmaTeal, width: s(3)),
         ),
         clipBehavior: Clip.antiAlias,
@@ -791,8 +801,60 @@ class QuizFooterOutlinedButton extends StatelessWidget {
           child: Center(
             child: Text(
               label,
-              style: FigmaQuizTokens.footerButtonStyle(figma.scale).copyWith(
-                color: AppTheme.figmaTeal,
+              style: FigmaQuizTokens.footerButtonStyle(
+                figma.scale,
+              ).copyWith(color: AppTheme.figmaTeal),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 393×852 프레임 퀴즈 화면 하단 CTA. 퀴즈_중간 학습창(`293:1662`)과
+/// 퀴즈_결과보기창(`131:3552`)이 좌표·색·서체까지 같은 버튼을 쓴다.
+class QuizFigmaCtaButton extends StatelessWidget {
+  const QuizFigmaCtaButton({
+    super.key,
+    required this.figma,
+    required this.label,
+    required this.onTap,
+  });
+
+  static const color = Color(0xFF3CC6FF);
+  static const horizontalMargin = 24.0;
+  static const bottomMargin = 54.0;
+  static const height = 50.0;
+  static const radius = 13.0;
+  static const fontSize = 18.0;
+
+  final FigmaScale figma;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(figma.s(radius));
+    return Positioned(
+      left: figma.s(horizontalMargin),
+      right: figma.s(horizontalMargin),
+      bottom: figma.s(bottomMargin),
+      height: figma.s(height),
+      child: Material(
+        color: color,
+        borderRadius: borderRadius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: borderRadius,
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: figma.s(fontSize),
+                height: 1.203,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
             ),
           ),

@@ -105,10 +105,14 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 1. `answers` subcollection 전부 존재 확인 (10문항)
 2. XP (+10 / +2) · 씨앗 (정답 × 5) · `categoryStats` (한글 label 키)
 3. streak · `learningHistory` · 햄스터 해금
+3-1. 에너지 보상 `+20` (최대 100까지) → 채워진 양을 `energyEarned`로 반환
 4. `sessions/{id}` → `status: completed`
 5. `users/{uid}` 갱신 (Admin SDK — 클라이언트 xp/energy 직접 쓰기 불필요)
 
 ### 응답 → `QuizSessionResult`
+
+`energyRemaining`은 보상을 더한 뒤 값이고, `energyEarned`는 이번에 실제로
+채워진 양이다 (퀴즈_결과보기창 오른쪽 수치).
 
 앱은 `AuthService.getCurrentUser()`로 프로필 재동기화.
 
@@ -144,7 +148,10 @@ startSession (로딩)
   → [정답 제출] → submitAnswer (Firestore 트랜잭션)
   → 정·오답 UI (채점 결과 correctIndex)
   → [다음] × 9
-  → [결과 보기] → completeSession → QuizResultScreen
+  → 마지막 문제 → completeSession
+  → QuizCompleteScreen (터치)
+  → QuizStreakScreen (다음으로)
+  → QuizRewardScreen (보상획득) → 홈
 ```
 
 ---

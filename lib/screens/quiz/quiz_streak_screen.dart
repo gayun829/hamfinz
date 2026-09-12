@@ -2,12 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../constants/figma_assets.dart';
 import '../../theme/figma_quiz_streak_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/quiz_widgets.dart';
 
 const _degrees = math.pi / 180;
-const _assetDir = 'assets/figma/quiz/streak';
 
 /// 뒤쪽 햇살 광선 하나. 크기·라운드는 전부 같고 위치·각도·색만 다르다.
 class _Ray {
@@ -81,7 +82,7 @@ class QuizStreakScreen extends StatelessWidget {
                   width: 741,
                   height: 741,
                   child: FigmaSvg(
-                    '$_assetDir/circle_outer.svg',
+                    FigmaAssets.quizStreakCircleOuter,
                     width: figma.s(741),
                     height: figma.s(741),
                     fit: BoxFit.fill,
@@ -94,7 +95,7 @@ class QuizStreakScreen extends StatelessWidget {
                   width: 539,
                   height: 543,
                   child: FigmaSvg(
-                    '$_assetDir/circle_inner.svg',
+                    FigmaAssets.quizStreakCircleInner,
                     width: figma.s(539),
                     height: figma.s(543),
                     fit: BoxFit.fill,
@@ -103,26 +104,40 @@ class QuizStreakScreen extends StatelessWidget {
                 ..._raysBelowHub.map((ray) => _buildRay(figma, ray)),
                 _buildRotatedAsset(
                   figma,
-                  asset: '$_assetDir/ray_hub.svg',
+                  asset: FigmaAssets.quizStreakRayHub,
                   center: const Offset(104.519, 197.129),
                   size: const Size(34.185, 34.185),
                   rotation: 51.02,
                 ),
                 ..._raysAboveHub.map((ray) => _buildRay(figma, ray)),
-                _buildButton(figma),
+                QuizFigmaCtaButton(
+                  figma: figma,
+                  label: '다음으로',
+                  onTap: onContinue,
+                ),
                 _buildStreakText(figma),
-                _buildSparkle(figma, '$_assetDir/sparkle_blue.svg', 45, 644),
-                _buildSparkle(figma, '$_assetDir/sparkle_white.svg', 201, 485),
+                _buildSparkle(
+                  figma,
+                  FigmaAssets.quizStreakSparkleBlue,
+                  45,
+                  644,
+                ),
+                _buildSparkle(
+                  figma,
+                  FigmaAssets.quizStreakSparkleWhite,
+                  201,
+                  485,
+                ),
                 _buildRotatedAsset(
                   figma,
-                  asset: '$_assetDir/cloud.svg',
+                  asset: FigmaAssets.quizStreakCloud,
                   center: const Offset(11.755, 388.64),
                   size: const Size(117.798, 95.3212),
                   rotation: 14.15,
                 ),
                 _buildRotatedAsset(
                   figma,
-                  asset: '$_assetDir/hamster.svg',
+                  asset: FigmaAssets.quizStreakHamster,
                   center: const Offset(211.555, 361.975),
                   size: const Size(266.246, 279.191),
                   rotation: -0.59,
@@ -268,38 +283,6 @@ class QuizStreakScreen extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildButton(FigmaScale figma) {
-    return Positioned(
-      left: figma.s(FigmaQuizStreakTokens.buttonHorizontalMargin),
-      right: figma.s(FigmaQuizStreakTokens.buttonHorizontalMargin),
-      bottom: figma.s(FigmaQuizStreakTokens.buttonBottomMargin),
-      height: figma.s(FigmaQuizStreakTokens.buttonHeight),
-      child: Material(
-        color: FigmaQuizStreakTokens.buttonColor,
-        borderRadius: BorderRadius.circular(
-          figma.s(FigmaQuizStreakTokens.buttonRadius),
-        ),
-        child: InkWell(
-          onTap: onContinue,
-          borderRadius: BorderRadius.circular(
-            figma.s(FigmaQuizStreakTokens.buttonRadius),
-          ),
-          child: Center(
-            child: Text(
-              '다음으로',
-              style: TextStyle(
-                fontSize: figma.s(FigmaQuizStreakTokens.buttonFontSize),
-                height: 1.203,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
         ),
       ),
     );

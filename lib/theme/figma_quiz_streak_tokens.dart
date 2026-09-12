@@ -28,11 +28,4 @@ abstract final class FigmaQuizStreakTokens {
   static const streakBlockHeight = 200.0;
   static const streakDayGap = 4.3;
   static const streakSuffixGap = 14.0;
-
-  static const buttonColor = Color(0xFF3CC6FF);
-  static const buttonHorizontalMargin = 24.0;
-  static const buttonBottomMargin = 54.0;
-  static const buttonHeight = 50.0;
-  static const buttonRadius = 13.0;
-  static const buttonFontSize = 18.0;
 }

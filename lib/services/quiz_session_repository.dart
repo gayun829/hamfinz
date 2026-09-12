@@ -479,10 +479,19 @@ class QuizSessionRepository {
           historyLength: history.length,
         );
 
-        final energyRemaining = (user['energy'] as num?)?.toInt() ?? 0;
+        // 세션을 끝냈으니 에너지를 일부 돌려준다. 최대치에 걸리면 채워진 만큼만
+        // 보상으로 잡아야 화면에 실제와 다른 `+20`이 뜨지 않는다.
+        final energyBefore = (user['energy'] as num?)?.toInt() ?? 0;
+        final energyRemaining =
+            (energyBefore + QuizData.sessionCompleteEnergyReward).clamp(
+              0,
+              QuizData.maxEnergy,
+            );
+        final energyEarned = energyRemaining - energyBefore;
 
         tx.update(userRef, {
           'xp': newXp,
+          'energy': energyRemaining,
           'seeds': ((user['seeds'] as num?)?.toInt() ?? 0) + seedsEarned,
           'streak': streak,
           'lastQuizCompletedDate': lastQuizCompletedDate,
@@ -502,6 +511,7 @@ class QuizSessionRepository {
           'energySpent':
               (session['energySpent'] as num?)?.toInt() ??
               answers.length * QuizData.energyCostPerQuestion,
+          'energyEarned': energyEarned,
           'completedAt': FieldValue.serverTimestamp(),
         });
 
@@ -523,6 +533,7 @@ class QuizSessionRepository {
           'unlockedItems': unlocks.newly,
           'newStreak': streak,
           'energyRemaining': energyRemaining,
+          'energyEarned': energyEarned,
         };
       });
 
@@ -559,6 +570,7 @@ class QuizSessionRepository {
             unlockedItems: result.unlockedItems,
             newStreak: result.newStreak,
             energyRemaining: result.energyRemaining,
+            energyEarned: result.energyEarned,
             advancedLearningStage: advancedStage,
           );
         }
@@ -600,6 +612,7 @@ class QuizSessionRepository {
       unlockedItems: List<String>.from(data['unlockedItems'] as List? ?? []),
       newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
       energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
+      energyEarned: (data['energyEarned'] as num?)?.toInt() ?? 0,
     );
   }
 
