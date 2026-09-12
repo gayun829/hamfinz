@@ -79,6 +79,7 @@ flutter:
     - assets/figma/auth/
     - assets/figma/quiz/
     - assets/figma/quiz/complete/
+    - assets/figma/quiz/streak/
     - assets/figma/shop/
     - assets/figma/calendar/hamster_peek.png
     - assets/figma/calendar/drop_empty_1.svg

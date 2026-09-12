@@ -14,6 +14,7 @@ import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/quiz_widgets.dart';
 import 'quiz_complete_screen.dart';
 import 'quiz_result_screen.dart';
+import 'quiz_streak_screen.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({
@@ -170,8 +171,17 @@ class _QuizScreenState extends State<QuizScreen> {
             builder: (context) => QuizCompleteScreen(
               onContinue: () => Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      QuizResultScreen(result: result, profile: widget.profile),
+                  builder: (context) => QuizStreakScreen(
+                    streak: result.newStreak,
+                    onContinue: () => Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => QuizResultScreen(
+                          result: result,
+                          profile: widget.profile,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
