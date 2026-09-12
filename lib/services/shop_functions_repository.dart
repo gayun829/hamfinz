@@ -59,7 +59,9 @@ class ShopFunctionsRepository {
 
     final message = e.message ?? '';
     if (message.contains('씨앗이 부족')) return ShopPurchaseStatus.insufficientSeeds;
-    if (message.contains('최대 3개')) return ShopPurchaseStatus.studyGuardMaxCapacity;
+    if (message.contains('최대 3개') || message.contains('최대 4개')) {
+      return ShopPurchaseStatus.studyGuardMaxCapacity;
+    }
     if (message.contains('가득 차')) return ShopPurchaseStatus.energyAlreadyFull;
     return ShopPurchaseStatus.failed;
   }

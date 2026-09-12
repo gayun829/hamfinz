@@ -49,24 +49,14 @@ class QuizAnswer {
 class QuizSessionResult {
   const QuizSessionResult({
     required this.answers,
-    required this.xpEarned,
     required this.seedsEarned,
-    required this.leveledUp,
-    required this.newLevel,
-    required this.previousLevel,
-    required this.unlockedItems,
     required this.newStreak,
     this.energyRemaining,
     this.advancedLearningStage,
   });
 
   final List<QuizAnswer> answers;
-  final int xpEarned;
   final int seedsEarned;
-  final bool leveledUp;
-  final int newLevel;
-  final int previousLevel;
-  final List<String> unlockedItems;
   final int newStreak;
   final int? energyRemaining;
 

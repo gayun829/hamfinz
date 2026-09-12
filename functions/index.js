@@ -1,3 +1,4 @@
+const { learningDatesFromUser } = require('./learning_dates');
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
@@ -14,13 +15,9 @@ initializeApp();
 const db = getFirestore();
 
 const ENERGY_PER_QUESTION = 5;
-const XP_CORRECT = 10;
-const XP_WRONG = 2;
 const SEEDS_PER_CORRECT = 5;
 const MAX_ENERGY = 100;
-const XP_PER_LEVEL = 100;
-const MAX_LEVEL = 10;
-const MAX_STUDY_GUARD = 3;
+const MAX_STUDY_GUARD = 4;
 const ENERGY_PACK_AMOUNT = 20;
 
 // Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
@@ -66,9 +63,6 @@ function yesterdayKey() {
   }).format(d);
 }
 
-function levelFromXp(xp) {
-  return Math.min(MAX_LEVEL, Math.floor(xp / XP_PER_LEVEL) + 1);
-}
 
 // 날짜가 바뀌면 에너지를 최대로 회복한다 (Dart `AuthService._profileFromJson`과
 // 동일한 규칙). 서버가 항상 이 값을 기준으로 계산해야 클라이언트가 화면에만
@@ -83,27 +77,6 @@ function resolveEnergy(user, today) {
   return { energy, lastEnergyResetDate };
 }
 
-function computeUnlocks(userData, streak, xp) {
-  const unlocked = new Set(userData.unlockedHamsterIds || ['hamster_basic']);
-  const newly = [];
-
-  function unlock(id) {
-    if (!unlocked.has(id)) {
-      unlocked.add(id);
-      newly.push(id);
-    }
-  }
-
-  const history = userData.learningHistory || [];
-  if (history.length > 0) unlock('hamster_study');
-  if (streak >= 3) unlock('hamster_streak');
-  const level = levelFromXp(xp);
-  if (level >= 3) unlock('hamster_level3');
-  if (level >= 5) unlock('hamster_level5');
-  if (level >= 10) unlock('hamster_master');
-
-  return { all: [...unlocked], newly };
-}
 
 exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => {
   const uid = request.auth?.uid;
@@ -288,17 +261,13 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     }
 
     const user = userSnap.data();
-    const previousXp = user.xp ?? 0;
-    const previousLevel = levelFromXp(previousXp);
 
-    let xpEarned = 0;
     let correctCount = 0;
     const categoryStats = { ...(user.categoryStats || {}) };
 
     const answerResults = answers.map((a) => {
       const isCorrect = a.isCorrect === true;
       if (isCorrect) correctCount += 1;
-      xpEarned += isCorrect ? XP_CORRECT : XP_WRONG;
 
       const label = CATEGORY_LABELS[a.categoryId] || a.categoryId;
       if (!categoryStats[label]) {
@@ -315,12 +284,10 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     });
 
     const seedsEarned = correctCount * SEEDS_PER_CORRECT;
-    const newXp = previousXp + xpEarned;
-    const newLevel = levelFromXp(newXp);
 
     let streak = user.streak ?? 0;
     let lastQuizCompletedDate = user.lastQuizCompletedDate ?? null;
-    let todayQuizCompleted = user.todayQuizCompleted ?? false;
+    let todayQuizCompleted = lastQuizCompletedDate === todayKey();
     let studyGuardCount = user.studyGuardCount ?? 0;
     const today = todayKey();
 
@@ -346,46 +313,32 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       lastQuizCompletedDate = today;
     }
 
-    const history = [...(user.learningHistory || [])];
-    history.unshift({
-      date: today,
-      correctCount,
-      totalCount: answers.length,
-      xpEarned,
-    });
+    const learningDates = learningDatesFromUser(user, today, true);
 
-    const unlocks = computeUnlocks(user, streak, newXp);
 
     tx.update(userRef, {
-      xp: newXp,
       seeds: (user.seeds ?? 0) + seedsEarned,
       streak,
       lastQuizCompletedDate,
       todayQuizCompleted,
       studyGuardCount,
       categoryStats,
-      learningHistory: history.slice(0, 50),
-      unlockedHamsterIds: unlocks.all,
+      learningDates,
+      learningHistory: FieldValue.delete(),
     });
 
     tx.update(sessionRef, {
       status: 'completed',
       correctCount,
-      xpEarned,
       energySpent: session.energySpent ?? answers.length * ENERGY_PER_QUESTION,
       completedAt: FieldValue.serverTimestamp(),
     });
 
     return {
       answers: answerResults,
-      xpEarned,
       seedsEarned,
       correctCount,
       totalCount: answers.length,
-      leveledUp: newLevel > previousLevel,
-      newLevel,
-      previousLevel,
-      unlockedItems: unlocks.newly,
       newStreak: streak,
       energyRemaining: user.energy ?? 0,
     };
@@ -437,7 +390,7 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
       if (studyGuardCount >= MAX_STUDY_GUARD) {
         throw new HttpsError(
           'failed-precondition',
-          '방어권은 최대 3개까지 보유할 수 있어요.',
+          '방어권은 최대 4개까지 보유할 수 있어요.',
           { code: 'studyGuardMaxCapacity' },
         );
       }

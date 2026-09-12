@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
-import '../../data/quiz_data.dart';
 import '../../models/quiz_question.dart';
 import '../../theme/app_theme.dart';
 import 'figma_asset_image.dart';
@@ -49,6 +48,7 @@ abstract final class QuizFigmaLayout {
   static const optionWidth = 1003.0;
   static const optionHeight = 132.0;
   static const optionRadius = 66.0;
+
   /// hero·질문 축소분 반영, 보기 간격 128px.
   static const optionTops = [960.0, 1088.0, 1216.0, 1344.0];
 
@@ -199,7 +199,8 @@ List<Widget> buildQuizFigmaLayers({
 
     if (isOx && !useVerticalOx) ..._buildOxCardLayers(figma, question),
     if (!isOx) ..._buildMcQuestionLayer(figma, question),
-    if (isOx && useVerticalOx) ..._buildOxVerticalQuestionLayer(figma, question),
+    if (isOx && useVerticalOx)
+      ..._buildOxVerticalQuestionLayer(figma, question),
 
     ..._buildOptionLayers(
       figma: figma,
@@ -227,9 +228,7 @@ List<Widget> buildQuizFigmaLayers({
         fontSize: 36,
         fontWeight: FontWeight.w800,
         color: isCorrect ? AppTheme.success : AppTheme.error,
-        text: isCorrect
-            ? '정답! +${QuizData.correctXp} XP'
-            : '오답 +${QuizData.wrongXp} XP',
+        text: isCorrect ? '정답!' : '오답이에요',
       ),
     ],
 
@@ -283,7 +282,8 @@ List<Widget> _buildQuizFooter({
       ),
       ..._buildQuizActionButton(
         figma: figma,
-        left: QuizFigmaLayout.dualButtonLeft +
+        left:
+            QuizFigmaLayout.dualButtonLeft +
             QuizFigmaLayout.dualButtonWidth +
             QuizFigmaLayout.dualButtonGap,
         width: QuizFigmaLayout.dualButtonWidth,
@@ -331,10 +331,7 @@ List<Widget> _buildQuizActionButton({
               ? BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(s(46.285)),
-                  border: Border.all(
-                    color: AppTheme.figmaTeal,
-                    width: s(3),
-                  ),
+                  border: Border.all(color: AppTheme.figmaTeal, width: s(3)),
                 )
               : const BoxDecoration(),
           child: Center(
@@ -590,16 +587,10 @@ Widget _buildOptionPill({
   required bool showResult,
 }) {
   if (showResult && isCorrectOption) {
-    return (
-      background: const Color(0xFFDCFCE7),
-      border: AppTheme.success,
-    );
+    return (background: const Color(0xFFDCFCE7), border: AppTheme.success);
   }
   if (showResult && isSelected && !isCorrectOption) {
-    return (
-      background: const Color(0xFFFEE2E2),
-      border: AppTheme.error,
-    );
+    return (background: const Color(0xFFFEE2E2), border: AppTheme.error);
   }
   if (!showResult && isSelected) {
     return (
@@ -607,8 +598,5 @@ Widget _buildOptionPill({
       border: const Color(0xFF9CE5FF),
     );
   }
-  return (
-    background: Colors.white,
-    border: const Color(0xFFD9D9D9),
-  );
+  return (background: Colors.white, border: const Color(0xFFD9D9D9));
 }

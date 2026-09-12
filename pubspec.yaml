@@ -80,6 +80,10 @@ flutter:
     - assets/figma/quiz/
     - assets/figma/shop/
     - assets/figma/calendar/hamster_peek.png
+    - assets/figma/calendar/hamster_header.png
+    - assets/figma/calendar/hamster_rank_1.png
+    - assets/figma/calendar/hamster_rank_2.png
+    - assets/figma/calendar/hamster_rank_4.png
     - assets/figma/calendar/drop_empty_1.svg
     - assets/figma/calendar/drop_empty_2.svg
     - assets/figma/calendar/drop_filled.svg
@@ -116,3 +120,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+

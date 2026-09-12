@@ -93,6 +93,7 @@ class _MainShellState extends State<MainShell> {
                 HomeScreen(
                   key: ValueKey(profile.learningStage),
                   profile: profile,
+                  onNavTap: _onNavTap,
                 ),
                 SettingsScreen(
                   profile: profile,

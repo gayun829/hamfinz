@@ -411,9 +411,7 @@ class _QuizScreenState extends State<QuizScreen> {
               SizedBox(height: s(FigmaQuizTokens.resultTopGap)),
               QuizResultBanner(
                 isCorrect: isCorrect,
-                xpText: isCorrect
-                    ? '정답! +${QuizData.correctXp} XP'
-                    : '오답 +${QuizData.wrongXp} XP',
+                feedbackText: isCorrect ? '정답!' : '오답이에요',
               ),
             ],
             const SizedBox(height: 16),

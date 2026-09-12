@@ -8,6 +8,7 @@ import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
+import '../utils/learning_dates.dart';
 
 class AuthService {
   AuthService._();
@@ -248,7 +249,7 @@ class AuthService {
 
   /// 클라이언트가 직접 고치는 필드만 쓴다.
   ///
-  /// xp·energy·streak·learningHistory·categoryStats·unlockedHamsterIds는
+  /// energy·streak·learningDates·categoryStats는
   /// 퀴즈 트랜잭션(`QuizSessionRepository`)·Functions만, seeds·ownedShopItemIds·
   /// studyGuardCount는 상점 구매(`ShopService`)만 쓴다. 여기서 같이 덮으면 화면이
   /// 들고 있던 오래된 프로필로 진행도·재화가 되돌아간다.
@@ -430,15 +431,13 @@ class AuthService {
   /// 동의 시점으로 남긴다. 본문이 개정되면 [LegalDocuments.version]을 올려
   /// 재동의 대상을 가려낸다.
   Map<String, dynamic> _defaultProfileJson(User user) => {
-    'xp': 0,
     'streak': 0,
     'lastQuizCompletedDate': null,
     'todayQuizCompleted': false,
     'energy': QuizData.maxEnergy,
     'lastEnergyResetDate': DateHelper.todayKey(),
-    'unlockedHamsterIds': ['hamster_basic'],
     'selectedHamsterId': 'hamster_basic',
-    'learningHistory': <Map<String, dynamic>>[],
+    'learningDates': <String>[],
     'categoryStats': <String, dynamic>{},
     'interestCategories': <String>[],
     'learningStage': kMinLearningStage,
@@ -467,11 +466,6 @@ class AuthService {
       );
     }
 
-    final historyRaw = (data['learningHistory'] as List? ?? [])
-        .cast<Map>()
-        .map((e) => LearningRecord.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
-
     final lastDate = data['lastQuizCompletedDate'] as String?;
     var streak = data['streak'] as int? ?? 0;
     var todayCompleted = data['todayQuizCompleted'] as bool? ?? false;
@@ -497,18 +491,15 @@ class AuthService {
     return UserProfile(
       email: email,
       nickname: data['nickname'] as String? ?? email,
-      xp: data['xp'] as int? ?? 0,
       streak: streak,
       lastQuizCompletedDate: lastDate,
       todayQuizCompleted: todayCompleted,
       energy: energy.clamp(0, QuizData.maxEnergy),
       lastEnergyResetDate: lastEnergyResetDate,
-      unlockedHamsterIds: List<String>.from(
-        data['unlockedHamsterIds'] as List? ?? ['hamster_basic'],
-      ),
+
       selectedHamsterId:
           data['selectedHamsterId'] as String? ?? 'hamster_basic',
-      learningHistory: historyRaw,
+      learningDates: LearningDates.fromUser(data, today: today),
       categoryStats: stats,
       interestCategories: List<String>.from(
         data['interestCategories'] as List? ?? [],
