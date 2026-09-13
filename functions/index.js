@@ -283,6 +283,17 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       };
     });
 
+    const sessionSource = session.source || 'energySession';
+    if (sessionSource !== 'reviewSession' && answers.length > 0) {
+      const firstCategoryId = answers[0].categoryId || 'allowance';
+      const sessionLabel = CATEGORY_LABELS[firstCategoryId] || firstCategoryId;
+      if (!categoryStats[sessionLabel]) {
+        categoryStats[sessionLabel] = { correct: 0, total: 0, completedSessions: 0 };
+      }
+      categoryStats[sessionLabel].completedSessions =
+        (categoryStats[sessionLabel].completedSessions || 0) + 1;
+    }
+
     const seedsEarned = correctCount * SEEDS_PER_CORRECT;
 
     let streak = user.streak ?? 0;

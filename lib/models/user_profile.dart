@@ -2,6 +2,7 @@ class UserProfile {
   UserProfile({
     required this.email,
     required this.nickname,
+    this.bio = '',
     this.streak = 0,
     this.lastQuizCompletedDate,
     this.todayQuizCompleted = false,
@@ -24,6 +25,9 @@ class UserProfile {
 
   final String email;
   final String nickname;
+
+  /// 마이페이지 한줄소개. [AuthService.updateBio]로만 저장한다.
+  String bio;
   int streak;
   String? lastQuizCompletedDate;
   bool todayQuizCompleted;
@@ -64,18 +68,26 @@ class UserProfile {
 }
 
 class CategoryStat {
-  CategoryStat({this.correct = 0, this.total = 0});
+  CategoryStat({this.correct = 0, this.total = 0, this.completedSessions = 0});
 
   int correct;
   int total;
 
+  /// 에너지 학습 세션 완료 횟수. 홈 맵 step(1~200)의 기준.
+  int completedSessions;
+
   double get accuracy => total == 0 ? 0 : correct / total;
 
-  Map<String, dynamic> toJson() => {'correct': correct, 'total': total};
+  Map<String, dynamic> toJson() => {
+    'correct': correct,
+    'total': total,
+    'completedSessions': completedSessions,
+  };
 
   factory CategoryStat.fromJson(Map<String, dynamic> json) => CategoryStat(
     correct: json['correct'] as int? ?? 0,
     total: json['total'] as int? ?? 0,
+    completedSessions: (json['completedSessions'] as num?)?.toInt() ?? 0,
   );
 }
 

@@ -1,28 +1,33 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-import '../../data/learning_stages.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../../constants/figma_assets.dart';
+import '../../data/learning_stages.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
+import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/learning_stage_sheet.dart';
-import '../../widgets/settings_menu_button.dart';
 import '../friends/add_friend_screen.dart';
 import '../legal/legal_document_screen.dart';
+
+/// 마이페이지 (Figma `273:181` 마이페이지 수정). 하단 탭 오른쪽.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
     required this.profile,
     required this.onLogout,
-    this.onComplete,
     this.onProfileChanged,
   });
 
   final UserProfile profile;
   final VoidCallback onLogout;
-  final VoidCallback? onComplete;
+
+  /// 학습과정을 바꾸면 새 단계를 알려준다 — 홈이 프로필을 다시 불러온다.
   final ValueChanged<int>? onProfileChanged;
 
   Future<void> _logout(BuildContext context) async {
@@ -179,6 +184,27 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  void _openFriends(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+    );
+  }
+
+  Future<bool> _saveBio(BuildContext context, String bio) async {
+    try {
+      await AuthService.instance.updateBio(bio);
+      profile.bio = bio;
+      return true;
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('한줄소개를 저장하지 못했어요.')),
+        );
+      }
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final figma = FigmaScale.ofContext(
@@ -187,107 +213,443 @@ class SettingsScreen extends StatelessWidget {
     );
     final s = figma.s;
 
-    final menuItems = [
-      (
-        '친구',
-        () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AddFriendScreen()),
-          );
-        },
-      ),
-      ('연락처 연동', () => _showComingSoon(context, '연락처 연동')),
+    final rows = [
+      ('개인정보 설정', () => _showComingSoon(context, '개인정보 설정')),
       (
         '학습과정 (${learningStageLabel(profile.learningStage)})',
         () => _openLearningStage(context),
       ),
-      ('개인정보 설정', () => _showComingSoon(context, '개인정보 설정')),
-      ('규정& 개인정보 처리 방침', () => _openLegal(context)),
-      ('피드백', () => _showComingSoon(context, '피드백')),
-      ('로그아웃', () => _logout(context)),
+      ('만족도 조사', () => _showComingSoon(context, '만족도 조사')),
+      ('규정 & 개인정보 처리 방침', () => _openLegal(context)),
+      ('로그아웃/ 계정전환', () => _logout(context)),
     ];
 
-    return Scaffold(
-      backgroundColor: FigmaSettingsTokens.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: s(88)),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Center(
-                              child: ClipOval(
-                                child: Image.asset(
-                                  FigmaAssets.hamsterAuth,
-                                  width: s(FigmaSettingsTokens.profileSize),
-                                  height: s(FigmaSettingsTokens.profileSize),
-                                  fit: BoxFit.cover,
-                                ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: FigmaSettingsTokens.background,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                figma: figma,
+                nickname: profile.nickname,
+                bio: profile.bio,
+                onSaveBio: (bio) => _saveBio(context, bio),
+                onCameraTap: () => _showComingSoon(context, '프로필 사진 변경'),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  s(FigmaSettingsTokens.menuHorizontal),
+                  s(FigmaSettingsTokens.menuTop - FigmaSettingsTokens.headerHeight),
+                  s(FigmaSettingsTokens.menuHorizontal),
+                  s(FigmaSettingsTokens.menuHorizontal),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: s(FigmaSettingsTokens.topRowHeight),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 202.59 : 11.41 : 131 (Figma 273:236 / 273:228)
+                          Expanded(
+                            flex: 20259,
+                            child: _SettingsCard(
+                              figma: figma,
+                              label: '친구 목록',
+                              onTap: () => _openFriends(context),
+                              trailing: FigmaSvg(
+                                FigmaAssets.settingsPlus,
+                                width: s(24),
+                                height: s(20.87),
                               ),
+                              trailingRight: 10.59,
                             ),
-                            SizedBox(height: s(FigmaSettingsTokens.profileLinkGap)),
-                            SettingsMenuButton(
-                              label: '프로필 설정',
-                              onPressed: () =>
-                                  _showComingSoon(context, '프로필 설정'),
-                            ),
-                            SizedBox(height: s(FigmaSettingsTokens.sectionTopGap)),
-                            Text(
-                              '설정',
-                              style: FigmaSettingsTokens.sectionTitleStyle(
-                                figma.scale,
+                          ),
+                          SizedBox(width: s(11.41)),
+                          Expanded(
+                            flex: 13100,
+                            child: _SettingsCard(
+                              figma: figma,
+                              label: '연락처 연동',
+                              onTap: () => _showComingSoon(context, '연락처 연동'),
+                              trailing: _Chevron(
+                                asset: FigmaAssets.settingsChevronSmall,
+                                width: s(6.877),
+                                height: s(9.972),
                               ),
+                              trailingRight: 11.81,
                             ),
-                            SizedBox(height: s(FigmaSettingsTokens.sectionTitleGap)),
-                            ...menuItems.map(
-                              (item) => Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: s(FigmaSettingsTokens.menuItemGap),
-                                ),
-                                child: SettingsMenuButton(
-                                  label: item.$1,
-                                  onPressed: item.$2,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: s(FigmaSettingsTokens.withdrawTopGap)),
-                            SettingsMenuButton(
-                              label: '회원 탈퇴',
-                              destructive: true,
-                              onPressed: () => _withdraw(context),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
+                    for (final row in rows) ...[
+                      SizedBox(height: s(FigmaSettingsTokens.menuGap)),
+                      _SettingsRow(figma: figma, label: row.$1, onTap: row.$2),
+                    ],
+                    SizedBox(height: s(FigmaSettingsTokens.menuGap)),
+                    _SettingsRow(
+                      figma: figma,
+                      label: '회원탈퇴',
+                      destructive: true,
+                      onTap: () => _withdraw(context),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                s(FigmaSettingsTokens.buttonHorizontal),
-                0,
-                s(FigmaSettingsTokens.buttonHorizontal),
-                s(FigmaSettingsTokens.buttonBottom),
-              ),
-              child: SettingsPrimaryButton(
-                label: '설정 완료',
-                onPressed: onComplete ?? () => Navigator.of(context).maybePop(),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// 그라데이션 헤더 — 타이틀·프로필·닉네임·한줄소개 (Figma y 0~296).
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.figma,
+    required this.nickname,
+    required this.bio,
+    required this.onSaveBio,
+    required this.onCameraTap,
+  });
+
+  final FigmaScale figma;
+  final String nickname;
+  final String bio;
+  final Future<bool> Function(String bio) onSaveBio;
+  final VoidCallback onCameraTap;
+
+  static const _titleTop = 58.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    // Figma 프레임은 타이틀이 상태바 바로 아래(y 58)에 온다. 노치가 더 깊은
+    // 기기에서만 그만큼 내용을 내린다.
+    final topShift = math.max(
+      0.0,
+      MediaQuery.paddingOf(context).top - s(_titleTop),
+    );
+
+    return Container(
+      height: s(FigmaSettingsTokens.headerHeight) + topShift,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: FigmaSettingsTokens.headerGradientFrom,
+          end: FigmaSettingsTokens.headerGradientTo,
+          colors: [
+            FigmaSettingsTokens.headerGradientStart,
+            FigmaSettingsTokens.headerGradientEnd,
+          ],
+          stops: FigmaSettingsTokens.headerGradientStops,
+        ),
+      ),
+      padding: EdgeInsets.only(top: topShift),
+      child: Stack(
+        children: [
+          FigmaBox(
+            figma: figma,
+            left: 26,
+            top: _titleTop,
+            child: Text(
+              '마이페이지',
+              style: FigmaSettingsTokens.titleStyle(figma.scale),
+            ),
+          ),
+          FigmaBox(
+            figma: figma,
+            left: 25,
+            top: 110,
+            width: 161,
+            height: 161,
+            child: const FigmaSvg(FigmaAssets.settingsProfile, fit: BoxFit.fill),
+          ),
+          // 카메라 배지 (Ellipse 210) 탭 영역
+          FigmaBox(
+            figma: figma,
+            left: 141.11,
+            top: 231.97,
+            width: 37.08,
+            height: 37.08,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onCameraTap,
+            ),
+          ),
+          FigmaBox(
+            figma: figma,
+            left: 211,
+            top: 131,
+            width: FigmaSettingsTokens.designWidth - 211 - 24,
+            child: Text(
+              nickname,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: FigmaSettingsTokens.nicknameStyle(figma.scale),
+            ),
+          ),
+          FigmaBox(
+            figma: figma,
+            left: 211,
+            top: 160,
+            width: 122,
+            height: 84,
+            child: _BioBox(figma: figma, bio: bio, onSave: onSaveBio),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 한줄소개 박스 — 탭하면 바로 입력, 포커스가 빠지거나 완료를 누르면 저장한다.
+class _BioBox extends StatefulWidget {
+  const _BioBox({
+    required this.figma,
+    required this.bio,
+    required this.onSave,
+  });
+
+  final FigmaScale figma;
+  final String bio;
+
+  /// 저장에 실패하면 false — 입력을 이전 값으로 되돌린다.
+  final Future<bool> Function(String bio) onSave;
+
+  @override
+  State<_BioBox> createState() => _BioBoxState();
+}
+
+class _BioBoxState extends State<_BioBox> {
+  late final _controller = TextEditingController(text: widget.bio);
+  final _focusNode = FocusNode();
+  late String _savedBio = widget.bio;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BioBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 프로필을 다시 불러온 경우 — 편집 중이 아닐 때만 서버 값을 반영한다.
+    if (widget.bio != oldWidget.bio && !_focusNode.hasFocus) {
+      _savedBio = widget.bio;
+      _controller.text = widget.bio;
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) _commit();
+  }
+
+  Future<void> _commit() async {
+    final bio = _controller.text.trim();
+    _controller.text = bio;
+    if (bio == _savedBio) return;
+
+    final previous = _savedBio;
+    _savedBio = bio;
+    final saved = await widget.onSave(bio);
+    if (!saved && mounted) {
+      _savedBio = previous;
+      _controller.text = previous;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.figma.s;
+    final textStyle = FigmaSettingsTokens.bioStyle(widget.figma.scale);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _focusNode.requestFocus,
+      child: Container(
+        padding: EdgeInsets.all(s(10)),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          // 편집 중에도 흰 박스를 덧씌우지 않고 하늘색 박스 안에서 바로 입력한다.
+          color: FigmaSettingsTokens.bioBoxFill,
+          borderRadius: BorderRadius.circular(s(FigmaSettingsTokens.bioBoxRadius)),
+        ),
+        child: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          style: textStyle,
+          cursorColor: Colors.white,
+          minLines: 1,
+          maxLines: 3,
+          maxLength: FigmaSettingsTokens.bioMaxLength,
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.done,
+          inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\n'))],
+          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+              null,
+          onSubmitted: (_) => _focusNode.unfocus(),
+          onTapOutside: (_) => _focusNode.unfocus(),
+          // 앱 전체 테마의 흰 배경·테두리 입력칸 스타일을 쓰지 않는다 —
+          // 하늘색 박스 자체가 입력칸이라 안에 흰 박스가 또 생기면 안 된다.
+          decoration: InputDecoration(
+            isDense: true,
+            filled: false,
+            fillColor: Colors.transparent,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+            hintText: '터치해서\n한줄소개 입력',
+            hintMaxLines: 3,
+            hintStyle: textStyle.copyWith(
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 흰 카드 + 블러 그림자 (Figma `캘린더 그림자` + `Rectangle 536`).
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.figma,
+    required this.label,
+    required this.onTap,
+    required this.trailing,
+    required this.trailingRight,
+    this.destructive = false,
+  });
+
+  final FigmaScale figma;
+  final String label;
+  final VoidCallback onTap;
+  final Widget trailing;
+
+  /// 카드 오른쪽 끝에서 아이콘까지 Figma 간격.
+  final double trailingRight;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    final radius = BorderRadius.circular(s(FigmaSettingsTokens.cardRadius));
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: FigmaSettingsTokens.cardShadow,
+            blurRadius: s(FigmaSettingsTokens.cardShadowBlur),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.white,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: s(FigmaSettingsTokens.textLeft),
+              right: s(trailingRight),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: FigmaSettingsTokens.menuStyle(
+                      figma.scale,
+                      destructive: destructive,
+                    ),
+                  ),
+                ),
+                trailing,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 40px 한 줄 메뉴 (개인정보 설정 ~ 회원탈퇴).
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.figma,
+    required this.label,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  final FigmaScale figma;
+  final String label;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    return SizedBox(
+      height: s(FigmaSettingsTokens.rowHeight),
+      child: _SettingsCard(
+        figma: figma,
+        label: label,
+        onTap: onTap,
+        destructive: destructive,
+        trailing: _Chevron(
+          asset: FigmaAssets.settingsChevron,
+          width: s(6.513),
+          height: s(10.908),
+        ),
+        trailingRight: 11.22,
+      ),
+    );
+  }
+}
+
+/// Figma에서 `rotate-180 -scale-y-100`(= 좌우 반전)으로 `<`를 `>`로 쓴다.
+class _Chevron extends StatelessWidget {
+  const _Chevron({
+    required this.asset,
+    required this.width,
+    required this.height,
+  });
+
+  final String asset;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.flip(
+      flipX: true,
+      child: FigmaSvg(asset, width: width, height: height),
     );
   }
 }

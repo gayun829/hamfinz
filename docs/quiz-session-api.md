@@ -103,7 +103,7 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 ### 서버 처리
 
 1. `answers` subcollection 전부 존재 확인 (10문항)
-2. XP (+10 / +2) · 씨앗 (정답 × 5) · `categoryStats` (한글 label 키)
+2. XP (+10 / +2) · 씨앗 (정답 × 5) · `categoryStats` (한글 label 키, 에너지 세션이면 `completedSessions + 1`)
 3. streak · `learningHistory` · 햄스터 해금
 4. `sessions/{id}` → `status: completed`
 5. `users/{uid}` 갱신 (Admin SDK — 클라이언트 xp/energy 직접 쓰기 불필요)

@@ -259,6 +259,14 @@ class AuthService {
     await _users.doc(user.uid).update(clientOwnedJson(profile));
   }
 
+  /// 마이페이지 한줄소개. [saveProfile]로 같이 쓰면 화면이 들고 있던 오래된
+  /// 프로필이 다른 필드를 덮을 수 있어서 `bio`만 따로 쓴다.
+  Future<void> updateBio(String bio) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _users.doc(user.uid).update({'bio': bio});
+  }
+
   /// 회원 탈퇴. 재인증 → Firestore 개인정보 삭제 → Auth 계정 삭제 순으로 한다.
   /// 재인증을 먼저 해야 `requires-recent-login`으로 데이터만 지워지고 계정은
   /// 남는 상태가 안 생긴다.
@@ -491,6 +499,7 @@ class AuthService {
     return UserProfile(
       email: email,
       nickname: data['nickname'] as String? ?? email,
+      bio: data['bio'] as String? ?? '',
       streak: streak,
       lastQuizCompletedDate: lastDate,
       todayQuizCompleted: todayCompleted,
