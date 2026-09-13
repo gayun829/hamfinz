@@ -14,8 +14,8 @@ test('leap day and year rollover', () => {
   assert.deepEqual(learningDatesFromUser({ learningDates: ['2024-02-28', '2024-02-29'] }, '2024-03-31', true), ['2024-03-31', '2024-02-29']);
   assert.deepEqual(learningDatesFromUser({ learningDates: ['2025-12-01', '2025-12-02'] }, '2026-01-02', true), ['2026-01-02', '2025-12-02']);
 });
-test('new field wins; rolling window never exceeds 32 dates', () => {
-  assert.deepEqual(learningDatesFromUser({ learningDates: [], learningHistory: [{ date: '2026-09-12' }] }, '2026-09-12'), []);
+test('legacy dates remain readable; rolling window never exceeds 32 dates', () => {
+  assert.deepEqual(learningDatesFromUser({ learningDates: [], learningHistory: [{ date: '2026-09-12' }] }, '2026-09-12'), ['2026-09-12']);
   const learningDates = Array.from({ length: 70 }, (_, i) => new Date(Date.UTC(2026, 8, 12) - i * 86400000).toISOString().slice(0, 10));
   const saved = learningDatesFromUser({ learningDates }, '2026-09-12', true);
   assert.equal(saved.length, 32);

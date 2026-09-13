@@ -63,7 +63,7 @@ void main() {
     );
   });
 
-  test('new field is authoritative and at most 32 dates survive', () {
+  test('legacy dates remain readable and at most 32 dates survive', () {
     expect(
       LearningDates.fromUser({
         'learningDates': [],
@@ -71,7 +71,7 @@ void main() {
           {'date': '2026-09-12'},
         ],
       }, today: '2026-09-12'),
-      isEmpty,
+      ['2026-09-12'],
     );
     final dates = List.generate(
       70,

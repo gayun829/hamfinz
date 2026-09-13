@@ -32,7 +32,7 @@ class StreakCalendarScreen extends StatefulWidget {
 }
 
 class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
-  DateTime _month = DateTime.now();
+  DateTime _month = DateHelper.koreaNow();
 
   void _navigate(int index) {
     Navigator.of(context).maybePop();
@@ -131,7 +131,8 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                                   flex: 101,
                                   child: _Stat(
                                     scale: scale,
-                                    label: '방어햄 사용수',
+                                    label: '방어권 보유',
+                                    unit: '개',
                                     value: widget.studyGuardCount,
                                   ),
                                 ),
@@ -219,12 +220,14 @@ class _Stat extends StatelessWidget {
     required this.label,
     required this.value,
     this.flame = false,
+    this.unit = '일',
     this.progress = 0,
   });
   final double scale;
   final String label;
   final int value;
   final bool flame;
+  final String unit;
   final double progress;
 
   @override
@@ -291,7 +294,7 @@ class _Stat extends StatelessWidget {
                           ),
                         ),
                         TextSpan(
-                          text: ' 일',
+                          text: ' $unit',
                           style: TextStyle(fontSize: s(12)),
                         ),
                       ],
@@ -326,7 +329,7 @@ class _Calendar extends StatelessWidget {
     final leading = DateTime(month.year, month.month).weekday % 7;
     final count = DateTime(month.year, month.month + 1, 0).day;
     final rows = (leading + count + 6) ~/ 7;
-    final now = DateTime.now();
+    final now = DateHelper.koreaNow();
     final today = DateTime(now.year, now.month, now.day);
     return GestureDetector(
       onHorizontalDragEnd: (details) {
@@ -404,7 +407,7 @@ class _Calendar extends StatelessWidget {
                             month.month,
                             row * 7 + col - leading + 1,
                           );
-                          final key = DateHelper.todayKey(date);
+                          final key = DateHelper.dateKey(date);
                           final inMonth = date.month == month.month;
                           final completed =
                               inMonth && completedDates.contains(key);
@@ -434,7 +437,9 @@ class _Calendar extends StatelessWidget {
                                       ],
                                       Container(
                                         key: completed
-                                            ? ValueKey('${todayCompleted ? 'today-hamster' : 'study-circle'}-$key')
+                                            ? ValueKey(
+                                                '${todayCompleted ? 'today-hamster' : 'study-circle'}-$key',
+                                              )
                                             : null,
                                         width: s(23),
                                         height: s(23),
@@ -554,6 +559,17 @@ class _FriendsCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+          Positioned(
+            right: s(4),
+            top: 0,
+            child: IconButton(
+              tooltip: '친구 추가',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+              ),
+              icon: Icon(Icons.person_add_alt_1, size: s(21), color: _cyan),
             ),
           ),
         ],

@@ -10,10 +10,7 @@ The calendar and profile consume dates only; no per-session summary is stored
 in this user field. Existing session/answer documents and category statistics
 continue to support quiz completion, review and correctness reporting.
 
-For old profiles without `learningDates`, readers extract dates from
-`learningHistory`, deduplicate and filter them. The next completed session writes
-`learningDates` and deletes `learningHistory`. Already discarded legacy entries
-cannot be recovered through this fallback. New profiles start with an empty array.
+Readers merge dates from learningDates and legacy learningHistory, deduplicate and filter them. The next completed session writes the retained dates to learningDates and deletes learningHistory in the same transaction. Older app versions are developer-only and are not supported after this migration. New profiles start with an empty learningDates array.
 
 Expired dates are filtered on profile read and removed from the stored array on
 the next completed session. There is no scheduled database deletion for inactive
@@ -25,3 +22,5 @@ Production rollout requires the updated app, `completeSession` function and
 No production deployment or bulk migration is performed by these code changes.
 
 Validation: `flutter test` and `node --test functions/learning_dates.test.js`.
+
+App date keys and calendar today/month use KST, matching the server. Explicit calendar dates are formatted without time-zone conversion.
