@@ -2,7 +2,4 @@
 class FigmaQuizFonts {
   static const pretendard = 'Pretendard';
   static const suit = 'SUIT';
-
-  /// 퀴즈_결과보기창(`131:3546`) 보상 수치.
-  static const inter = 'Inter';
 }
