@@ -6,7 +6,8 @@ import '../../theme/figma_auth_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/figma_auth_widgets.dart';
 import 'find_password_screen.dart';
-import 'signup_screen.dart';
+import 'onboarding/nickname_step_screen.dart';
+import 'onboarding/signup_draft.dart';
 import 'social_profile_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,10 +15,14 @@ class LoginScreen extends StatefulWidget {
     super.key,
     this.onAuthenticated,
     this.onSwitchToSignup,
+    this.onBack,
   });
 
   final VoidCallback? onAuthenticated;
   final VoidCallback? onSwitchToSignup;
+
+  /// 시작 화면(`102:12145`)에서 들어온 경우 돌아갈 곳.
+  final VoidCallback? onBack;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -122,8 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
       widget.onSwitchToSignup!();
       return;
     }
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const SignupScreen()),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NicknameStepScreen(draft: SignupDraft()),
+      ),
     );
   }
 
@@ -144,6 +151,15 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.onBack != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    onPressed: widget.onBack,
+                    icon: const Icon(Icons.arrow_back_ios_new),
+                    color: FigmaAuthTokens.link,
+                  ),
+                ),
               const FigmaHamsterHero(useSignupAsset: false),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: fieldPad),

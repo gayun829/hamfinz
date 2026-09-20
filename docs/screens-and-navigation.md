@@ -2,17 +2,33 @@
 
 ## 인증 전
 
+```
+SplashScreen (1.6초 + 세션 확인)
+  → 세션 있음 → MainShell
+  → 세션 없음 → IntroScreen
+       ├ 카카오톡 / Apple / goolge  → (첫 가입) SocialProfileSetupScreen → CategorySelectScreen
+       ├ 다른 방법으로 계속하기      → 닉네임 → 이메일 → 비밀번호 → 인증 → 약관 → CategorySelectScreen
+       └ 이미 계정이 있나요? 로그인  → LoginScreen
+```
+
 | 화면 | 파일 | 역할 |
 |------|------|------|
-| AuthGate | `lib/screens/auth/auth_gate.dart` | 세션 확인, 로그인↔회원가입 전환 |
+| AuthGate | `lib/screens/auth/auth_gate.dart` | 스플래시·세션 확인, 초기 화면↔로그인 전환 |
+| SplashScreen | `lib/screens/auth/onboarding/splash_screen.dart` | 로고+햄핀 등장창 |
+| IntroScreen | `lib/screens/auth/onboarding/intro_screen.dart` | 설치 직후 시작 화면 (소셜 3 + 다른 방법) |
+| NicknameStepScreen | `lib/screens/auth/onboarding/nickname_step_screen.dart` | 가입 1 — 닉네임 + 중복 확인 |
+| EmailStepScreen | `lib/screens/auth/onboarding/email_step_screen.dart` | 가입 2 — 이메일 |
+| PasswordStepScreen | `lib/screens/auth/onboarding/password_step_screen.dart` | 가입 3 — 비밀번호(규칙 4개) |
+| VerifyStepScreen | `lib/screens/auth/onboarding/verify_step_screen.dart` | 가입 4 — 이메일 인증 + 타이머 |
+| TermsStepScreen | `lib/screens/auth/onboarding/terms_step_screen.dart` | 가입 5 — 약관 동의 |
 | LoginScreen | `lib/screens/auth/login_screen.dart` | 로그인, 비밀번호 찾기 |
-| SignupScreen | `lib/screens/auth/signup_screen.dart` | 가입 + 약관 동의 |
 | FindPasswordScreen | `lib/screens/auth/find_password_screen.dart` | 비밀번호 재설정 |
 | SocialProfileSetupScreen | `lib/screens/auth/social_profile_setup_screen.dart` | 소셜 첫 가입 — 닉네임 + 약관 동의 |
 | CategorySelectScreen | `lib/screens/auth/category_select_screen.dart` | 관심 카테고리 (가입 직후) |
-| LegalDocumentScreen | `lib/screens/legal/legal_document_screen.dart` | 약관/개인정보 본문 |
+| LegalDocumentScreen | `lib/screens/legal/legal_document_screen.dart` | 약관/개인정보/마케팅 본문 |
 
-AuthGate는 Navigator 없이 상태(`_showSignup`)로 로그인/회원가입을 바꿔, `onAuthenticated` 콜백이 끊기지 않게 한다.
+AuthGate는 Navigator 없이 상태(`_showLogin`)로 초기 화면/로그인을 바꿔, `onAuthenticated` 콜백이 끊기지 않게 한다.
+가입 단계는 Navigator로 쌓아서 뒤로가기가 한 단계씩 돌아가게 한다. 입력값은 `SignupDraft` 하나를 들고 다닌다.
 
 ## 인증 후 — MainShell
 

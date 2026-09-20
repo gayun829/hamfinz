@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
-import '../../theme/app_theme.dart';
 import 'login_screen.dart';
-import 'signup_screen.dart';
+import 'onboarding/intro_screen.dart';
+import 'onboarding/nickname_step_screen.dart';
+import 'onboarding/signup_draft.dart';
+import 'onboarding/splash_screen.dart';
 import 'social_profile_setup_screen.dart';
 
-/// 세션 확인 후 Figma 로그인 화면(`1:152`)을 시작 화면으로 표시한다.
+/// 스플래시(`478:1213`)를 먼저 띄우고 세션을 확인한 뒤 시작 화면을 고른다.
 ///
-/// 로그인 ↔ 회원가입 전환은 Navigator 없이 [AuthGate] 상태로 처리해
+/// 세션이 있으면 바로 홈, 없으면 설치 직후 화면(`102:12145`)이다.
+/// 초기 화면 ↔ 로그인 전환은 Navigator 없이 [AuthGate] 상태로 처리해
 /// `onAuthenticated` 콜백이 항상 유지되도록 한다.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.onAuthenticated});
@@ -20,8 +23,12 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  /// 로고 화면을 최소한 이만큼은 보여준다 — 세션 확인이 빨라도 깜빡이지 않게.
+  static const _splashMinimum = Duration(milliseconds: 1600);
+
   bool _checking = true;
-  bool _showSignup = false;
+  bool _splashDone = false;
+  bool _showLogin = false;
 
   /// 소셜 로그인만 끝내고 닉네임 화면에서 앱을 껐던 계정. 여기부터 이어서 받는다.
   SocialSignInResult? _pendingSocialSignUp;
@@ -30,6 +37,9 @@ class _AuthGateState extends State<AuthGate> {
   void initState() {
     super.initState();
     _checkSession();
+    Future.delayed(_splashMinimum, () {
+      if (mounted) setState(() => _splashDone = true);
+    });
   }
 
   Future<void> _checkSession() async {
@@ -40,9 +50,12 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
 
-    // 프로필 문서가 없으면 가입이 안 끝난 계정이다. 소셜이면 닉네임부터 이어받고,
-    // 이메일이면 회원가입 화면이 인증 단계를 다시 이어간다.
+    // 프로필 문서가 없으면 가입이 안 끝난 계정이다. 소셜이면 닉네임 화면부터
+    // 이어받고, 이메일이면 이어갈 수 없으니 로그아웃시켜 처음부터 받는다.
     final pending = await AuthService.instance.pendingSocialSignUp();
+    if (pending == null) {
+      await AuthService.instance.discardIncompleteEmailSignUp();
+    }
     if (!mounted) return;
     setState(() {
       _pendingSocialSignUp = pending;
@@ -50,17 +63,27 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
-  void _showLoginScreen() => setState(() => _showSignup = false);
+  void _showLoginScreen() => setState(() => _showLogin = true);
 
-  void _showSignupScreen() => setState(() => _showSignup = true);
+  void _showIntroScreen() => setState(() => _showLogin = false);
+
+  /// 로그인 화면의 "회원가입" 링크 — 새 단계형 가입 흐름으로 보낸다.
+  Future<void> _startSignupFlow() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NicknameStepScreen(draft: SignupDraft()),
+      ),
+    );
+    if (!mounted) return;
+    final user = await AuthService.instance.getCurrentUser();
+    if (!mounted) return;
+    if (user != null) widget.onAuthenticated();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_checking) {
-      return const Scaffold(
-        backgroundColor: AppTheme.figmaAuthBackground,
-        body: Center(child: CircularProgressIndicator()),
-      );
+    if (_checking || !_splashDone) {
+      return const SplashScreen();
     }
 
     final pending = _pendingSocialSignUp;
@@ -72,16 +95,17 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
-    if (_showSignup) {
-      return SignupScreen(
+    if (_showLogin) {
+      return LoginScreen(
         onAuthenticated: widget.onAuthenticated,
-        onSwitchToLogin: _showLoginScreen,
+        onSwitchToSignup: _startSignupFlow,
+        onBack: _showIntroScreen,
       );
     }
 
-    return LoginScreen(
+    return IntroScreen(
       onAuthenticated: widget.onAuthenticated,
-      onSwitchToSignup: _showSignupScreen,
+      onLogin: _showLoginScreen,
     );
   }
 }

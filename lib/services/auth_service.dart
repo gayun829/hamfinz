@@ -48,8 +48,53 @@ class AuthService {
       await credential.user!.sendEmailVerification();
       return null;
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        return _resumeSignUp(trimmedEmail, password);
+      }
       return _authErrorMessage(e);
     }
+  }
+
+  /// 인증 단계에서 앱을 껐다가 같은 메일·비밀번호로 다시 가입을 시도한 경우.
+  ///
+  /// Auth 계정만 만들어지고 프로필 문서가 없는 상태라 `email-already-in-use`로
+  /// 막히는데, 실제로는 본인이 이어서 가입하는 것이라 다시 로그인시켜 흐름을
+  /// 이어준다. 이미 가입이 끝난 계정이면 로그인하라고 알려주고 되돌린다.
+  Future<String?> _resumeSignUp(String email, String password) async {
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = credential.user!;
+      final profile = await _users.doc(user.uid).get();
+      if (profile.exists) {
+        await _auth.signOut();
+        return '이미 가입된 이메일입니다. 로그인해 주세요.';
+      }
+      if (!user.emailVerified) await user.sendEmailVerification();
+      return null;
+    } on FirebaseAuthException {
+      return '이미 가입된 이메일입니다. 로그인해 주세요.';
+    }
+  }
+
+  /// 가입 도중 앱을 껐을 때 남는 "프로필 없는 이메일 계정"을 정리한다.
+  ///
+  /// 소셜 계정은 [pendingSocialSignUp]이 닉네임 화면부터 이어받지만, 이메일
+  /// 가입은 비밀번호를 다시 받아야 해서 이어갈 수 없다. 로그인 상태만 어정쩡하게
+  /// 남기지 말고 로그아웃시켜, 처음부터 다시 진행하게 한다
+  /// (같은 메일로 다시 오면 [_resumeSignUp]이 받아준다).
+  Future<void> discardIncompleteEmailSignUp() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final providerIds = user.providerData.map((p) => p.providerId).toList();
+    if (providerIds.isNotEmpty && providerIds.any((id) => id != 'password')) {
+      return;
+    }
+    final profile = await _users.doc(user.uid).get();
+    if (profile.exists) return;
+    await _auth.signOut();
   }
 
   /// 서버에서 이메일 인증 완료 여부를 다시 확인한다.
@@ -72,16 +117,23 @@ class AuthService {
   }
 
   /// 회원가입 2단계: 인증이 끝난 계정에 프로필 문서를 만든다.
-  Future<String?> completeSignUp({required String nickname}) async {
+  Future<String?> completeSignUp({
+    required String nickname,
+    bool marketingConsent = false,
+  }) async {
     final user = _auth.currentUser;
     if (user == null || !user.emailVerified) {
       return '이메일 인증을 먼저 완료해주세요.';
     }
-    return _createProfile(user, nickname);
+    return _createProfile(user, nickname, marketingConsent: marketingConsent);
   }
 
   /// 닉네임을 예약하고 프로필 문서를 만든다 — 이메일·소셜 가입의 마지막 단계.
-  Future<String?> _createProfile(User user, String nickname) async {
+  Future<String?> _createProfile(
+    User user,
+    String nickname, {
+    bool marketingConsent = false,
+  }) async {
     final trimmedNickname = nickname.trim();
     if (trimmedNickname.isEmpty) {
       return '닉네임을 입력해주세요.';
@@ -99,7 +151,7 @@ class AuthService {
 
     await _users.doc(user.uid).set({
       'nickname': trimmedNickname,
-      ..._defaultProfileJson(user),
+      ..._defaultProfileJson(user, marketingConsent: marketingConsent),
     });
     return null;
   }
@@ -468,10 +520,13 @@ class AuthService {
   /// 프로필 문서 초기값. 가입 시 1회만 쓴다.
   ///
   /// `consents`는 약관·개인정보 동의 기록이다. 이메일 가입 화면과 소셜 가입
-  /// 화면 모두 두 항목 동의를 강제하므로, 문서를 만드는 시점 = 동의 시점으로
-  /// 남긴다. 본문이 개정되면 [LegalDocuments.version]을 올려
+  /// 화면 모두 필수 두 항목 동의를 강제하므로, 문서를 만드는 시점 = 동의
+  /// 시점으로 남긴다. 마케팅 수신만 선택이라 실제 선택값을 그대로 적는다. 본문이 개정되면 [LegalDocuments.version]을 올려
   /// 재동의 대상을 가려낸다.
-  Map<String, dynamic> _defaultProfileJson(User user) => {
+  Map<String, dynamic> _defaultProfileJson(
+    User user, {
+    bool marketingConsent = false,
+  }) => {
     'xp': 0,
     'streak': 0,
     'lastQuizCompletedDate': null,
@@ -491,6 +546,8 @@ class AuthService {
       'termsVersion': LegalDocuments.version,
       'privacyVersion': LegalDocuments.version,
       'agreedAt': FieldValue.serverTimestamp(),
+      // 선택 항목 — 가입 화면의 "광고성 정보, 마케팅 활용 동의(선택)".
+      'marketing': marketingConsent,
     },
     'providers': user.providerData.isEmpty
         ? ['password']

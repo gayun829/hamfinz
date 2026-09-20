@@ -60,7 +60,11 @@ service cloud.firestore {
     }
 
     match /nicknames/{nicknameLower} {
-      allow read: if request.auth != null;
+      // 가입 흐름의 닉네임 중복 확인은 로그인 전에 일어난다.
+      // 문서 1건 조회(get)만 열고 목록 조회(list)는 계속 막아,
+      // 닉네임을 통째로 긁어가지는 못하게 한다.
+      allow get: if true;
+      allow list: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nickname']);

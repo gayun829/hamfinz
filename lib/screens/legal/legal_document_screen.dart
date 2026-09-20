@@ -35,6 +35,17 @@ class LegalDocumentScreen extends StatelessWidget {
     );
   }
 
+  static Future<void> openMarketing(BuildContext context) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const LegalDocumentScreen(
+          title: LegalDocuments.marketingTitle,
+          body: LegalDocuments.marketingBody,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
