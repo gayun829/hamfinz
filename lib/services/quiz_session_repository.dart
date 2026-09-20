@@ -11,6 +11,7 @@ import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../utils/date_helper.dart';
+import '../utils/energy_reset.dart';
 import '../utils/incorrect_questions.dart';
 import '../utils/quiz_text_helper.dart';
 
@@ -226,7 +227,8 @@ class QuizSessionRepository {
         }
 
         final user = userSnap.data()!;
-        var energy = (user['energy'] as num?)?.toInt() ?? QuizData.maxEnergy;
+        final resolvedEnergy = _userEnergy(user);
+        var energy = resolvedEnergy.energy;
         if (energy < QuizData.energyCostPerQuestion) {
           txError.add('에너지가 부족해요.');
           return null;
@@ -258,7 +260,10 @@ class QuizSessionRepository {
           isCorrect: isCorrect,
           alreadyTracked: incorrectSnap.exists,
         );
-        final userUpdate = <String, dynamic>{'energy': energy};
+        final userUpdate = <String, dynamic>{
+          'energy': energy,
+          'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
+        };
         if (nextCount != currentCount) {
           userUpdate['incorrectQuestionCount'] = nextCount;
         }
@@ -491,10 +496,21 @@ class QuizSessionRepository {
           historyLength: history.length,
         );
 
-        final energyRemaining = (user['energy'] as num?)?.toInt() ?? 0;
+        // 세션을 끝냈으니 에너지를 일부 돌려준다. 최대치에 걸리면 채워진 만큼만
+        // 보상으로 잡아야 화면에 실제와 다른 `+20`이 뜨지 않는다.
+        final resolvedEnergy = _userEnergy(user);
+        final energyBefore = resolvedEnergy.energy;
+        final energyRemaining =
+            (energyBefore + QuizData.sessionCompleteEnergyReward).clamp(
+              0,
+              QuizData.maxEnergy,
+            );
+        final energyEarned = energyRemaining - energyBefore;
 
         tx.update(userRef, {
           'xp': newXp,
+          'energy': energyRemaining,
+          'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
           'seeds': ((user['seeds'] as num?)?.toInt() ?? 0) + seedsEarned,
           'streak': streak,
           'lastQuizCompletedDate': lastQuizCompletedDate,
@@ -514,6 +530,7 @@ class QuizSessionRepository {
           'energySpent':
               (session['energySpent'] as num?)?.toInt() ??
               answers.length * QuizData.energyCostPerQuestion,
+          'energyEarned': energyEarned,
           'completedAt': FieldValue.serverTimestamp(),
         });
 
@@ -535,6 +552,7 @@ class QuizSessionRepository {
           'unlockedItems': unlocks.newly,
           'newStreak': streak,
           'energyRemaining': energyRemaining,
+          'energyEarned': energyEarned,
         };
       });
 
@@ -571,6 +589,7 @@ class QuizSessionRepository {
             unlockedItems: result.unlockedItems,
             newStreak: result.newStreak,
             energyRemaining: result.energyRemaining,
+            energyEarned: result.energyEarned,
             advancedLearningStage: advancedStage,
           );
         }
@@ -583,6 +602,11 @@ class QuizSessionRepository {
       throw QuizSessionException(_firebaseTxMessage(e, '세션 완료 처리에 실패했어요.'));
     }
   }
+
+  ResolvedEnergy _userEnergy(Map<String, dynamic> user) => resolveDailyEnergy(
+    storedEnergy: (user['energy'] as num?)?.toInt(),
+    lastEnergyResetDate: user['lastEnergyResetDate'] as String?,
+  );
 
   SubmitAnswerResult _submitAnswerResultFromTx(Map<String, dynamic> data) {
     return SubmitAnswerResult(
@@ -612,6 +636,7 @@ class QuizSessionRepository {
       unlockedItems: List<String>.from(data['unlockedItems'] as List? ?? []),
       newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
       energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
+      energyEarned: (data['energyEarned'] as num?)?.toInt() ?? 0,
     );
   }
 

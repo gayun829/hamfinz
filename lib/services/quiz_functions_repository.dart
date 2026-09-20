@@ -69,6 +69,7 @@ class QuizFunctionsRepository {
         unlockedItems: List<String>.from(data['unlockedItems'] as List? ?? []),
         newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
         energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
+        energyEarned: (data['energyEarned'] as num?)?.toInt() ?? 0,
       );
     } on FirebaseFunctionsException catch (e) {
       throw QuizSessionException(_functionsErrorMessage(e, '세션 완료 처리에 실패했어요.'));
