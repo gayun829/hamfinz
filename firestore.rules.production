@@ -19,7 +19,7 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
              'xp', 'energy', 'lastEnergyResetDate', 'streak',
              'lastQuizCompletedDate', 'todayQuizCompleted', 'categoryStats',
-             'learningHistory', 'learningDates', 'unlockedHamsterIds',
+             'learningHistory', 'unlockedHamsterIds',
              'incorrectQuestionCount',
              'seeds', 'ownedShopItemIds', 'studyGuardCount',
            ]);

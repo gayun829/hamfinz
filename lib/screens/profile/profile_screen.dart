@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/hamster_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
@@ -26,6 +27,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _profile = widget.profile;
+  }
+
+  Future<void> _selectHamster(String id) async {
+    setState(() => _profile.selectedHamsterId = id);
+    await AuthService.instance.saveProfile(_profile);
   }
 
   Future<void> _logout() async {
@@ -90,6 +96,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          const Text(
+            '햄스터 컬렉션',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          ...HamsterData.items.map((item) {
+            final selected = _profile.selectedHamsterId == item.id;
+            return Card(
+              child: ListTile(
+                leading: Text(item.emoji, style: const TextStyle(fontSize: 28)),
+                title: Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                trailing: selected
+                    ? const Icon(
+                        Icons.check_circle,
+                        color: AppTheme.primaryGreen,
+                      )
+                    : TextButton(
+                        onPressed: () => _selectHamster(item.id),
+                        child: const Text('대표 설정'),
+                      ),
+              ),
+            );
+          }),
           const SizedBox(height: 16),
           const Text(
             '학습 기록',
