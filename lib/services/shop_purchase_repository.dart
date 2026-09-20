@@ -11,7 +11,7 @@ class ShopPurchaseRepository {
   ShopPurchaseRepository._();
   static final instance = ShopPurchaseRepository._();
 
-  static const maxStudyGuardCount = 3;
+  static const maxStudyGuardCount = 4;
   static const energyPackAmount = 20;
   static const maxEnergy = 100;
 

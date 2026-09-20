@@ -54,7 +54,7 @@ class QuizService {
     return result;
   }
 
-  /// XP · 씨앗 · streak · categoryStats · 세션 completed.
+  /// 씨앗 · streak · categoryStats · 세션 completed.
   /// 백엔드: [QuizBackendConfig.submitBackend]
   Future<QuizSessionResult> completeSession({
     required UserProfile profile,
@@ -82,15 +82,13 @@ class QuizService {
   }
 
   void _syncProfile(UserProfile target, UserProfile source) {
-    target.xp = source.xp;
     target.streak = source.streak;
     target.lastQuizCompletedDate = source.lastQuizCompletedDate;
     target.todayQuizCompleted = source.todayQuizCompleted;
     target.energy = source.energy;
     target.lastEnergyResetDate = source.lastEnergyResetDate;
-    target.unlockedHamsterIds = List<String>.from(source.unlockedHamsterIds);
     target.selectedHamsterId = source.selectedHamsterId;
-    target.learningHistory = List<LearningRecord>.from(source.learningHistory);
+    target.learningDates = List<String>.from(source.learningDates);
     target.categoryStats = Map<String, CategoryStat>.from(source.categoryStats);
     target.incorrectQuestionCount = source.incorrectQuestionCount;
     target.seeds = source.seeds;

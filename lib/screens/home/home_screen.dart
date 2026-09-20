@@ -34,10 +34,12 @@ class HomeScreen extends StatefulWidget {
     this.profile,
     this.showReviewStage,
     this.tierOverride,
+    this.onNavTap,
   });
 
   /// [MainShell]에서 내려주면 학습과정 변경 시 홈 티어가 즉시 반영된다.
   final UserProfile? profile;
+  final ValueChanged<int>? onNavTap;
 
   /// 복습 기능 연결 전, Figma 복습 홈의 집 단계를 표시하는 화면 변형.
   final bool? showReviewStage;
@@ -229,11 +231,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => StreakCalendarScreen(
+          onNavTap: widget.onNavTap,
           streak: profile.streak,
           studyGuardCount: profile.studyGuardCount,
-          completedDates: profile.learningHistory
-              .map((record) => record.date)
-              .toSet(),
+          completedDates: profile.learningDates.toSet(),
         ),
       ),
     );

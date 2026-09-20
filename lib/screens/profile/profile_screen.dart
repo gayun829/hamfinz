@@ -5,7 +5,6 @@ import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/hamster_avatar.dart';
-import '../../widgets/xp_progress_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -74,7 +73,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  HamsterAvatar(hamsterId: _profile.selectedHamsterId, size: 96),
+                  HamsterAvatar(
+                    hamsterId: _profile.selectedHamsterId,
+                    size: 96,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     _profile.nickname,
@@ -90,13 +92,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: const TextStyle(color: AppTheme.textSecondary),
                   ),
                   const SizedBox(height: 16),
-                  XpProgressBar(
-                    level: _profile.level,
-                    levelTitle: _profile.levelTitle,
-                    progress: _profile.levelProgress,
-                    xpInLevel: _profile.xpInCurrentLevel,
-                    xpForNext: _profile.xpForNextLevel,
-                  ),
                 ],
               ),
             ),
@@ -108,36 +103,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           ...HamsterData.items.map((item) {
-            final unlocked = _profile.unlockedHamsterIds.contains(item.id);
             final selected = _profile.selectedHamsterId == item.id;
             return Card(
               child: ListTile(
-                leading: Text(
-                  item.emoji,
-                  style: TextStyle(
-                    fontSize: 28,
-                    color: unlocked ? null : Colors.grey,
-                  ),
-                ),
+                leading: Text(item.emoji, style: const TextStyle(fontSize: 28)),
                 title: Text(
                   item.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: unlocked ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-                subtitle: Text(
-                  unlocked ? item.unlockDescription : '아직 잠금',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                trailing: unlocked
-                    ? (selected
-                        ? const Icon(Icons.check_circle, color: AppTheme.primaryGreen)
-                        : TextButton(
-                            onPressed: () => _selectHamster(item.id),
-                            child: const Text('대표 설정'),
-                          ))
-                    : const Icon(Icons.lock_outline, color: AppTheme.textSecondary),
+                trailing: selected
+                    ? const Icon(
+                        Icons.check_circle,
+                        color: AppTheme.primaryGreen,
+                      )
+                    : TextButton(
+                        onPressed: () => _selectHamster(item.id),
+                        child: const Text('대표 설정'),
+                      ),
               ),
             );
           }),
@@ -147,29 +132,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          if (_profile.learningHistory.isEmpty)
+          if (_profile.learningDates.isEmpty)
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('아직 학습 기록이 없습니다.'),
+                child: Text('최근 32일간 학습 기록이 없습니다.'),
               ),
             )
           else
-            ..._profile.learningHistory.take(7).map(
-                  (record) => Card(
-                    child: ListTile(
-                      title: Text(record.date),
-                      subtitle: Text('정답 ${record.correctCount}/${record.totalCount}'),
-                      trailing: Text(
-                        '+${record.xpEarned} XP',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.primaryGreen,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+            ..._profile.learningDates
+                .take(7)
+                .map((record) => Card(child: ListTile(title: Text(record)))),
           if (_profile.categoryStats.isNotEmpty) ...[
             const SizedBox(height: 16),
             const Text(
@@ -177,20 +150,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
-            ..._profile.categoryStats.entries.map(
-              (entry) {
-                final accuracy = (entry.value.accuracy * 100).round();
-                return Card(
-                  child: ListTile(
-                    title: Text(entry.key),
-                    trailing: Text(
-                      '$accuracy%',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
+            ..._profile.categoryStats.entries.map((entry) {
+              final accuracy = (entry.value.accuracy * 100).round();
+              return Card(
+                child: ListTile(
+                  title: Text(entry.key),
+                  trailing: Text(
+                    '$accuracy%',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            }),
           ],
           const SizedBox(height: 24),
           OutlinedButton(

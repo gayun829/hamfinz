@@ -11,6 +11,7 @@ import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../utils/date_helper.dart';
+import '../utils/learning_dates.dart';
 import '../utils/incorrect_questions.dart';
 import '../utils/quiz_text_helper.dart';
 
@@ -88,7 +89,6 @@ class QuizSessionRepository {
       'questionIds': selected.map((q) => q.id).toList(),
       'questionCount': selected.length,
       'correctCount': 0,
-      'xpEarned': 0,
       'energySpent': 0,
       'seedDate': DateHelper.todayKey(),
       'status': 'inProgress',
@@ -146,7 +146,6 @@ class QuizSessionRepository {
       'questionIds': selected.map((q) => q.id).toList(),
       'questionCount': selected.length,
       'correctCount': 0,
-      'xpEarned': 0,
       'energySpent': 0,
       'seedDate': DateHelper.todayKey(),
       'status': 'inProgress',
@@ -273,11 +272,9 @@ class QuizSessionRepository {
         });
 
         if (isCorrect) {
-          tx.set(
-            userRef.collection('mastered').doc(questionId),
-            {'answeredAt': FieldValue.serverTimestamp()},
-            SetOptions(merge: true),
-          );
+          tx.set(userRef.collection('mastered').doc(questionId), {
+            'answeredAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
           if (incorrectSnap.exists) {
             tx.delete(incorrectRef);
           }
@@ -332,7 +329,7 @@ class QuizSessionRepository {
     }
   }
 
-  /// answers 집계 · XP · 씨앗 · streak · categoryStats · 세션 completed.
+  /// answers 집계 · 씨앗 · streak · categoryStats · 세션 completed.
   Future<QuizSessionResult> completeSession({required String sessionId}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw QuizSessionException('로그인이 필요해요.');
@@ -395,10 +392,7 @@ class QuizSessionRepository {
         final answers = answerDocs;
 
         final user = userSnap.data()!;
-        final previousXp = (user['xp'] as num?)?.toInt() ?? 0;
-        final previousLevel = LevelUtils.levelFromXp(previousXp);
 
-        var xpEarned = 0;
         var correctCount = 0;
         final categoryStats = _copyCategoryStats(user['categoryStats']);
         final answerResults = <QuizAnswer>[];
@@ -407,7 +401,6 @@ class QuizSessionRepository {
           final a = doc.data()!;
           final isCorrect = a['isCorrect'] == true;
           if (isCorrect) correctCount++;
-          xpEarned += isCorrect ? QuizData.correctXp : QuizData.wrongXp;
 
           final categoryId = a['categoryId'] as String? ?? 'allowance';
           final label = _categoryLabels[categoryId] ?? categoryId;
@@ -437,12 +430,10 @@ class QuizSessionRepository {
         }
 
         final seedsEarned = correctCount * QuizData.seedsPerCorrect;
-        final newXp = previousXp + xpEarned;
-        final newLevel = LevelUtils.levelFromXp(newXp);
 
         var streak = (user['streak'] as num?)?.toInt() ?? 0;
         var lastQuizCompletedDate = user['lastQuizCompletedDate'] as String?;
-        var todayQuizCompleted = user['todayQuizCompleted'] as bool? ?? false;
+        var todayQuizCompleted = DateHelper.isToday(lastQuizCompletedDate);
         var studyGuardCount = (user['studyGuardCount'] as num?)?.toInt() ?? 0;
         final today = DateHelper.todayKey();
 
@@ -470,31 +461,15 @@ class QuizSessionRepository {
           lastQuizCompletedDate = today;
         }
 
-        final history = [
-          LearningRecord(
-            date: today,
-            correctCount: correctCount,
-            totalCount: answers.length,
-            xpEarned: xpEarned,
-          ),
-          ...List<LearningRecord>.from(
-            ((user['learningHistory'] as List?) ?? []).cast<Map>().map(
-              (e) => LearningRecord.fromJson(Map<String, dynamic>.from(e)),
-            ),
-          ),
-        ].take(50).toList();
-
-        final unlocks = _computeUnlocks(
-          user: user,
-          streak: streak,
-          xp: newXp,
-          historyLength: history.length,
+        final learningDates = LearningDates.fromUser(
+          user,
+          today: today,
+          markToday: true,
         );
 
         final energyRemaining = (user['energy'] as num?)?.toInt() ?? 0;
 
         tx.update(userRef, {
-          'xp': newXp,
           'seeds': ((user['seeds'] as num?)?.toInt() ?? 0) + seedsEarned,
           'streak': streak,
           'lastQuizCompletedDate': lastQuizCompletedDate,
@@ -503,14 +478,13 @@ class QuizSessionRepository {
           'categoryStats': categoryStats.map(
             (key, value) => MapEntry(key, value.toJson()),
           ),
-          'learningHistory': history.map((e) => e.toJson()).toList(),
-          'unlockedHamsterIds': unlocks.all,
+          'learningDates': learningDates,
+          'learningHistory': FieldValue.delete(),
         });
 
         tx.update(sessionRef, {
           'status': 'completed',
           'correctCount': correctCount,
-          'xpEarned': xpEarned,
           'energySpent':
               (session['energySpent'] as num?)?.toInt() ??
               answers.length * QuizData.energyCostPerQuestion,
@@ -527,12 +501,7 @@ class QuizSessionRepository {
                 },
               )
               .toList(),
-          'xpEarned': xpEarned,
           'seedsEarned': seedsEarned,
-          'leveledUp': newLevel > previousLevel,
-          'newLevel': newLevel,
-          'previousLevel': previousLevel,
-          'unlockedItems': unlocks.newly,
           'newStreak': streak,
           'energyRemaining': energyRemaining,
         };
@@ -563,12 +532,7 @@ class QuizSessionRepository {
         if (advancedStage != null) {
           result = QuizSessionResult(
             answers: result.answers,
-            xpEarned: result.xpEarned,
             seedsEarned: result.seedsEarned,
-            leveledUp: result.leveledUp,
-            newLevel: result.newLevel,
-            previousLevel: result.previousLevel,
-            unlockedItems: result.unlockedItems,
             newStreak: result.newStreak,
             energyRemaining: result.energyRemaining,
             advancedLearningStage: advancedStage,
@@ -604,12 +568,7 @@ class QuizSessionRepository {
             ),
           )
           .toList(),
-      xpEarned: (data['xpEarned'] as num?)?.toInt() ?? 0,
       seedsEarned: (data['seedsEarned'] as num?)?.toInt() ?? 0,
-      leveledUp: data['leveledUp'] as bool? ?? false,
-      newLevel: (data['newLevel'] as num?)?.toInt() ?? 1,
-      previousLevel: (data['previousLevel'] as num?)?.toInt() ?? 1,
-      unlockedItems: List<String>.from(data['unlockedItems'] as List? ?? []),
       newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
       energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
     );
@@ -633,32 +592,6 @@ class QuizSessionRepository {
       );
     }
     return stats;
-  }
-
-  ({List<String> all, List<String> newly}) _computeUnlocks({
-    required Map<String, dynamic> user,
-    required int streak,
-    required int xp,
-    required int historyLength,
-  }) {
-    final unlocked = Set<String>.from(
-      (user['unlockedHamsterIds'] as List?)?.cast<String>() ??
-          ['hamster_basic'],
-    );
-    final newly = <String>[];
-
-    void unlock(String id) {
-      if (unlocked.add(id)) newly.add(id);
-    }
-
-    if (historyLength > 0) unlock('hamster_study');
-    if (streak >= 3) unlock('hamster_streak');
-    final level = LevelUtils.levelFromXp(xp);
-    if (level >= 3) unlock('hamster_level3');
-    if (level >= 5) unlock('hamster_level5');
-    if (level >= 10) unlock('hamster_master');
-
-    return (all: unlocked.toList(), newly: newly);
   }
 
   List<String> _targetCategories(UserProfile profile) {

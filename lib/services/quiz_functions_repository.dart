@@ -33,13 +33,13 @@ class QuizFunctionsRepository {
     } on FirebaseFunctionsException catch (e) {
       throw QuizSessionException(_functionsErrorMessage(e, '답안 제출에 실패했어요.'));
     } catch (e) {
-      throw QuizSessionException('답안 제출에 실패했어요. Cloud Functions 배포·설정을 확인해 주세요.');
+      throw QuizSessionException(
+        '답안 제출에 실패했어요. Cloud Functions 배포·설정을 확인해 주세요.',
+      );
     }
   }
 
-  Future<QuizSessionResult> completeSession({
-    required String sessionId,
-  }) async {
+  Future<QuizSessionResult> completeSession({required String sessionId}) async {
     try {
       final callable = _functions.httpsCallable('completeSession');
       final response = await callable.call<Map<String, dynamic>>({
@@ -47,9 +47,9 @@ class QuizFunctionsRepository {
       });
       final data = response.data;
 
-      final answersRaw = (data['answers'] as List? ?? [])
-          .cast<Map>()
-          .map((e) => Map<String, dynamic>.from(e));
+      final answersRaw = (data['answers'] as List? ?? []).cast<Map>().map(
+        (e) => Map<String, dynamic>.from(e),
+      );
 
       return QuizSessionResult(
         answers: answersRaw
@@ -61,19 +61,16 @@ class QuizFunctionsRepository {
               ),
             )
             .toList(),
-        xpEarned: (data['xpEarned'] as num?)?.toInt() ?? 0,
         seedsEarned: (data['seedsEarned'] as num?)?.toInt() ?? 0,
-        leveledUp: data['leveledUp'] as bool? ?? false,
-        newLevel: (data['newLevel'] as num?)?.toInt() ?? 1,
-        previousLevel: (data['previousLevel'] as num?)?.toInt() ?? 1,
-        unlockedItems: List<String>.from(data['unlockedItems'] as List? ?? []),
         newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
         energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
       );
     } on FirebaseFunctionsException catch (e) {
       throw QuizSessionException(_functionsErrorMessage(e, '세션 완료 처리에 실패했어요.'));
     } catch (e) {
-      throw QuizSessionException('세션 완료에 실패했어요. Cloud Functions 배포·설정을 확인해 주세요.');
+      throw QuizSessionException(
+        '세션 완료에 실패했어요. Cloud Functions 배포·설정을 확인해 주세요.',
+      );
     }
   }
 
