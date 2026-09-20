@@ -11,8 +11,9 @@ import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../utils/date_helper.dart';
-import '../utils/learning_dates.dart';
+import '../utils/energy_reset.dart';
 import '../utils/incorrect_questions.dart';
+import '../utils/learning_dates.dart';
 import '../utils/quiz_text_helper.dart';
 
 /// Firestore `quizQuestions` + `mastered` — 출제 · 제출 · 세션 완료.
@@ -225,7 +226,8 @@ class QuizSessionRepository {
         }
 
         final user = userSnap.data()!;
-        var energy = (user['energy'] as num?)?.toInt() ?? QuizData.maxEnergy;
+        final resolvedEnergy = _userEnergy(user);
+        var energy = resolvedEnergy.energy;
         if (energy < QuizData.energyCostPerQuestion) {
           txError.add('에너지가 부족해요.');
           return null;
@@ -257,7 +259,10 @@ class QuizSessionRepository {
           isCorrect: isCorrect,
           alreadyTracked: incorrectSnap.exists,
         );
-        final userUpdate = <String, dynamic>{'energy': energy};
+        final userUpdate = <String, dynamic>{
+          'energy': energy,
+          'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
+        };
         if (nextCount != currentCount) {
           userUpdate['incorrectQuestionCount'] = nextCount;
         }
@@ -272,9 +277,11 @@ class QuizSessionRepository {
         });
 
         if (isCorrect) {
-          tx.set(userRef.collection('mastered').doc(questionId), {
-            'answeredAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+          tx.set(
+            userRef.collection('mastered').doc(questionId),
+            {'answeredAt': FieldValue.serverTimestamp()},
+            SetOptions(merge: true),
+          );
           if (incorrectSnap.exists) {
             tx.delete(incorrectRef);
           }
@@ -467,9 +474,23 @@ class QuizSessionRepository {
           markToday: true,
         );
 
-        final energyRemaining = (user['energy'] as num?)?.toInt() ?? 0;
+        // 짧은 복습 세션이 에너지 생성 수단이 되지 않도록 실제 소모량까지만
+        // 돌려준다.
+        final energySpent =
+            (session['energySpent'] as num?)?.toInt() ??
+            answers.length * QuizData.energyCostPerQuestion;
+        final rewardCap = completionEnergyReward(energySpent);
+        final resolvedEnergy = _userEnergy(user);
+        final energyBefore = resolvedEnergy.energy;
+        final energyRemaining = (energyBefore + rewardCap).clamp(
+          0,
+          QuizData.maxEnergy,
+        );
+        final energyEarned = energyRemaining - energyBefore;
 
         tx.update(userRef, {
+          'energy': energyRemaining,
+          'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
           'seeds': ((user['seeds'] as num?)?.toInt() ?? 0) + seedsEarned,
           'streak': streak,
           'lastQuizCompletedDate': lastQuizCompletedDate,
@@ -485,9 +506,8 @@ class QuizSessionRepository {
         tx.update(sessionRef, {
           'status': 'completed',
           'correctCount': correctCount,
-          'energySpent':
-              (session['energySpent'] as num?)?.toInt() ??
-              answers.length * QuizData.energyCostPerQuestion,
+          'energySpent': energySpent,
+          'energyEarned': energyEarned,
           'completedAt': FieldValue.serverTimestamp(),
         });
 
@@ -504,6 +524,7 @@ class QuizSessionRepository {
           'seedsEarned': seedsEarned,
           'newStreak': streak,
           'energyRemaining': energyRemaining,
+          'energyEarned': energyEarned,
         };
       });
 
@@ -535,6 +556,7 @@ class QuizSessionRepository {
             seedsEarned: result.seedsEarned,
             newStreak: result.newStreak,
             energyRemaining: result.energyRemaining,
+            energyEarned: result.energyEarned,
             advancedLearningStage: advancedStage,
           );
         }
@@ -547,6 +569,11 @@ class QuizSessionRepository {
       throw QuizSessionException(_firebaseTxMessage(e, '세션 완료 처리에 실패했어요.'));
     }
   }
+
+  ResolvedEnergy _userEnergy(Map<String, dynamic> user) => resolveDailyEnergy(
+    storedEnergy: (user['energy'] as num?)?.toInt(),
+    lastEnergyResetDate: user['lastEnergyResetDate'] as String?,
+  );
 
   SubmitAnswerResult _submitAnswerResultFromTx(Map<String, dynamic> data) {
     return SubmitAnswerResult(
@@ -571,6 +598,7 @@ class QuizSessionRepository {
       seedsEarned: (data['seedsEarned'] as num?)?.toInt() ?? 0,
       newStreak: (data['newStreak'] as num?)?.toInt() ?? 0,
       energyRemaining: (data['energyRemaining'] as num?)?.toInt(),
+      energyEarned: (data['energyEarned'] as num?)?.toInt() ?? 0,
     );
   }
 

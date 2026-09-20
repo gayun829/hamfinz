@@ -63,14 +63,18 @@ HomeScreen
 ```
 HomeScreen
   → QuizScreen (10문제)
-  → QuizResultScreen (pushReplacement)
+  → QuizCompleteScreen (마지막 문제 제출 후, pushReplacement / 터치하면 넘어감)
+  → QuizStreakScreen (실제 연속학습일 = result.newStreak / 「다음으로」)
+  → QuizRewardScreen (맞춘 수 · 씨앗 · 에너지 보상 / 「보상획득」)
   → pop(true) → HomeScreen 프로필 새로고침
 ```
 
 | 화면 | 파일 |
 |------|------|
 | QuizScreen | `lib/screens/quiz/quiz_screen.dart` |
-| QuizResultScreen | `lib/screens/quiz/quiz_result_screen.dart` |
+| QuizCompleteScreen | `lib/screens/quiz/quiz_complete_screen.dart` |
+| QuizStreakScreen | `lib/screens/quiz/quiz_streak_screen.dart` |
+| QuizRewardScreen | `lib/screens/quiz/quiz_reward_screen.dart` |
 
 ## 뉴스 → 기사
 

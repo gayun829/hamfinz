@@ -52,6 +52,7 @@ class QuizSessionResult {
     required this.seedsEarned,
     required this.newStreak,
     this.energyRemaining,
+    this.energyEarned = 0,
     this.advancedLearningStage,
   });
 
@@ -59,6 +60,9 @@ class QuizSessionResult {
   final int seedsEarned;
   final int newStreak;
   final int? energyRemaining;
+
+  /// 세션 완료 보상으로 실제로 채워진 에너지 (최대치에 걸리면 그만큼 줄어든다).
+  final int energyEarned;
 
   /// 현재 카테고리·단계 문제를 모두 풀어 자동으로 넘어간 학습과정.
   final int? advancedLearningStage;
