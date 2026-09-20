@@ -25,10 +25,25 @@
 ## 소셜 로그인
 
 Google, 카카오(OIDC) 연동 완료 — `AuthService.signInWithGoogle` / `signInWithKakao`.
-처음 로그인하는 계정이면 `users/{uid}` 문서를 자동 생성 (이메일 인증 절차 없음, 제공자가 이미 검증).
-Apple은 미구현 (Apple Developer Program 계정 필요).
+Apple은 미구현 (Apple Developer Program 계정 필요) — 버튼 핸들러가 빈 스텁이다.
 
 카카오는 Firebase의 OpenID Connect 커스텀 provider(`oidc.kakao`)로 연결 — Cloud Functions 없이 동작하지만 Blaze(종량제) 플랜 필요.
+
+### 첫 가입 온보딩
+
+로그인 결과는 `SocialSignInResult`로 돌아온다. `users/{uid}` 문서가 이미 있으면 그대로 로그인,
+없으면 `needsProfileSetup: true` — 이 단계에서는 아직 문서를 만들지 않는다.
+
+1. `SocialProfileSetupScreen` — 닉네임 직접 입력(제공자 이름이 기본값, 중복확인 가능) + **(필수)** 약관/개인정보 동의
+2. `AuthService.completeSocialSignUp` → `users/{uid}` 문서 생성 (이메일 가입과 같은 `_createProfile`)
+3. `CategorySelectScreen`에서 관심 카테고리 저장
+4. `onAuthenticated` → MainShell
+
+이메일 인증 절차는 없다 (제공자가 이미 검증).
+
+중간에 그만두면 로그아웃해서 프로필 없는 로그인 상태를 남기지 않는다.
+그래도 앱이 강제 종료돼 그 상태가 남으면, `AuthGate`가 `AuthService.pendingSocialSignUp`으로
+찾아내 닉네임 화면부터 이어받는다.
 
 ## 비밀번호 재설정
 
@@ -51,10 +66,6 @@ Apple은 미구현 (Apple Developer Program 계정 필요).
 - id는 `QuizCategory` enum name과 동일  
 - 홈 메뉴 → `CategorySwitcherSheet`: 전체 목록 표시, 탭으로 선택/해제, **최소 1개**  
 - 저장: `AuthService.saveInterestCategories`
-
-## 소셜 로그인
-
-Google / Apple / Kakao 버튼 UI만 존재. 핸들러는 스텁.
 
 ## 약관 UI
 

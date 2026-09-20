@@ -7,6 +7,7 @@ import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/figma_auth_widgets.dart';
 import 'find_password_screen.dart';
 import 'signup_screen.dart';
+import 'social_profile_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -61,49 +62,48 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.of(context).pop(true);
   }
 
-  Future<void> _loginWithGoogle() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    final error = await AuthService.instance.signInWithGoogle();
-
-    if (!mounted) return;
-    if (error != null) {
-      setState(() {
-        _loading = false;
-        _error = error;
-      });
-      return;
-    }
-    if (widget.onAuthenticated != null) {
-      widget.onAuthenticated!();
-      return;
-    }
-    Navigator.of(context).pop(true);
-  }
+  Future<void> _loginWithGoogle() =>
+      _loginWithSocial(AuthService.instance.signInWithGoogle);
 
   void _loginWithApple() {
     // 나중에 추가: Apple 로그인 연동
   }
 
-  Future<void> _loginWithKakao() async {
+  Future<void> _loginWithKakao() =>
+      _loginWithSocial(AuthService.instance.signInWithKakao);
+
+  /// 소셜 로그인. 처음 보는 계정이면 닉네임·약관 → 카테고리 온보딩을 먼저 거친다.
+  Future<void> _loginWithSocial(
+    Future<SocialSignInResult> Function() signIn,
+  ) async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    final error = await AuthService.instance.signInWithKakao();
+    final result = await signIn();
 
     if (!mounted) return;
-    if (error != null) {
+    if (result.error != null) {
       setState(() {
         _loading = false;
-        _error = error;
+        _error = result.error;
       });
       return;
     }
+
+    if (result.needsProfileSetup) {
+      final completed = await SocialProfileSetupScreen.push(
+        context,
+        suggestedNickname: result.suggestedNickname,
+      );
+      if (!mounted) return;
+      if (!completed) {
+        setState(() => _loading = false);
+        return;
+      }
+    }
+
     if (widget.onAuthenticated != null) {
       widget.onAuthenticated!();
       return;

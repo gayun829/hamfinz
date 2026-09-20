@@ -476,3 +476,87 @@ class FigmaDuplicateCheckButton extends StatelessWidget {
     );
   }
 }
+
+/// 가입 화면의 "(필수) 이용약관에 동의합니다" 한 줄. 링크만 눌러서 본문을 연다.
+class FigmaLegalAgreementRow extends StatelessWidget {
+  const FigmaLegalAgreementRow({
+    super.key,
+    required this.scale,
+    required this.value,
+    required this.onChanged,
+    required this.labelPrefix,
+    required this.linkLabel,
+    required this.labelSuffix,
+    required this.onOpenDocument,
+  });
+
+  final double scale;
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final String labelPrefix;
+  final String linkLabel;
+  final String labelSuffix;
+  final VoidCallback onOpenDocument;
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = 28 * scale;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 28 * scale,
+          height: 28 * scale,
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppTheme.figmaTeal,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+        SizedBox(width: 12 * scale),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(top: 4 * scale),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  labelPrefix,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: AppTheme.textPrimary,
+                    height: 1.35,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onOpenDocument,
+                  child: Text(
+                    linkLabel,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      color: AppTheme.figmaLink,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                Text(
+                  labelSuffix,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: AppTheme.textPrimary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -8,6 +8,7 @@
 | LoginScreen | `lib/screens/auth/login_screen.dart` | 로그인, 비밀번호 찾기 |
 | SignupScreen | `lib/screens/auth/signup_screen.dart` | 가입 + 약관 동의 |
 | FindPasswordScreen | `lib/screens/auth/find_password_screen.dart` | 비밀번호 재설정 |
+| SocialProfileSetupScreen | `lib/screens/auth/social_profile_setup_screen.dart` | 소셜 첫 가입 — 닉네임 + 약관 동의 |
 | CategorySelectScreen | `lib/screens/auth/category_select_screen.dart` | 관심 카테고리 (가입 직후) |
 | LegalDocumentScreen | `lib/screens/legal/legal_document_screen.dart` | 약관/개인정보 본문 |
 

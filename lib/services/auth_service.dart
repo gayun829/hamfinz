@@ -77,6 +77,11 @@ class AuthService {
     if (user == null || !user.emailVerified) {
       return '이메일 인증을 먼저 완료해주세요.';
     }
+    return _createProfile(user, nickname);
+  }
+
+  /// 닉네임을 예약하고 프로필 문서를 만든다 — 이메일·소셜 가입의 마지막 단계.
+  Future<String?> _createProfile(User user, String nickname) async {
     final trimmedNickname = nickname.trim();
     if (trimmedNickname.isEmpty) {
       return '닉네임을 입력해주세요.';
@@ -97,6 +102,15 @@ class AuthService {
       ..._defaultProfileJson(user),
     });
     return null;
+  }
+
+  /// 닉네임 중복 확인. 예약 문서가 내 uid면 내가 잡아둔 것이라 사용 가능으로 본다.
+  Future<bool> isNicknameTaken(String nickname) async {
+    final key = nickname.trim().toLowerCase();
+    if (key.isEmpty) return false;
+    final doc = await _nicknames.doc(key).get();
+    if (!doc.exists) return false;
+    return doc.data()?['uid'] != _auth.currentUser?.uid;
   }
 
   Future<String?> login({
@@ -125,28 +139,27 @@ class AuthService {
     }
   }
 
-  /// 구글 계정으로 로그인/가입. 처음 로그인하는 계정이면 프로필 문서를 새로 만든다.
-  Future<String?> signInWithGoogle() async {
+  /// 구글 계정으로 로그인/가입. 처음 보는 계정이면 프로필 문서를 만들지 않고
+  /// 닉네임·약관 화면이 필요하다고 알려준다.
+  Future<SocialSignInResult> signInWithGoogle() async {
     try {
       final provider = GoogleAuthProvider();
       final credential = kIsWeb
           ? await _auth.signInWithPopup(provider)
           : await _auth.signInWithProvider(provider);
-      await _ensureProfileDoc(
+      return await _resolveSocialSignIn(
         credential.user!,
-        nickname: credential.user!.displayName,
+        credential.user!.displayName,
       );
-      await _backfillSearchIndexes(credential.user!);
-      return null;
     } on FirebaseAuthException catch (e) {
-      return _authErrorMessage(e);
+      return SocialSignInResult.failure(_authErrorMessage(e));
     } catch (e) {
-      return '구글 로그인 실패: $e';
+      return SocialSignInResult.failure('구글 로그인 실패: $e');
     }
   }
 
-  /// 카카오 계정(OIDC)으로 로그인/가입. 처음 로그인하는 계정이면 프로필 문서를 새로 만든다.
-  Future<String?> signInWithKakao() async {
+  /// 카카오 계정(OIDC)으로 로그인/가입. 분기는 [signInWithGoogle]과 같다.
+  Future<SocialSignInResult> signInWithKakao() async {
     try {
       final provider = OAuthProvider('oidc.kakao')
         ..addScope('profile_nickname');
@@ -154,43 +167,64 @@ class AuthService {
           ? await _auth.signInWithPopup(provider)
           : await _auth.signInWithProvider(provider);
       final profile = credential.additionalUserInfo?.profile;
-      await _ensureProfileDoc(
+      return await _resolveSocialSignIn(
         credential.user!,
-        nickname:
-            credential.user!.displayName ?? profile?['nickname'] as String?,
+        credential.user!.displayName ?? profile?['nickname'] as String?,
       );
-      await _backfillSearchIndexes(credential.user!);
-      return null;
     } on FirebaseAuthException catch (e) {
-      return _authErrorMessage(e);
+      return SocialSignInResult.failure(_authErrorMessage(e));
     } catch (e) {
-      return '카카오 로그인 실패: $e';
+      return SocialSignInResult.failure('카카오 로그인 실패: $e');
     }
   }
 
-  /// 소셜 로그인 첫 진입 시 프로필 문서가 없으면 만들어준다.
-  Future<void> _ensureProfileDoc(User user, {String? nickname}) async {
+  /// 소셜 로그인 직후 분기. 프로필 문서가 있으면 기존 회원이라 그대로 들어가고,
+  /// 없으면 가입이 아직 안 끝난 상태다 — 이메일 가입과 똑같이 닉네임을 직접 고르고
+  /// 약관에 동의해야 [completeSocialSignUp]에서 문서가 생긴다.
+  Future<SocialSignInResult> _resolveSocialSignIn(
+    User user,
+    String? providerNickname,
+  ) async {
     final doc = await _users.doc(user.uid).get();
-    if (doc.exists) return;
-    final fallback = (user.email ?? '').split('@').first;
-    var resolvedNickname = (nickname == null || nickname.isEmpty)
-        ? (fallback.isEmpty ? '사용자' : fallback)
-        : nickname;
-
-    try {
-      await _reserveNickname(user.uid, resolvedNickname);
-    } on FirebaseException catch (e) {
-      if (e.code != 'permission-denied') rethrow;
-      // 소셜 로그인은 닉네임을 직접 고르지 않으니, 충돌하면 uid 뒷자리를 붙여 재시도한다.
-      resolvedNickname = '$resolvedNickname${user.uid.substring(0, 4)}';
-      await _reserveNickname(user.uid, resolvedNickname);
+    if (!doc.exists) {
+      return SocialSignInResult.needsSetup(
+        _suggestNickname(user, providerNickname),
+      );
     }
-    await _reserveEmail(user.uid, resolvedNickname, user.email);
+    await _backfillSearchIndexes(user);
+    return const SocialSignInResult.signedIn();
+  }
 
-    await _users.doc(user.uid).set({
-      'nickname': resolvedNickname,
-      ..._defaultProfileJson(user),
-    });
+  /// 닉네임 화면에서 앱을 꺼버린 소셜 계정을 위한 이어하기.
+  /// Auth 세션은 살아 있는데 프로필 문서만 없는 상태를 찾아낸다.
+  /// 이메일 계정은 회원가입 화면이 이어서 처리하므로 제외한다.
+  Future<SocialSignInResult?> pendingSocialSignUp() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    final providerIds = user.providerData.map((p) => p.providerId).toList();
+    if (providerIds.isEmpty || providerIds.every((id) => id == 'password')) {
+      return null;
+    }
+    final doc = await _users.doc(user.uid).get();
+    if (doc.exists) return null;
+    return SocialSignInResult.needsSetup(
+      _suggestNickname(user, user.displayName),
+    );
+  }
+
+  /// 소셜 가입 마무리. 사용자가 직접 고른 닉네임으로 프로필 문서를 만든다.
+  Future<String?> completeSocialSignUp({required String nickname}) async {
+    final user = _auth.currentUser;
+    if (user == null) return '로그인 정보가 없어요. 다시 로그인해 주세요.';
+    return _createProfile(user, nickname);
+  }
+
+  /// 소셜 제공자가 준 이름을 닉네임 입력칸 기본값으로 쓴다. 없으면 이메일
+  /// 앞부분, 그것도 없으면 빈 값으로 두고 사용자가 직접 입력하게 한다.
+  String _suggestNickname(User user, String? providerNickname) {
+    final fromProvider = providerNickname?.trim() ?? '';
+    if (fromProvider.isNotEmpty) return fromProvider;
+    return (user.email ?? '').split('@').first;
   }
 
   /// 닉네임 검색 인덱스를 1회 생성 시도한다. 이미 있으면 Rules가
@@ -433,9 +467,9 @@ class AuthService {
 
   /// 프로필 문서 초기값. 가입 시 1회만 쓴다.
   ///
-  /// `consents`는 약관·개인정보 동의 기록이다. 가입 화면이 두 항목 동의를
-  /// 강제하므로(소셜 로그인도 같은 약관 아래 진입), 문서를 만드는 시점 =
-  /// 동의 시점으로 남긴다. 본문이 개정되면 [LegalDocuments.version]을 올려
+  /// `consents`는 약관·개인정보 동의 기록이다. 이메일 가입 화면과 소셜 가입
+  /// 화면 모두 두 항목 동의를 강제하므로, 문서를 만드는 시점 = 동의 시점으로
+  /// 남긴다. 본문이 개정되면 [LegalDocuments.version]을 올려
   /// 재동의 대상을 가려낸다.
   Map<String, dynamic> _defaultProfileJson(User user) => {
     'xp': 0,
@@ -554,4 +588,27 @@ class AuthService {
     'equippedBackgroundId': profile.equippedBackgroundId,
     'equippedAccessoryIds': profile.equippedAccessoryIds,
   };
+}
+
+/// 소셜 로그인 결과.
+///
+/// [needsProfileSetup]이면 Auth 로그인은 끝났지만 `users/{uid}` 문서가 아직
+/// 없는 상태다 — 닉네임·약관 화면을 거쳐야 가입이 완료된다.
+class SocialSignInResult {
+  const SocialSignInResult.failure(String this.error)
+    : needsProfileSetup = false,
+      suggestedNickname = '';
+
+  const SocialSignInResult.signedIn()
+    : error = null,
+      needsProfileSetup = false,
+      suggestedNickname = '';
+
+  const SocialSignInResult.needsSetup(this.suggestedNickname)
+    : error = null,
+      needsProfileSetup = true;
+
+  final String? error;
+  final bool needsProfileSetup;
+  final String suggestedNickname;
 }

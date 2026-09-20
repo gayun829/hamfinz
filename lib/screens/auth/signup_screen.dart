@@ -7,6 +7,7 @@ import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/figma_auth_widgets.dart';
 import '../legal/legal_document_screen.dart';
 import 'category_select_screen.dart';
+import 'social_profile_setup_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({
@@ -141,61 +142,49 @@ class _SignupScreenState extends State<SignupScreen> {
     // 나중에 추가: 닉네임 중복 확인
   }
 
-  Future<void> _signUpWithGoogle() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    final error = await AuthService.instance.signInWithGoogle();
-
-    if (!mounted) return;
-    if (error != null) {
-      setState(() {
-        _loading = false;
-        _error = error;
-      });
-      return;
-    }
-
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const CategorySelectScreen()),
-    );
-
-    if (!mounted) return;
-    if (widget.onAuthenticated != null) {
-      widget.onAuthenticated!();
-      return;
-    }
-    Navigator.of(context).pop(true);
-  }
+  Future<void> _signUpWithGoogle() =>
+      _signUpWithSocial(AuthService.instance.signInWithGoogle);
 
   void _signUpWithApple() {
     // 나중에 추가: Apple 가입 연동
   }
 
-  Future<void> _signUpWithKakao() async {
+  Future<void> _signUpWithKakao() =>
+      _signUpWithSocial(AuthService.instance.signInWithKakao);
+
+  /// 소셜 가입. 처음 보는 계정이면 닉네임·약관 → 카테고리 순서로 온보딩을 거친다.
+  /// 이미 가입한 계정이면 그냥 로그인으로 처리한다.
+  Future<void> _signUpWithSocial(
+    Future<SocialSignInResult> Function() signIn,
+  ) async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    final error = await AuthService.instance.signInWithKakao();
+    final result = await signIn();
 
     if (!mounted) return;
-    if (error != null) {
+    if (result.error != null) {
       setState(() {
         _loading = false;
-        _error = error;
+        _error = result.error;
       });
       return;
     }
 
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const CategorySelectScreen()),
-    );
+    if (result.needsProfileSetup) {
+      final completed = await SocialProfileSetupScreen.push(
+        context,
+        suggestedNickname: result.suggestedNickname,
+      );
+      if (!mounted) return;
+      if (!completed) {
+        setState(() => _loading = false);
+        return;
+      }
+    }
 
-    if (!mounted) return;
     if (widget.onAuthenticated != null) {
       widget.onAuthenticated!();
       return;
@@ -316,7 +305,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ],
                     SizedBox(height: s(40)),
-                    _LegalAgreementRow(
+                    FigmaLegalAgreementRow(
                       scale: figma.scale,
                       value: _agreeTerms,
                       onChanged: (value) =>
@@ -327,7 +316,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       onOpenDocument: () => LegalDocumentScreen.openTerms(context),
                     ),
                     SizedBox(height: s(20)),
-                    _LegalAgreementRow(
+                    FigmaLegalAgreementRow(
                       scale: figma.scale,
                       value: _agreePrivacy,
                       onChanged: (value) =>
@@ -370,88 +359,6 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LegalAgreementRow extends StatelessWidget {
-  const _LegalAgreementRow({
-    required this.scale,
-    required this.value,
-    required this.onChanged,
-    required this.labelPrefix,
-    required this.linkLabel,
-    required this.labelSuffix,
-    required this.onOpenDocument,
-  });
-
-  final double scale;
-  final bool value;
-  final ValueChanged<bool?> onChanged;
-  final String labelPrefix;
-  final String linkLabel;
-  final String labelSuffix;
-  final VoidCallback onOpenDocument;
-
-  @override
-  Widget build(BuildContext context) {
-    final fontSize = 28 * scale;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 28 * scale,
-          height: 28 * scale,
-          child: Checkbox(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppTheme.figmaTeal,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-        ),
-        SizedBox(width: 12 * scale),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(top: 4 * scale),
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  labelPrefix,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    color: AppTheme.textPrimary,
-                    height: 1.35,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: onOpenDocument,
-                  child: Text(
-                    linkLabel,
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      color: AppTheme.figmaLink,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-                Text(
-                  labelSuffix,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    color: AppTheme.textPrimary,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
