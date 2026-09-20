@@ -6,7 +6,7 @@
 SplashScreen (1.6초 + 세션 확인)
   → 세션 있음 → MainShell
   → 세션 없음 → IntroScreen
-       ├ 카카오톡 / Apple / goolge  → (첫 가입) SocialProfileSetupScreen → CategorySelectScreen
+       ├ 카카오톡 / Apple / Google  → (첫 가입) SocialProfileSetupScreen → CategorySelectScreen
        ├ 다른 방법으로 계속하기      → 닉네임 → 이메일 → 비밀번호 → 인증 → 약관 → CategorySelectScreen
        └ 이미 계정이 있나요? 로그인  → LoginScreen
 ```

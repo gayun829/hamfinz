@@ -139,7 +139,7 @@ class _IntroScreenState extends State<IntroScreen> {
             ),
             SizedBox(height: s(FigmaOnboardingTokens.introButtonGap)),
             _IntroButton(
-              label: 'goolge로 계속하기',
+              label: 'Google로 계속하기',
               background: Colors.white,
               foreground: Colors.black,
               bordered: true,

@@ -47,7 +47,7 @@ fileKey: `xC5ZE0FcHnWZi0VEpttVp8` (`👀 9.6 화면작업중`)
 
 입력 화면 4개는 좌표가 같다 — 말풍선·햄스터·라벨·밑줄을 `OnboardingStepScaffold`·
 `OnboardingField`로 묶고, 밑줄 아래 보조 영역만 화면별로 넘긴다.
-`goolge로 계속하기`의 오타는 **디자인 그대로** 뒀다 (디자이너 확인 전까지 임의 수정 금지).
+디자인의 `goolge로 계속하기`는 오타라 `Google로 계속하기`로 고쳤다 (디자이너 확인 완료).
 
 ---
 
