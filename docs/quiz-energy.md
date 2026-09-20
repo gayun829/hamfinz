@@ -8,14 +8,20 @@
 |------|-----:|
 | 세션당 문제 수 | 10 |
 | 문제 풀 | Firestore `quizQuestions` (`isActive == true`) |
-| 정답 XP | +10 |
-| 오답 XP | +2 |
 | 정답당 씨앗 | +5 |
 | 최대 에너지 | 100 |
 | 문제 1개당 에너지 | −5 (잠정, 변동 가능) |
+| 세션 완료 에너지 보상 | 실제 소모량 이내에서 **최대 +20** |
 | 세션 시작 최소 에너지 | **50** (10×5) |
 | 일일 학습 횟수 제한 | **없음** (에너지만 있으면 반복) |
 | 에너지 회복 | 날짜가 바뀌면 100으로 리셋 |
+
+에너지 회복은 **읽을 때 계산하고 쓸 때 저장한다** (`lib/utils/energy_reset.dart`).
+`AuthService._profileFromJson`은 화면용으로만 계산하고 저장하지 않으므로,
+저장값을 깎는 쪽(`submitAnswer`·`completeSession`·`ShopPurchaseRepository`·
+Functions `resolveEnergy`)이 `energy`와 `lastEnergyResetDate`를 **같이** 써야 한다.
+한쪽만 빠지면 저장된 에너지가 날짜가 바뀌어도 깎이기만 해서, 화면은 100인데
+제출은 "에너지가 부족해요"로 막히는 상태가 된다.
 
 ## 출제
 
@@ -45,9 +51,9 @@
    - 정답 시 `mastered/{questionId}` upsert  
    - 오답 시 `incorrectQuestions/{questionId}` upsert  
    - 복습 세션에서 정답이면 `incorrectQuestions/{questionId}` 삭제 + 카운트 −1  
-4. 정·오답 UI + XP 배너  
+4. 정·오답 UI  
 4. 풀이확인 / 다음문제  
-5. 마지막 문제 → `completeSession` → `QuizResultScreen`  
+5. 마지막 문제 → `completeSession` → 축하창 → 연속학습일 → 결과보기창  
 
 에너지가 부족하면 제출 시 스낵바 후 진행 중단.
 
@@ -58,33 +64,18 @@
 
 ## 세션 완료 (`completeSession`)
 
-- XP · 씨앗(`정답 수 × 5`) · 카테고리 통계 · `LearningRecord` · streak 갱신  
+- 씨앗(`정답 수 × 5`) · 카테고리 통계 · `learningDates` · streak 갱신  
+- **에너지 보상:** 실제 소모량 이내에서 최대 `+20`
+  (`QuizData.sessionCompleteEnergyReward`, 100을 넘지 않게 clamp).
+  1문제 복습에서 5를 썼다면 최대 5만 돌려주며, 실제로 채워진 양만
+  `energyEarned`로 내려간다 — 98이었으면 `+2`.
+  Functions 쪽 `ENERGY_SESSION_COMPLETE_REWARD`와 값을 맞춰야 한다.  
 - **Streak:** `todayQuizCompleted`가 false일 때만 (하루 첫 세션)  
   - 어제 완료 → +1  
   - 그 외 → 1  
 - Firestore `users/{uid}` 반영 후 프로필 재조회
 
 자세한 API: [quiz-session-api.md](./quiz-session-api.md) §3
-
-### 햄스터 해금
-
-| ID | 조건 |
-|----|------|
-| `hamster_basic` | 가입 시 |
-| `hamster_study` | 학습 기록 1건 이상 |
-| `hamster_streak` | streak ≥ 3 |
-| `hamster_level3` | level ≥ 3 |
-| `hamster_level5` | level ≥ 5 |
-| `hamster_master` | level ≥ 10 |
-
-정의: `lib/data/hamster_data.dart`
-
-## 레벨
-
-`LevelUtils` (`user_profile.dart`):
-
-- 100 XP = 1레벨, 최대 Lv.10  
-- 칭호: 금융 새싹 … 금융 고수  
 
 ## 홈에서의 표시
 

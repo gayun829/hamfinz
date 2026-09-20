@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/streak_calendar_data.dart';
-import '../../theme/figma_calendar_tokens.dart';
-import '../../theme/figma_shop_tokens.dart';
 import '../../utils/date_helper.dart';
+
 import '../../widgets/figma/figma_asset_image.dart';
-import '../../widgets/figma/figma_scale.dart';
-import '../../widgets/shop/shop_widgets.dart';
+import '../../widgets/home_bottom_nav.dart';
 import '../friends/add_friend_screen.dart';
+
+const _mint = Color(0xFFDEFDFE);
+const _cyan = Color(0xFF65D6F8);
 
 class StreakCalendarScreen extends StatefulWidget {
   const StreakCalendarScreen({
@@ -16,787 +17,560 @@ class StreakCalendarScreen extends StatefulWidget {
     this.streak = 0,
     this.studyGuardCount = 0,
     this.completedDates = const <String>{},
+    this.goalDays = 16,
+    this.onNavTap,
   });
 
   final int streak;
   final int studyGuardCount;
   final Set<String> completedDates;
+  final int goalDays;
+  final ValueChanged<int>? onNavTap;
 
   @override
   State<StreakCalendarScreen> createState() => _StreakCalendarScreenState();
 }
 
 class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
-  late DateTime _month;
+  DateTime _month = DateHelper.koreaNow();
 
-  @override
-  void initState() {
-    super.initState();
-    _month = DateTime.now();
-  }
-
-  int get _streakDisplay => widget.streak;
-
-  void _shiftMonth(int delta) {
-    setState(() {
-      _month = DateTime(_month.year, _month.month + delta);
-    });
+  void _navigate(int index) {
+    Navigator.of(context).maybePop();
+    widget.onNavTap?.call(index);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final textScaler = MediaQuery.textScalerOf(context);
-    final clampedScaler = TextScaler.linear(
-      textScaler.scale(1).clamp(0.9, 1.1),
-    );
-
-    return Scaffold(
-      backgroundColor: FigmaCalendarTokens.background,
-      body: SafeArea(
-        child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: clampedScaler),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final figma = FigmaScale.ofLayout(
-                constraints,
-                designWidth: FigmaCalendarTokens.designWidth,
-              );
-              final s = figma.s;
-              return Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Text(
-                        '<',
-                        style: TextStyle(
-                          fontSize: s(28).clamp(22, 32),
-                          fontWeight: FontWeight.w600,
-                          color: FigmaShopTokens.seed,
-                          height: 1,
-                        ),
-                      ),
-                    ),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFFFAFAFA),
+    bottomNavigationBar: SafeArea(
+      top: false,
+      child: HomeBottomNav(currentIndex: 1, onTap: _navigate),
+    ),
+    body: LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = constraints.maxWidth / 393;
+        double s(double value) => value * scale;
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFFB8F0EF), Color(0xFF36C2FA)],
                   ),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.fromLTRB(s(16), 0, s(16), s(20)),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: SizedBox(
+                    height: s(304),
+                    child: Stack(
                       children: [
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: FigmaCalendarTokens.panel,
-                            borderRadius: BorderRadius.circular(
-                              s(FigmaCalendarTokens.panelRadius),
+                        Positioned(
+                          left: s(14),
+                          top: s(20),
+                          child: IconButton(
+                            tooltip: '뒤로가기',
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            icon: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: s(26),
+                              color: const Color(0xFFD5FAFC),
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                        ),
+                        Positioned(
+                          left: s(44),
+                          top: s(88),
+                          child: Row(
                             children: [
-                              _HeaderSection(
-                                figma: figma,
-                                streak: _streakDisplay,
-                                studyGuardCount: widget.studyGuardCount,
+                              FigmaSvg(
+                                FigmaAssets.statStreak,
+                                width: s(28),
+                                height: s(39),
                               ),
-                              Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                  s(12),
-                                  s(8),
-                                  s(12),
-                                  0,
+                              SizedBox(width: s(9)),
+                              Text(
+                                '목표까지 D-${(widget.goalDays - widget.streak).clamp(0, widget.goalDays)}',
+                                style: TextStyle(
+                                  fontSize: s(18),
+                                  color: Colors.black,
                                 ),
-                                child: _MonthCalendar(
-                                  figma: figma,
-                                  month: _month,
-                                  completedDates: widget.completedDates,
-                                  onPrev: () => _shiftMonth(-1),
-                                  onNext: () => _shiftMonth(1),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: s(12)),
-                                child: const Divider(
-                                  height: 24,
-                                  thickness: 1,
-                                  color: Color(0xFFE5E5E5),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                  s(12),
-                                  0,
-                                  s(12),
-                                  s(16),
-                                ),
-                                child: _FriendsCard(figma: figma),
                               ),
                             ],
                           ),
                         ),
+                        Positioned(
+                          left: s(24),
+                          right: s(24),
+                          top: s(142),
+                          height: s(138),
+                          child: Container(
+                            padding: EdgeInsets.all(s(20)),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(s(14)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 177,
+                                  child: _Stat(
+                                    scale: scale,
+                                    label: '연속학습',
+                                    value: widget.streak,
+                                    flame: true,
+                                    progress: widget.goalDays > 0
+                                        ? widget.streak / widget.goalDays
+                                        : 0,
+                                  ),
+                                ),
+                                SizedBox(width: s(20)),
+                                Expanded(
+                                  flex: 101,
+                                  child: _Stat(
+                                    scale: scale,
+                                    label: '방어권 보유',
+                                    unit: '개',
+                                    value: widget.studyGuardCount,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: s(38),
+                          top: s(58),
+                          width: s(118),
+                          height: s(91),
+                          child: const FigmaPng(
+                            'assets/figma/calendar/hamster_header.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        for (final right in [121.0, 47.0])
+                          Positioned(
+                            right: s(right),
+                            top: s(134),
+                            width: s(23),
+                            height: s(18),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD47C),
+                                borderRadius: BorderRadius.circular(s(14)),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderSection extends StatelessWidget {
-  const _HeaderSection({required this.figma, required this.streak, required this.studyGuardCount});
-
-  final FigmaScale figma;
-  final int streak;
-  final int studyGuardCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    final peekW = s(FigmaCalendarTokens.peekHamster.width).clamp(56.0, 80.0);
-    final peekH = s(FigmaCalendarTokens.peekHamster.height).clamp(48.0, 68.0);
-    return SizedBox(
-      width: double.infinity,
-      child: Stack(
-      children: [
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          height: s(168).clamp(120, 190),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(s(FigmaCalendarTokens.panelRadius)),
+                ),
               ),
-              gradient: const LinearGradient(
-                begin: Alignment(-0.6, -0.4),
-                end: Alignment(0.8, 1),
-                colors: [
-                  FigmaCalendarTokens.headerGradientStart,
-                  FigmaCalendarTokens.headerGradientEnd,
-                ],
-              ),
-            ),
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(s(16), s(20), s(12), s(8)),
-              child: Row(
-                children: [
-                  FigmaSvg(
-                    FigmaAssets.statStreak,
-                    width: s(FigmaCalendarTokens.headerFlame.width).clamp(16, 24),
-                    height: s(FigmaCalendarTokens.headerFlame.height).clamp(20, 28),
-                    fit: BoxFit.contain,
-                  ),
-                  SizedBox(width: s(8)),
-                  Expanded(
-                    child: Text(
-                      '목표일까지 D-${StreakCalendarMock.daysUntilGoal} !',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: s(12).clamp(11, 14),
-                        color: Colors.black,
-                        height: 1.2,
+              Padding(
+                padding: EdgeInsets.fromLTRB(s(26), s(32), s(22), s(28)),
+                child: Column(
+                  children: [
+                    _Calendar(
+                      scale: scale,
+                      month: _month,
+                      completedDates: widget.completedDates,
+                      onShift: (delta) => setState(
+                        () => _month = DateTime(
+                          _month.year,
+                          _month.month + delta,
+                        ),
                       ),
                     ),
-                  ),
-                  FigmaPng(
-                    FigmaAssets.calendarPeekHamster,
-                    width: peekW,
-                    height: peekH,
-                    fit: BoxFit.contain,
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(s(12), 0, s(12), s(12)),
-              child: Container(
-                padding: EdgeInsets.all(s(10).clamp(8, 14)),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(
-                    s(FigmaCalendarTokens.cardRadius),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: _StreakStat(figma: figma, streak: streak),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: s(11),
+                        vertical: s(30),
+                      ),
+                      child: const Divider(height: 1, color: Color(0xFFE6E6E6)),
                     ),
-                    SizedBox(width: s(8).clamp(6, 10)),
-                    Expanded(
-                      flex: 2,
-                      child: _PauseStat(figma: figma, studyGuardCount: studyGuardCount),
-                    ),
+                    _FriendsCard(scale: scale, onOpen: () => _navigate(1)),
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-      ),
-    );
-  }
-}
-
-class _StreakStat extends StatelessWidget {
-  const _StreakStat({required this.figma, required this.streak});
-
-  final FigmaScale figma;
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return Container(
-      padding: EdgeInsets.fromLTRB(s(8), s(8), s(8), s(8)),
-      decoration: BoxDecoration(
-        color: FigmaCalendarTokens.panel,
-        borderRadius: BorderRadius.circular(s(FigmaCalendarTokens.cardRadius)),
-      ),
-      child: Row(
-        children: [
-          _VerticalBar(
-            figma: figma,
-            width: 10,
-            height: 48,
-            fillHeight: 36,
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                FigmaCalendarTokens.streakBarTop,
-                FigmaCalendarTokens.streakBarBottom,
-              ],
-            ),
-          ),
-          SizedBox(width: s(6)),
-          FigmaSvg(
-            FigmaAssets.statStreak,
-            width: s(28).clamp(22.0, 34.0).toDouble(),
-            height: s(36).clamp(28.0, 44.0).toDouble(),
-            fit: BoxFit.contain,
-          ),
-          SizedBox(width: s(6)),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '연속학습',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: s(10).clamp(9, 12),
-                    color: FigmaCalendarTokens.muted,
-                  ),
-                ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$streak',
-                        style: TextStyle(
-                          fontSize: s(28).clamp(20, 32),
-                          height: 1,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(bottom: s(2), left: s(2)),
-                        child: Text(
-                          '일',
-                          style: TextStyle(
-                            fontSize: s(12).clamp(10, 14),
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PauseStat extends StatelessWidget {
-  const _PauseStat({required this.figma, required this.studyGuardCount});
-
-  final FigmaScale figma;
-  final int studyGuardCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return Container(
-      padding: EdgeInsets.all(s(8).clamp(6, 12)),
-      decoration: BoxDecoration(
-        color: FigmaCalendarTokens.panel,
-        borderRadius: BorderRadius.circular(s(FigmaCalendarTokens.cardRadius)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '일시멈춤',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: s(10).clamp(9, 12),
-              color: FigmaCalendarTokens.muted,
-              height: 1.1,
-            ),
-          ),
-          SizedBox(height: s(6)),
-          Row(
-            children: List.generate(3, (index) {
-              final remaining = studyGuardCount.clamp(0, 3);
-              final isAvailable = index >= 3 - remaining;
-              return Padding(
-                padding: EdgeInsets.only(right: index == 2 ? 0 : s(4)),
-                child: FigmaSvg(
-                  isAvailable
-                      ? FigmaAssets.calendarDropOn
-                      : FigmaAssets.calendarDropOff,
-                  width: s(FigmaCalendarTokens.dropFilled.width).clamp(8, 12),
-                  height: s(FigmaCalendarTokens.dropFilled.height).clamp(12, 16),
-                  fit: BoxFit.contain,
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _VerticalBar extends StatelessWidget {
-  const _VerticalBar({
-    required this.figma,
-    required this.width,
-    required this.height,
-    required this.fillHeight,
-    required this.gradient,
-  });
-
-  final FigmaScale figma;
-  final double width;
-  final double height;
-  final double fillHeight;
-  final Gradient gradient;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return SizedBox(
-      width: s(width),
-      height: s(height),
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          Container(
-            width: s(width),
-            height: s(height),
-            decoration: BoxDecoration(
-              color: FigmaCalendarTokens.barTrack,
-              borderRadius: BorderRadius.circular(s(FigmaCalendarTokens.barRadius)),
-            ),
-          ),
-          Container(
-            width: s(width),
-            height: s(fillHeight),
-            decoration: BoxDecoration(
-              gradient: gradient,
-              borderRadius: BorderRadius.circular(s(FigmaCalendarTokens.barRadius)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FlexibleBar extends StatelessWidget {
-  const _FlexibleBar({
-    required this.fillFraction,
-    required this.height,
-    required this.color,
-    this.label,
-  });
-
-  final double fillFraction;
-  final double height;
-  final Color color;
-  final String? label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(height),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const ColoredBox(color: Color(0xFFE5E5E5)),
-            FractionallySizedBox(
-              widthFactor: fillFraction.clamp(0.0, 1.0),
-              alignment: Alignment.centerLeft,
-              child: ColoredBox(color: color),
-            ),
-            if (label != null)
-              Center(
-                child: Text(
-                  label!,
-                  style: TextStyle(
-                    fontSize: height >= 10 ? 8 : 6,
-                    color: Colors.white,
-                    height: 1,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MonthCalendar extends StatelessWidget {
-  const _MonthCalendar({
-    required this.figma,
-    required this.month,
-    required this.completedDates,
-    required this.onPrev,
-    required this.onNext,
-  });
-
-  final FigmaScale figma;
-  final DateTime month;
-  final Set<String> completedDates;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-
-  static const _weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-
-  bool _completed(DateTime day) {
-    return completedDates.contains(DateHelper.todayKey(day));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    final first = DateTime(month.year, month.month, 1);
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final leading = first.weekday % 7;
-    final cells = leading + daysInMonth;
-    final rows = ((cells + 6) ~/ 7);
-    final latest = completedDates
-        .map(DateTime.tryParse)
-        .whereType<DateTime>()
-        .fold<DateTime?>(null, (latest, date) {
-      if (latest == null || date.isAfter(latest)) return date;
-      return latest;
-    });
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(s(10), s(12), s(10), s(12)),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(s(FigmaCalendarTokens.cardRadius)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                onPressed: onPrev,
-                icon: Icon(Icons.chevron_left, size: s(22), color: Colors.black54),
-              ),
-              Expanded(
-                child: Text(
-                  '${month.year}년 ${month.month}월',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: s(16),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                onPressed: onNext,
-                icon: Icon(Icons.chevron_right, size: s(22), color: Colors.black54),
-              ),
             ],
           ),
-          SizedBox(height: s(4)),
-          Row(
-            children: [
-              for (var i = 0; i < 7; i++)
-                Expanded(
-                  child: Text(
-                    _weekdays[i],
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: s(11),
-                      color: i == 0
-                          ? FigmaCalendarTokens.sunday
-                          : i == 6
-                              ? FigmaCalendarTokens.saturday
-                              : Colors.black87,
+        );
+      },
+    ),
+  );
+}
+
+BoxDecoration _card(double scale) => BoxDecoration(
+  color: Colors.white,
+  borderRadius: BorderRadius.circular(14 * scale),
+  boxShadow: [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.065),
+      blurRadius: 14 * scale,
+      offset: Offset(0, 2 * scale),
+    ),
+  ],
+);
+
+class _Stat extends StatelessWidget {
+  const _Stat({
+    required this.scale,
+    required this.label,
+    required this.value,
+    this.flame = false,
+    this.unit = '일',
+    this.progress = 0,
+  });
+  final double scale;
+  final String label;
+  final int value;
+  final bool flame;
+  final String unit;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    double s(double value) => value * scale;
+    return Container(
+      decoration: BoxDecoration(
+        color: _mint,
+        borderRadius: BorderRadius.circular(s(7)),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(12)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (flame) ...[
+            Container(
+              width: s(16),
+              height: s(65),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD9D9D9),
+                borderRadius: BorderRadius.circular(s(20)),
+              ),
+              alignment: Alignment.bottomCenter,
+              child: FractionallySizedBox(
+                heightFactor: progress.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(s(20)),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFFF5B18), Color(0xFFFF994C)],
                     ),
                   ),
                 ),
-            ],
-          ),
-          SizedBox(height: s(8)),
-          for (var r = 0; r < rows; r++)
-            Padding(
-              padding: EdgeInsets.only(bottom: s(6)),
-              child: Row(
+              ),
+            ),
+            SizedBox(width: s(8)),
+            FigmaSvg(FigmaAssets.statStreak, width: s(43), height: s(59)),
+            SizedBox(width: s(12)),
+          ],
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (var c = 0; c < 7; c++)
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: s(12),
+                      color: const Color(0xFF999999),
+                    ),
+                  ),
+                  SizedBox(height: s(10)),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '$value',
+                          style: TextStyle(
+                            fontSize: s(32),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' $unit',
+                          style: TextStyle(fontSize: s(12)),
+                        ),
+                      ],
+                    ),
+                    style: const TextStyle(color: Colors.black, height: 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Calendar extends StatelessWidget {
+  const _Calendar({
+    required this.scale,
+    required this.month,
+    required this.completedDates,
+    required this.onShift,
+  });
+  final double scale;
+  final DateTime month;
+  final Set<String> completedDates;
+  final ValueChanged<int> onShift;
+
+  @override
+  Widget build(BuildContext context) {
+    double s(double value) => value * scale;
+    final leading = DateTime(month.year, month.month).weekday % 7;
+    final count = DateTime(month.year, month.month + 1, 0).day;
+    final rows = (leading + count + 6) ~/ 7;
+    final now = DateHelper.koreaNow();
+    final today = DateTime(now.year, now.month, now.day);
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity.abs() > 100) onShift(velocity < 0 ? 1 : -1);
+      },
+      child: Container(
+        decoration: _card(scale),
+        padding: EdgeInsets.fromLTRB(s(16), s(20), s(16), s(18)),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                SizedBox(width: s(10)),
+                Expanded(
+                  child: Text(
+                    '${month.year}년 ${month.month}월',
+                    style: TextStyle(
+                      fontSize: s(20),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '이전 달',
+                  onPressed: () => onShift(-1),
+                  constraints: BoxConstraints.tightFor(
+                    width: s(28),
+                    height: 48,
+                  ),
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.chevron_left,
+                    size: s(18),
+                    color: const Color(0xFFAAAAAA),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '다음 달',
+                  onPressed: () => onShift(1),
+                  constraints: BoxConstraints.tightFor(
+                    width: s(28),
+                    height: 48,
+                  ),
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.chevron_right,
+                    size: s(18),
+                    color: const Color(0xFFAAAAAA),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: s(40)),
+            Row(
+              children: [
+                for (final label in ['일', '월', '화', '수', '목', '금', '토'])
+                  Expanded(
+                    child: Center(
+                      child: Text(label, style: TextStyle(fontSize: s(12))),
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: s(10)),
+            for (var row = 0; row < rows; row++)
+              Row(
+                children: [
+                  for (var col = 0; col < 7; col++)
                     Expanded(
-                      child: _DayCell(
-                        figma: figma,
-                        day: _dayFor(leading, r, c, daysInMonth),
-                        completed: _dayFor(leading, r, c, daysInMonth) != null &&
-                            _completed(
-                              DateTime(
-                                month.year,
-                                month.month,
-                                _dayFor(leading, r, c, daysInMonth)!,
+                      child: Builder(
+                        builder: (context) {
+                          final date = DateTime(
+                            month.year,
+                            month.month,
+                            row * 7 + col - leading + 1,
+                          );
+                          final key = DateHelper.dateKey(date);
+                          final inMonth = date.month == month.month;
+                          final completed =
+                              inMonth && completedDates.contains(key);
+                          final todayCompleted = completed && date == today;
+                          return Semantics(
+                            label: '$key${completed ? ', 학습 완료' : ''}',
+                            child: SizedBox(
+                              height: s(42),
+                              child: Center(
+                                child: SizedBox(
+                                  width: s(29),
+                                  height: s(27),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      if (todayCompleted) ...[
+                                        Positioned(
+                                          left: 0,
+                                          top: 2,
+                                          child: _dot(s(9)),
+                                        ),
+                                        Positioned(
+                                          right: 0,
+                                          top: 2,
+                                          child: _dot(s(9)),
+                                        ),
+                                      ],
+                                      Container(
+                                        key: completed
+                                            ? ValueKey(
+                                                '${todayCompleted ? 'today-hamster' : 'study-circle'}-$key',
+                                              )
+                                            : null,
+                                        width: s(23),
+                                        height: s(23),
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: completed
+                                              ? const Color(0xFFB3E5FC)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            s(todayCompleted ? 7 : 20),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${date.day}',
+                                          style: TextStyle(
+                                            fontSize: s(12),
+                                            color: !inMonth
+                                                ? const Color(0xFFD8D8D8)
+                                                : completed || date == today
+                                                ? Colors.black
+                                                : const Color(0xFF999999),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                        latest: latest != null &&
-                          _dayFor(leading, r, c, daysInMonth) != null &&
-                            month.year == latest.year &&
-                            month.month == latest.month &&
-                            _dayFor(leading, r, c, daysInMonth) == latest.day,
-                        connectLeft: _connect(leading, r, c, daysInMonth, -1),
-                        connectRight: _connect(leading, r, c, daysInMonth, 1),
+                          );
+                        },
                       ),
                     ),
                 ],
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  int? _dayFor(int leading, int row, int col, int daysInMonth) {
-    final index = row * 7 + col - leading + 1;
-    if (index < 1 || index > daysInMonth) return null;
-    return index;
-  }
-
-  bool _connect(int leading, int row, int col, int daysInMonth, int delta) {
-    final day = _dayFor(leading, row, col, daysInMonth);
-    final neighbor = _dayFor(leading, row, col + delta, daysInMonth);
-    if (day == null || neighbor == null) return false;
-    return _completed(DateTime(month.year, month.month, day)) &&
-        _completed(DateTime(month.year, month.month, neighbor));
-  }
-}
-
-class _DayCell extends StatelessWidget {
-  const _DayCell({
-    required this.figma,
-    required this.day,
-    required this.completed,
-    required this.latest,
-    required this.connectLeft,
-    required this.connectRight,
-  });
-
-  final FigmaScale figma;
-  final int? day;
-  final bool completed;
-  final bool latest;
-  final bool connectLeft;
-  final bool connectRight;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    if (day == null) return SizedBox(height: s(36));
-
-    final circle = latest
-        ? Container(
-            width: s(26),
-            height: s(26),
-            decoration: const BoxDecoration(
-              color: FigmaCalendarTokens.streakTeal,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.check, size: s(14), color: Colors.white),
-          )
-        : completed
-            ? Container(
-                width: s(26),
-                height: s(26),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: FigmaCalendarTokens.streakTeal,
-                    width: s(1.5),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$day',
-                  style: TextStyle(fontSize: s(11), color: Colors.black87),
-                ),
-              )
-            : SizedBox(
-                width: s(26),
-                height: s(26),
-                child: Center(
-                  child: Text(
-                    '$day',
-                    style: TextStyle(fontSize: s(11), color: Colors.black87),
-                  ),
-                ),
-              );
-
-    return SizedBox(
-      height: s(36),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (connectLeft)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                height: s(2),
-                width: s(18),
-                color: FigmaCalendarTokens.streakTeal.withValues(alpha: 0.7),
-              ),
-            ),
-          if (connectRight)
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                height: s(2),
-                width: s(18),
-                color: FigmaCalendarTokens.streakTeal.withValues(alpha: 0.7),
-              ),
-            ),
-          circle,
-          if (completed && !latest)
-            Positioned(
-              bottom: 0,
-              child: Icon(
-                Icons.check,
-                size: s(8),
-                color: FigmaCalendarTokens.streakTeal,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  Widget _dot(double size) => Container(
+    width: size,
+    height: size,
+    decoration: const BoxDecoration(
+      color: Color(0xFFB3E5FC),
+      shape: BoxShape.circle,
+    ),
+  );
 }
 
 class _FriendsCard extends StatelessWidget {
-  const _FriendsCard({required this.figma});
-
-  final FigmaScale figma;
+  const _FriendsCard({required this.scale, required this.onOpen});
+  final double scale;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final s = figma.s;
+    double s(double value) => value * scale;
     final friends = StreakCalendarMock.friends;
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(s(12), s(12), s(12), s(12)),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(s(FigmaCalendarTokens.cardRadius)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      decoration: _card(scale),
+      height: s(246),
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '이번 달 친구와의 경쟁!',
-                  style: TextStyle(
-                    fontSize: s(12).clamp(11, 14),
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(s(14)),
-                onTap: () => Navigator.of(context).push(
+          Positioned(
+            left: s(18),
+            top: s(16),
+            child: Text(
+              '이번 달 친구와의 경쟁!',
+              style: TextStyle(fontSize: s(16), color: Colors.black),
+            ),
+          ),
+          if (friends.isEmpty)
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const AddFriendScreen()),
                 ),
-                child: Padding(
-                  padding: EdgeInsets.all(s(4)),
-                  child: Icon(
-                    Icons.person_add_alt_1,
-                    size: s(18).clamp(16, 22),
-                    color: FigmaCalendarTokens.streakTeal,
-                  ),
-                ),
+                child: const Text('친구 추가하기'),
               ),
-            ],
-          ),
-          SizedBox(height: s(12)),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (var i = 0; i < friends.length; i++) ...[
-                if (i > 0) SizedBox(width: s(6)),
-                Expanded(
-                  flex: i == 0 ? 3 : 2,
-                  child: _FriendRank(
-                    figma: figma,
-                    friend: friends[i],
-                    podium: switch (i) {
-                      0 => FigmaAssets.calendarPodium1,
-                      1 => FigmaAssets.calendarPodium2,
-                      2 => FigmaAssets.calendarPodium3,
-                      _ => FigmaAssets.calendarPodium4,
-                    },
-                    large: i == 0,
+            ),
+          for (var i = 0; i < friends.length && i < 4; i++)
+            Positioned(
+              left: s([30.0, 160.0, 230.0, 272.0][i]),
+              top: s([46.0, 20.0, 126.0, 60.0][i]),
+              width: s([118.0, 78.0, 66.0, 48.0][i]),
+              child: _Rank(scale: scale, friend: friends[i], index: i),
+            ),
+          Positioned(
+            right: s(22),
+            bottom: s(19),
+            width: s(154),
+            height: s(24),
+            child: TextButton(
+              onPressed: onOpen,
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFB2EFF2),
+                foregroundColor: const Color(0xFF344447),
+                padding: EdgeInsets.symmetric(horizontal: s(6)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '이번 달 금융마블 바로가기',
+                        style: TextStyle(fontSize: s(9)),
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ],
+                  Icon(
+                    Icons.chevron_right,
+                    size: s(13),
+                    color: const Color(0xFFD5D9CD),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            right: s(4),
+            top: 0,
+            child: IconButton(
+              tooltip: '친구 추가',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+              ),
+              icon: Icon(Icons.person_add_alt_1, size: s(21), color: _cyan),
+            ),
           ),
         ],
       ),
@@ -804,74 +578,127 @@ class _FriendsCard extends StatelessWidget {
   }
 }
 
-class _FriendRank extends StatelessWidget {
-  const _FriendRank({
-    required this.figma,
-    required this.friend,
-    required this.podium,
-    required this.large,
-  });
-
-  final FigmaScale figma;
+class _Rank extends StatelessWidget {
+  const _Rank({required this.scale, required this.friend, required this.index});
+  final double scale;
   final StreakFriendMock friend;
-  final String podium;
-  final bool large;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    final s = figma.s;
-    final hamster = (large ? s(72).clamp(56.0, 88.0) : s(48).clamp(40.0, 60.0))
-        .toDouble();
-    final podiumH = (large ? s(56).clamp(44.0, 68.0) : s(40).clamp(32.0, 52.0))
-        .toDouble();
-    final label = friend.rank == 1
-        ? '1위. ${friend.name}'
-        : '${friend.rank}위';
+    double s(double value) => value * scale;
+    final height = [128.0, 96.0, 61.0, 46.0][index];
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: hamster + podiumH * 0.45,
+          height: s(height),
           child: Stack(
-            alignment: Alignment.bottomCenter,
             children: [
-              FigmaSvg(
-                podium,
-                width: hamster,
-                height: podiumH,
-                fit: BoxFit.contain,
+              Positioned.fill(
+                top: s(height * 0.3),
+                child: FigmaSvg(
+                  [
+                    FigmaAssets.calendarPodium1,
+                    FigmaAssets.calendarPodium2,
+                    FigmaAssets.calendarPodium3,
+                    FigmaAssets.calendarPodium4,
+                  ][index],
+                  fit: BoxFit.contain,
+                ),
               ),
-              Positioned(
-                top: 0,
-                child: SizedBox(
-                  width: hamster,
-                  height: hamster,
-                  child: ShopHamsterSprite(
-                    column: friend.spriteCol,
-                    row: friend.spriteRow,
+              if (index != 2)
+                Positioned.fill(
+                  bottom: s(8),
+                  child: FigmaPng(
+                    'assets/figma/calendar/hamster_rank_${index == 0
+                        ? 1
+                        : index == 1
+                        ? 2
+                        : 4}.png',
+                    fit: BoxFit.contain,
                   ),
+                ),
+            ],
+          ),
+        ),
+        if (index == 0)
+          Padding(
+            padding: EdgeInsets.only(top: s(4), bottom: s(3)),
+            child: Text('1위 ${friend.name}', style: TextStyle(fontSize: s(15))),
+          ),
+        SizedBox(
+          height: s(index == 0 ? 16 : 13),
+          child: Row(
+            children: [
+              if (index == 1 || index == 2) ...[
+                Container(
+                  width: s(14),
+                  height: s(14),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFB2EFF2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${friend.rank}',
+                    style: TextStyle(fontSize: s(10), color: Colors.grey),
+                  ),
+                ),
+                SizedBox(width: s(3)),
+              ],
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final fraction = friend.goal > 0
+                        ? (friend.learned / friend.goal).clamp(0.0, 1.0)
+                        : 0.0;
+                    final height = s(
+                      index == 0
+                          ? 16
+                          : index == 3
+                          ? 6
+                          : 12,
+                    );
+                    return Container(
+                      height: height,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(height),
+                      ),
+                      child: Stack(
+                        children: [
+                          FractionallySizedBox(
+                            widthFactor: fraction,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _cyan,
+                                borderRadius: BorderRadius.circular(height),
+                              ),
+                            ),
+                          ),
+                          if (fraction > 0)
+                            Positioned(
+                              left: ((constraints.maxWidth * fraction) - height)
+                                  .clamp(0.0, constraints.maxWidth - height),
+                              top: height * 0.18,
+                              child: Container(
+                                width: height * .64,
+                                height: height * .64,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF36C3FA),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
           ),
-        ),
-        SizedBox(height: s(4)),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: s(large ? 11 : 9).clamp(8, 12),
-            color: Colors.black,
-          ),
-        ),
-        SizedBox(height: s(4)),
-        _FlexibleBar(
-          fillFraction: friend.learned / friend.goal,
-          height: large ? 10 : 7,
-          color: FigmaCalendarTokens.streakTeal,
-          label: '${friend.learned}/${friend.goal}',
         ),
       ],
     );
