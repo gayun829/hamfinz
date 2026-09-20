@@ -78,6 +78,9 @@ flutter:
     - assets/figma/home/advanced/node_3_pentagon.png
     - assets/figma/auth/
     - assets/figma/quiz/
+    - assets/figma/quiz/complete/
+    - assets/figma/quiz/streak/
+    - assets/figma/quiz/reward/
     - assets/figma/shop/
     - assets/figma/calendar/hamster_peek.png
     - assets/figma/calendar/hamster_header.png

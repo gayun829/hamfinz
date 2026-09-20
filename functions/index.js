@@ -1,4 +1,5 @@
 const { learningDatesFromUser } = require('./learning_dates');
+const { completionEnergyReward } = require('./quiz_energy');
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
@@ -18,6 +19,8 @@ const ENERGY_PER_QUESTION = 5;
 const SEEDS_PER_CORRECT = 5;
 const MAX_ENERGY = 100;
 const MAX_STUDY_GUARD = 4;
+// 세션 완료 보상 에너지 — Dart `QuizData.sessionCompleteEnergyReward`와 같아야 한다.
+const ENERGY_SESSION_COMPLETE_REWARD = 20;
 const ENERGY_PACK_AMOUNT = 20;
 
 // Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
@@ -326,8 +329,27 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
 
     const learningDates = learningDatesFromUser(user, today, true);
 
+    // 짧은 복습 세션이 에너지 생성 수단이 되지 않도록 실제 소모량까지만
+    // 돌려준다. 날짜가 바뀐 경우 submitAnswer와 같은 회복 규칙을 적용한다.
+    const energySpent =
+      session.energySpent ?? answers.length * ENERGY_PER_QUESTION;
+    const rewardCap = completionEnergyReward(
+      energySpent,
+      ENERGY_SESSION_COMPLETE_REWARD,
+    );
+    const {
+      energy: energyBefore,
+      lastEnergyResetDate,
+    } = resolveEnergy(user, today);
+    const energyRemaining = Math.min(
+      MAX_ENERGY,
+      energyBefore + rewardCap,
+    );
+    const energyEarned = energyRemaining - energyBefore;
 
     tx.update(userRef, {
+      energy: energyRemaining,
+      lastEnergyResetDate,
       seeds: (user.seeds ?? 0) + seedsEarned,
       streak,
       lastQuizCompletedDate,
@@ -341,7 +363,8 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     tx.update(sessionRef, {
       status: 'completed',
       correctCount,
-      energySpent: session.energySpent ?? answers.length * ENERGY_PER_QUESTION,
+      energySpent,
+      energyEarned,
       completedAt: FieldValue.serverTimestamp(),
     });
 
@@ -351,7 +374,8 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       correctCount,
       totalCount: answers.length,
       newStreak: streak,
-      energyRemaining: user.energy ?? 0,
+      energyRemaining,
+      energyEarned,
     };
   });
 });
