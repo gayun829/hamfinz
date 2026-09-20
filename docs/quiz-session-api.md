@@ -128,7 +128,7 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 | `incorrectQuestions` | read · create · update · delete |
 | `sessions` | read · create · update (`inProgress`만) |
 | `sessions/.../answers` | read · create |
-| `users` | read · write (본인) — energy/xp/seeds 등 트랜잭션 갱신 |
+| `users` | read · write (본인) — energy/seeds 등 트랜잭션 갱신 |
 
 ### 배포 (Blaze 후)
 

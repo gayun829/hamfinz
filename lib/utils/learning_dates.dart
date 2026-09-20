@@ -10,16 +10,7 @@ abstract final class LearningDates {
     bool markToday = false,
   }) {
     final raw = user['learningDates'];
-    final legacy = user['learningHistory'];
-    // Retain dates written by an older app during the rollout as well.
-    final dates = <String>[
-      if (raw is List) ...raw.whereType<String>(),
-      if (legacy is List)
-        ...legacy
-            .whereType<Map>()
-            .map((entry) => entry['date'])
-            .whereType<String>(),
-    ];
+    final dates = <String>[if (raw is List) ...raw.whereType<String>()];
     final end = DateTime.parse('${today}T00:00:00Z');
     final start = DateHelper.dateKey(
       end.subtract(const Duration(days: retentionDays - 1)),

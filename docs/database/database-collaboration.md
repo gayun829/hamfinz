@@ -36,7 +36,7 @@ docs/database/database-schema.md     →  확정 반영 (팀 합의 후)
 | Owner (예시) | 담당 영역 | 참고 문서 |
 |--------------|-----------|-----------|
 | Auth | Firebase Auth, `users/{uid}` 프로필 | [auth.md](../auth.md) |
-| Quiz | `quizQuestions`, 세션·채점·XP | [quiz-energy.md](../quiz-energy.md) |
+| Quiz | `quizQuestions`, 세션·채점·씨앗 보상 | [quiz-energy.md](../quiz-energy.md) |
 | News | `newsArticles`, 북마크 | [news.md](../news.md) |
 | Shop | 상점, 햄스터 해금, `hamsters` | [features.md](../features.md) |
 
@@ -58,8 +58,8 @@ docs/database/database-schema.md     →  확정 반영 (팀 합의 후)
 | 문서 ID | 의미 있는 id (`q1`, `saving`) vs auto id |
 | 날짜 필드명 | `createdAt`, `completedOn` 등 통일 |
 | 타임스탬프 타입 | Firestore `Timestamp` vs `yyyy-MM-dd` 문자열 |
-| 유저 데이터 위치 | `users/{uid}` vs 탑레벨 컬렉션 |
-| 쓰기 권한 | 클라이언트 직접 vs Cloud Functions (XP·에너지 등) |
+| 유저 데이터 위치 | `users/{uid}` vs 최상위 컬렉션 |
+| 쓰기 권한 | 클라이언트 직접 vs Cloud Functions (에너지·씨앗 등) |
 
 → 확정되면 [database-schema.md](./database-schema.md) §0 공통 규칙에 반영한다.
 
@@ -116,7 +116,7 @@ PR 리뷰 체크리스트:
 
 | 데이터 | 단일 소스 (SSOT) | 다른 파트 |
 |--------|------------------|-----------|
-| XP, streak, energy | `users/{uid}` (퀴즈 제안 → Auth owner 승인) | 읽기만 |
+| streak, energy | `users/{uid}` (퀴즈 제안 → Auth owner 승인) | 읽기만 |
 | `categoryStats` | `users/{uid}` (Quiz owner) | 프로필 UI는 읽기 |
 | `seeds` | 지급·차감 **쓰기 owner 하나** (Functions 권장) | 나머지는 읽기 |
 | 퀴즈 정답 | `quizQuestions` (콘텐츠) + `sessions/answers` (기록) | 채점 로직 owner 명확히 |

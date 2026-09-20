@@ -357,7 +357,6 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       studyGuardCount,
       categoryStats,
       learningDates,
-      learningHistory: FieldValue.delete(),
     });
 
     tx.update(sessionRef, {

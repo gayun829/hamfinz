@@ -10,7 +10,8 @@ The calendar and profile consume dates only; no per-session summary is stored
 in this user field. Existing session/answer documents and category statistics
 continue to support quiz completion, review and correctness reporting.
 
-Readers merge dates from learningDates and legacy learningHistory, deduplicate and filter them. The next completed session writes the retained dates to learningDates and deletes learningHistory in the same transaction. Older app versions are developer-only and are not supported after this migration. New profiles start with an empty learningDates array.
+Readers deduplicate and filter `learningDates`. New profiles start with an empty
+array, and each completed session retains only today and the preceding 31 days.
 
 Expired dates are filtered on profile read and removed from the stored array on
 the next completed session. There is no scheduled database deletion for inactive

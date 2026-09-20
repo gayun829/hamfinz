@@ -71,7 +71,7 @@ static const submitBackend = QuizSubmitBackend.cloudFunctions;
 
 - [ ] 로그인 → 퀴즈 시작 (10문항 출제)
 - [ ] 답안 제출 → 정·오답 UI · energy 차감
-- [ ] 세션 완료 → XP · 씨앗 · streak · 결과 화면
+- [ ] 세션 완료 → 씨앗 · streak · 에너지 보상 · 결과 화면
 - [ ] Firestore Console: `users/{uid}/sessions/.../answers` 생성 확인
 - [ ] 정답 시 `users/{uid}/mastered/{questionId}` 생성 확인
 - [ ] 클라이언트에서 `mastered` 직접 write 시도 → permission-denied (Rules 검증)
@@ -115,9 +115,9 @@ Functions는 Blaze에서도 그대로 두어도 무방 (미호출 시 비용 없
 
 ## 보안 메모
 
-- ~~`users` 문서에 `allow read, write: if uid == auth.uid`가 있어 클라이언트가 xp/energy를 직접 수정할 수 있다.~~
+- ~~`users` 문서에 `allow read, write: if uid == auth.uid`가 있어 클라이언트가 energy를 직접 수정할 수 있다.~~
   `firestore.rules.production`의 `users/{uid}` `update`에 **필드별 제한**을 추가했다 —
-  xp/energy/streak/seeds/ownedShopItemIds/studyGuardCount 등은 `request.resource.data.diff(resource.data).affectedKeys().hasAny([...])`로
+  energy/streak/seeds/ownedShopItemIds/studyGuardCount 등은 `request.resource.data.diff(resource.data).affectedKeys().hasAny([...])`로
   막아서 Functions(Admin SDK, `submitAnswer`·`completeSession`·`purchaseShopItem`)만 쓸 수 있다.
   상점 쪽 상세: [shop-production-deployment.md](./shop-production-deployment.md)
 - (개발 Rules `firestore.rules`는 그대로 블랭킷 허용 — 클라이언트 트랜잭션이 이 필드들을 직접 쓰기 때문.)

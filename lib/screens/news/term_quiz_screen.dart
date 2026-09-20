@@ -17,8 +17,8 @@ import '../../widgets/home_bottom_nav.dart';
 /// | 정오답 | 정답은 하늘색, 내가 틀리게 고른 건 빨강 | 해설 보기 |
 /// | 해설 | 정답 하나만 노랑으로 남기고 아래에 해설 상자 | 나가기 |
 ///
-/// 홈 퀴즈([QuizScreen])와 **일부러 안 엮었다.** 그쪽은 에너지를 쓰고 XP를 주고
-/// 채점을 서버가 한다. 뉴스에서 들어오는 이 퀴즈는 기사를 읽다 곁다리로 보는
+/// 홈 퀴즈([QuizScreen])와 **일부러 안 엮었다.** 그쪽은 에너지를 쓰고 채점을
+/// 서버가 한다. 뉴스에서 들어오는 이 퀴즈는 기사를 읽다 곁다리로 보는
 /// 거라 그 자리에서 채점하고, 맞히면 씨앗 +3만 준다([NewsQuizRepository]).
 class TermQuizScreen extends StatefulWidget {
   const TermQuizScreen({super.key, required this.term, required this.headline});
