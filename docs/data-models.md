@@ -1,39 +1,23 @@
 # 데이터 모델 · 저장소
 
-## SharedPreferences 키
-
-| 키 | 타입 | 설명 |
-|----|------|------|
-| `finquiz_users` | JSON object | 이메일별 계정 |
-| `finquiz_session` | string | 로그인 중 이메일 |
-
-구현: `lib/services/storage_service.dart`
-
-## 계정 JSON 구조
+## Firestore 사용자 문서
 
 ```json
 {
-  "user@example.com": {
-    "passwordHash": "...",
-    "salt": "...",
-    "nickname": "닉네임",
-    "profile": {
-      "xp": 0,
-      "streak": 0,
-      "lastQuizCompletedDate": "2026-08-21",
-      "todayQuizCompleted": false,
-      "energy": 100,
-      "lastEnergyResetDate": "2026-08-21",
-      "unlockedHamsterIds": ["hamster_basic"],
-      "selectedHamsterId": "hamster_basic",
-      "learningHistory": [],
-      "categoryStats": {},
-      "interestCategories": ["saving", "credit"],
-      "incorrectQuestionCount": 0,
-      "seeds": 0,
-      "ownedShopItemIds": []
-    }
-  }
+  "nickname": "닉네임",
+  "streak": 0,
+  "lastQuizCompletedDate": "2026-08-21",
+  "todayQuizCompleted": false,
+  "energy": 100,
+  "lastEnergyResetDate": "2026-08-21",
+  "selectedHamsterId": "hamster_basic",
+  "learningDates": [],
+  "categoryStats": {},
+  "interestCategories": ["saving"],
+  "learningStage": 1,
+  "incorrectQuestionCount": 0,
+  "seeds": 0,
+  "ownedShopItemIds": []
 }
 ```
 
@@ -44,34 +28,24 @@
 | 필드 | 설명 |
 |------|------|
 | `email`, `nickname` | 식별 |
-| `xp` | 경험치 → 레벨 |
 | `streak` | 연속 학습 일수 |
 | `lastQuizCompletedDate` | 마지막 세션 완료일 `yyyy-MM-dd` |
 | `todayQuizCompleted` | 오늘 첫 세션 완료 여부 (streak용) |
 | `energy` | 0~100 |
 | `lastEnergyResetDate` | 에너지 일일 회복 기준일 |
-| `unlockedHamsterIds` | 해금된 햄스터 |
 | `selectedHamsterId` | 선택 중 햄스터 |
-| `learningHistory` | `LearningRecord` 목록 (최신 앞) |
+| `learningDates` | 최근 32일의 학습 완료일 |
 | `categoryStats` | 카테고리 label → `CategoryStat` |
 | `interestCategories` | 관심 카테고리 id 목록 |
+| `learningStage` | 현재 학습과정(초급·중급·고급) |
 | `incorrectQuestionCount` | Firestore `incorrectQuestions`의 고유 문제 수. 10 초과 시 복습 홈 |
 | `seeds` | 상점 해바라기씨 잔액 |
 | `ownedShopItemIds` | 구매한 상점 아이템 id |
-
-### LearningRecord
-
-`date`, `correctCount`, `totalCount`, `xpEarned`
 
 ### CategoryStat
 
 `correct`, `total`, `completedSessions` → `accuracy`  
 에너지 학습 세션을 끝낼 때마다 해당 카테고리 `completedSessions`가 1 늘어난다. 홈 맵 숫자는 `completedSessions + 1` (1~200). 복습 세션은 세지 않는다.
-
-### LevelUtils
-
-- `xpPerLevel = 100`, `maxLevel = 10`  
-- `levelFromXp`, `progressInLevel`, `titleForLevel`
 
 ## Quiz 모델
 
@@ -83,7 +57,7 @@
 | `QuizCategory` | allowance, saving, stock, insurance, tax, credit (+ label) |
 | `QuizQuestion` | id, type, category, question, options, correctIndex, explanation |
 | `QuizAnswer` | questionId, selectedIndex, isCorrect |
-| `QuizSessionResult` | answers, xpEarned, leveledUp, levels, unlockedItems, newStreak |
+| `QuizSessionResult` | answers, seedsEarned, newStreak, energyRemaining, energyEarned, advancedLearningStage |
 
 오답 상세는 `users/{uid}/incorrectQuestions/{questionId}`에 저장한다. 문제 id,
 카테고리, 난이도, 누적 오답 횟수와 최초·최근 오답 시각을 포함하며 같은 문제는
@@ -94,7 +68,7 @@
 
 | 파일 | 내용 |
 |------|------|
-| `lib/data/quiz_data.dart` | 세션 상수 (문항 수, XP, 에너지, 씨앗) — 문제 본문은 Firestore |
+| `lib/data/quiz_data.dart` | 세션 상수 (문항 수, 에너지, 씨앗) — 문제 본문은 Firestore |
 | `lib/data/hamster_data.dart` | 햄스터 컬렉션 |
 | `lib/data/interest_categories.dart` | 관심 카테고리 마스터 |
 | `lib/data/legal_documents.dart` | 약관·개인정보 임시 본문 |

@@ -33,7 +33,7 @@ main()
 |--------|------|------|
 | `StorageService` | `lib/services/storage_service.dart` | SharedPreferences 래퍼 |
 | `AuthService` | `lib/services/auth_service.dart` | 가입·로그인·세션·프로필·약관 이후 카테고리·에너지 일일 회복 |
-| `QuizService` | `lib/services/quiz_service.dart` | 일일 문제 세트, 에너지 차감, 세션 완료(XP/streak/해금) |
+| `QuizService` | `lib/services/quiz_service.dart` | 문제 세트, 에너지 차감, 세션 완료(씨앗·연속 학습일) |
 | `NewsService` | `lib/services/news_service.dart` | 구글뉴스 RSS TOP N, CORS 프록시 옵션 |
 
 ## UI 구현 방식

@@ -4,7 +4,7 @@ import 'package:testapp/models/quiz_question.dart';
 import 'package:testapp/screens/quiz/quiz_reward_screen.dart';
 
 void main() {
-  testWidgets('completion reward retains seeds without XP or unlocks', (
+  testWidgets('completion reward displays current session values', (
     tester,
   ) async {
     const result = QuizSessionResult(
@@ -32,9 +32,6 @@ void main() {
     expect(result.newStreak, 4);
     expect(result.advancedLearningStage, 2);
     expect(find.text('+5'), findsOneWidget);
-    expect(find.textContaining('XP'), findsNothing);
-    expect(find.textContaining('레벨'), findsNothing);
-    expect(find.text('새 햄스터 획득!'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

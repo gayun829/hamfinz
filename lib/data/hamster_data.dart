@@ -18,12 +18,12 @@ class HamsterData {
       emoji: '🔥',
     ),
     HamsterItem(
-      id: 'hamster_level3',
+      id: 'hamster_saver',
       name: '저축 햄스터',
       emoji: '💰',
     ),
     HamsterItem(
-      id: 'hamster_level5',
+      id: 'hamster_scholar',
       name: '중수 햄스터',
       emoji: '🎓',
     ),

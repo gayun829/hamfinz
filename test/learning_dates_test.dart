@@ -5,13 +5,10 @@ void main() {
   test(
     'many sessions on one day occupy only one date and retain month start',
     () {
-      final history = [
-        {'date': '2026-09-01', 'correctCount': 4},
-        ...List.generate(60, (_) => {'date': '2026-09-12', 'xpEarned': 100}),
-      ];
+      final dates = ['2026-09-01', ...List.filled(60, '2026-09-12')];
       expect(
         LearningDates.fromUser(
-          {'learningHistory': history},
+          {'learningDates': dates},
           today: '2026-09-12',
           markToday: true,
         ),
@@ -63,16 +60,7 @@ void main() {
     );
   });
 
-  test('legacy dates remain readable and at most 32 dates survive', () {
-    expect(
-      LearningDates.fromUser({
-        'learningDates': [],
-        'learningHistory': [
-          {'date': '2026-09-12'},
-        ],
-      }, today: '2026-09-12'),
-      ['2026-09-12'],
-    );
+  test('at most 32 dates survive', () {
     final dates = List.generate(
       70,
       (i) => DateTime.utc(

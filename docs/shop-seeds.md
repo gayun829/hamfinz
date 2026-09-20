@@ -102,7 +102,7 @@ class ShopPurchaseResult {
 | `buyStudyGuard(profile)` | 최대 보유(3개) 체크 + 가격은 `ShopData`의 `study_guard` 아이템 price 참조. `shop_screen.dart`의 `_buyStudyGuard`를 대체(이미 씨앗 차감은 되고 있으니 로직만 서비스로 이동) |
 | `buyEnergyPack(profile, packId)` | `shop_screen.dart`의 `_buyEnergy`(1종, +20)를 대체하며 다종 팩을 지원. 씨앗 검증 → 차감 → `energy`를 `clamp(0, maxEnergy)`로 증가 → 저장 |
 
-세 메서드 모두 "씨앗 검증 + 차감"을 내부 공통 private 헬퍼(예: `_trySpendSeeds`)로 묶어서 같은 종류의 버그 재발을 막는다. 저장은 기존과 동일하게 `AuthService.instance.saveProfile(profile)`을 재사용한다 — 단, `saveProfile`은 지금 `clientOwnedJson(profile)`(nickname/selectedHamsterId/interestCategories/**seeds**/**ownedShopItemIds**/**studyGuardCount**/equipped\*)만 `.update()`하는 partial merge이고, `energy`는 `saveProfile(profile, includeEnergy: true)`처럼 옵션을 켜야만 같이 써진다(그 외 xp/streak/learningHistory 등은 퀴즈 트랜잭션·Functions 전용이라 여기서 건드리면 안 됨). `buyEnergyPack`은 반드시 `includeEnergy: true`로 호출해야 한다. Firestore 스키마 변경은 없다 (`seeds`, `studyGuardCount`, `ownedShopItemIds`, `energy` 모두 `users/{uid}`에 이미 존재).
+세 메서드 모두 "씨앗 검증 + 차감"을 내부 공통 private 헬퍼(예: `_trySpendSeeds`)로 묶어서 같은 종류의 버그 재발을 막는다. 저장은 기존과 동일하게 `AuthService.instance.saveProfile(profile)`을 재사용한다 — 단, `saveProfile`은 지금 `clientOwnedJson(profile)`(nickname/selectedHamsterId/interestCategories/**seeds**/**ownedShopItemIds**/**studyGuardCount**/equipped\*)만 `.update()`하는 partial merge이고, `energy`는 `saveProfile(profile, includeEnergy: true)`처럼 옵션을 켜야만 같이 써진다(그 외 streak/learningDates 등은 퀴즈 트랜잭션·Functions 전용이라 여기서 건드리면 안 됨). `buyEnergyPack`은 반드시 `includeEnergy: true`로 호출해야 한다. Firestore 스키마 변경은 없다 (`seeds`, `studyGuardCount`, `ownedShopItemIds`, `energy` 모두 `users/{uid}`에 이미 존재).
 
 ### 4. UI 연결 지점 (구현 시 손댈 파일)
 
@@ -126,7 +126,7 @@ class ShopPurchaseResult {
 
 ### 지금 상태가 생각보다 더 느슨하다
 
-실제 배포된 `firestore.rules`를 확인해보니, [backend-schema.md](./database/backend-schema.md) 초안에 있던 "xp/energy/streak 등은 클라이언트가 못 건드리게" 하는 필드 제한이 **적용돼 있지 않다.**
+실제 배포된 `firestore.rules`를 확인해보니, [backend-schema.md](./database/backend-schema.md) 초안에 있던 "energy/streak 등은 클라이언트가 못 건드리게" 하는 필드 제한이 **적용돼 있지 않다.**
 
 ```
 match /users/{uid} {
@@ -140,7 +140,7 @@ match /users/{uid} {
 
 - **가격표를 Rules가 참조할 단일 진실 공급원으로 정리한다.** `shopItems/{id}`는 이미 Firestore에 있다(읽기 공개·쓰기 금지 — `quizQuestions`와 동일 패턴). 다만 앱은 지금 hybrid(`ShopCatalogService.getItemsOrFallback()`)라 로컬 `ShopData.items`와 겹치는 id는 Firestore 값을 무시하므로, Rules가 믿을 수 있는 값이 되려면 이 hybrid를 정리해야 한다. `energyPacks/{id}`는 아직 없어서 신규로 만든다.
 - **구매는 델타 검증으로 허용한다.** 예: 아이템 구매 시 `request.resource.data.seeds == resource.data.seeds - get(/databases/$(database)/documents/shopItems/$(itemId)).data.price` 이고, 그 아이템이 기존 `ownedShopItemIds`에 없었고, diff된 필드가 `seeds`·`ownedShopItemIds` 둘뿐인 경우에만 허용. 방어권·에너지팩 구매도 같은 패턴. 단, `AuthService.saveProfile`이 이미 `clientOwnedJson(profile)` 필드만 `.update()`하는 partial merge(에너지는 `includeEnergy: true`일 때만 포함)로 바뀌어 있으니, Rules의 "diff된 필드가 이것뿐" 조건을 이 partial update 모양에 맞춰 다시 확인해야 한다(§3 서비스 레이어 설명 참고).
-- **필드별로 허용 범위를 분리한다.** `nickname`·`interestCategories`·`selectedHamsterId`·`equipped*`(소유 검증 포함)는 자유롭게, `seeds`·`energy`·`xp`·`streak`·`studyGuardCount`·`ownedShopItemIds`·`unlockedHamsterIds`는 위 구매/세션 경로로만 변경 허용 — 임의 값 지정은 거부.
+- **필드별로 허용 범위를 분리한다.** `nickname`·`interestCategories`·`selectedHamsterId`·`equipped*`(소유 검증 포함)는 자유롭게, `seeds`·`energy`·`streak`·`studyGuardCount`·`ownedShopItemIds`는 위 구매/세션 경로로만 변경 허용 — 임의 값 지정은 거부.
 
 ### Rules로는 못 막는 것 (정직하게 남는 구멍)
 
@@ -152,7 +152,7 @@ match /users/{uid} {
 1. `shopItems/{id}`는 이미 있으니 "신설"이 아니라 **Rules가 참조할 가격의 단일 진실 공급원으로 정리**한다 — 로컬 `ShopData.items`와 필드(특히 price)가 어긋나지 않는지 점검. `energyPacks/{id}`는 여전히 신규 컬렉션(읽기 공개, 쓰기 금지)이 필요
 2. `shop_data.dart` → Firestore 완전 전환은 아직 안 끝났다. 지금 `ShopCatalogService.getItemsOrFallback()`은 **로컬에 없는 새 id만 Firestore에서 가져오고, 로컬과 겹치는 id는 무시**하는 hybrid라, Rules가 가격 위변조를 막으려면 이 hybrid 정책부터 "Firestore가 항상 우선" 또는 "로컬은 폐기하고 전부 Firestore" 중 하나로 정리해야 한다
 3. `firestore.rules`의 `users/{uid}` 규칙을 필드별 read/write 세분화 + 구매 델타 검증으로 재작성
-4. 세션 완료 시 seeds/xp 증가량 상한 규칙 추가 (완화책)
+4. 세션 완료 시 seeds 증가량 상한 규칙 추가 (완화책)
 5. 위 "Rules로는 못 막는 것"을 [backend-schema.md](./database/backend-schema.md)의 미정 사항에도 반영 — 나중에 Cloud Functions 도입을 다시 논의할 때 근거로 남긴다
 
 ## 관련 문서

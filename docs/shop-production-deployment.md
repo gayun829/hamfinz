@@ -6,7 +6,7 @@ Blaze 플랜 전환 후 **purchaseShopItem**(씨앗 차감 상점 구매)을 Clo
 
 현재(개발)는 Blaze 없이 동작하도록 **클라이언트 Firestore 트랜잭션**을 사용한다.
 
-> ⚠️ **배포 순서 주의**: `firestore.rules.production`은 퀴즈(seeds/xp/streak 등)와 상점(seeds/energy/studyGuardCount/ownedShopItemIds)
+> ⚠️ **배포 순서 주의**: `firestore.rules.production`은 퀴즈(seeds/streak 등)와 상점(seeds/energy/studyGuardCount/ownedShopItemIds)
 > 필드를 같은 `users/{uid}` 문서에서 함께 제한한다. 그래서 [quiz-production-deployment.md](./quiz-production-deployment.md)와
 > 이 문서의 **Rules 배포 + `QuizBackendConfig`/`ShopBackendConfig` 앱 설정 전환은 한 세트로 같이** 해야 한다 — 예를 들어
 > production rules를 배포한 채로 `ShopBackendConfig`만 `clientTransaction`으로 남겨두면, 클라이언트 트랜잭션의 `seeds` write가

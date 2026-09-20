@@ -500,7 +500,6 @@ class QuizSessionRepository {
             (key, value) => MapEntry(key, value.toJson()),
           ),
           'learningDates': learningDates,
-          'learningHistory': FieldValue.delete(),
         });
 
         tx.update(sessionRef, {
