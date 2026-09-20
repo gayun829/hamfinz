@@ -46,7 +46,6 @@ XP_CORRECT = 10
 XP_WRONG = 2
 XP_PER_LEVEL = 100
 MAX_LEVEL = 10
-ENERGY_SESSION_COMPLETE_REWARD = 20   # §7 제안
 ```
 
 ---
@@ -273,7 +272,6 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
   "correctCount": 0,
   "xpEarned": 0,
   "energySpent": 0,
-  "energyEarned": 0,
   "seedDate": "2026-08-21",
   "status": "inProgress",
   "startedAt": "<timestamp>",
@@ -282,8 +280,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 ```
 
 `source`: `energySession` | `reviewSession`  
-`status`: `inProgress` | `completed` | `abandoned`  
-`energyEarned`: 완료 보상으로 **실제로** 채워진 에너지 (§7 제안). 완료 시에만 기록.
+`status`: `inProgress` | `completed` | `abandoned`
 
 ### `users/{uid}/sessions/{sessionId}/answers/{questionId}`
 
@@ -528,75 +525,6 @@ friendships/{uidA}_{uidB}
 
 ---
 
-## 7. 세션 완료 에너지 보상 · 에너지 회복 저장 — 제안 (초안)
-
-> 상태: 제안. `database-schema.md` 미반영. `lib/data/quiz_data.dart` ·
-> `lib/utils/energy_reset.dart` · `lib/services/quiz_session_repository.dart` ·
-> `functions/index.js` · `lib/models/quiz_question.dart`는 이 절 내용대로 이미
-> 구현됨 (§6 Friends와 같은 흐름 — draft 문서 + 실제 코드).  
-> 영향 범위: `users/{uid}`의 `energy` · `energyResetOn` **쓰기**를 건드린다 —
-> [접점 표](./database-collaboration.md#접점-표-단일-소스-ssot)상 SSOT가
-> `users/{uid}` (퀴즈 제안 → **Auth owner 승인** 필요)다. 읽기 스키마는 그대로.
-
-### 7.1 완료 보상 (신규)
-
-세션을 끝까지 풀면 에너지를 일부 돌려준다. 지금까지 에너지는 **차감만** 있었고
-퀴즈_결과보기창(Figma `131:3546`)이 "획득 에너지"를 보여줘야 해서 새로 넣었다.
-
-| 항목 | 값 |
-|------|-----|
-| 지급 시점 | `completeSession` 트랜잭션 (세션당 1회) |
-| 지급량 | `ENERGY_SESSION_COMPLETE_REWARD = 20` |
-| 상한 | `MAX_ENERGY = 100`까지만 (clamp) |
-| 기록 | `sessions/{id}.energyEarned` |
-
-**상한에 걸리면 실제로 채워진 양만 보상으로 잡는다.** 에너지가 90이었으면
-`energy = 100`, `energyEarned = 10`이다. 화면(`+N`)이 실제 지급량과 어긋나지
-않게 하려고 응답에 `energyRemaining`(보상 후 값)과 `energyEarned`(이번 증가분)를
-따로 내려준다.
-
-```
-energyRemaining = min(MAX_ENERGY, energyBefore + ENERGY_SESSION_COMPLETE_REWARD)
-energyEarned    = energyRemaining - energyBefore
-```
-
-### 7.2 에너지 회복을 저장까지 한다 (버그 수정)
-
-이 문서 [Cloud Functions에서 처리할 규칙](#cloud-functions에서-처리할-규칙) 1번
-(`energyResetOn != today`이면 `energy = 100`, `energyResetOn = today`)은 원래
-설계대로다. 그런데 **쓰기 경로마다 지키는 곳과 안 지키는 곳이 갈려 있었다.**
-
-| 쓰기 경로 | 회복 반영 | 저장 |
-|-----------|-----------|------|
-| `AuthService._profileFromJson` (읽기) | O | **X** — 화면용 계산만 |
-| `ShopPurchaseRepository` (에너지팩) | O | O |
-| `functions/index.js` `resolveEnergy` | O | O |
-| `QuizSessionRepository.submitAnswer` | **X** | 깎은 값만 저장 |
-| `QuizSessionRepository.completeSession` | **X** | §7.1 전까지 `energy` 미기록 |
-
-읽기는 회복을 보여주는데 저장은 안 하고, 퀴즈 트랜잭션은 저장값을 그대로 읽어
-깎기만 해서 **저장된 `energy`가 날짜가 바뀌어도 회복되지 않고 줄기만 했다.**
-화면에는 100이 뜨는데 제출은 "에너지가 부족해요"로 막히고, 에너지팩 구매나
-Functions 호출이 `energyResetOn`을 오늘로 저장하는 순간 실제 값이 드러나면서
-퀴즈 시작 자체가 막힌다.
-
-**규칙:** `energy`를 저장하는 쪽은 `energyResetOn`(코드: `lastEnergyResetDate`)을
-**항상 같이** 쓴다. 회복 계산은 `lib/utils/energy_reset.dart`의
-`resolveDailyEnergy` 한 곳에만 둔다.
-
-### 7.3 열린 질문
-
-- 보상 20이 적정한지 (문제당 −5 × 10 = −50 대비 40% 환급)
-- 복습 세션(`source: reviewSession`)도 같은 보상을 주는지 — 지금은 준다
-- 상수가 Dart(`QuizData.sessionCompleteEnergyReward`)와
-  Functions(`ENERGY_SESSION_COMPLETE_REWARD`) **두 곳**에 있다. 게임 상수 전체가
-  같은 문제라, 한쪽만 바꾸면 개발/배포 모드 동작이 갈린다 — 공유 방법 논의 필요
-- `AuthService`·`ShopPurchaseRepository`·Functions에 회복 계산이 각각 남아 있다.
-  이번 버그가 그 어긋남에서 나왔으므로 합치는 게 맞는데, 지금 정상 동작하는
-  경로라 이번에는 손대지 않았다 — Auth owner와 범위 논의 필요
-
----
-
 ## 로컬 JSON → Firestore
 
 | 로컬                            | Firestore                   |
@@ -719,7 +647,6 @@ service cloud.firestore {
 ## 아직 안 정한 것
 
 - 뉴스 퀴즈가 에너지를 쓰는지
-- 세션 완료 에너지 보상 20이 적정한지, 복습 세션도 주는지 (§7.3)
 - 세션 시작 시 50을 한 번에 깎을지, 문제마다 5씩 깎을지 (앱은 **문제 제출 시 −5**, 수치 잠정)
 - 닉네임 예약 컬렉션 사용 여부
 - LLM 팩 TTL·재생성

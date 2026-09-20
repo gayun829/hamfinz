@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../data/learning_stages.dart';
 import '../../models/quiz_question.dart';
 import '../../models/quiz_session.dart';
 import '../../models/user_profile.dart';
@@ -9,9 +8,7 @@ import '../../theme/figma_quiz_question_tokens.dart';
 import '../../utils/quiz_text_helper.dart';
 import '../../widgets/figma/figma_quiz_ox_view.dart';
 import '../../widgets/figma/figma_quiz_question_view.dart';
-import 'quiz_complete_screen.dart';
-import 'quiz_reward_screen.dart';
-import 'quiz_streak_screen.dart';
+import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({
@@ -143,36 +140,8 @@ class _QuizScreenState extends State<QuizScreen> {
         if (!mounted) return;
         await Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => QuizCompleteScreen(
-              onContinue: () => Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => QuizStreakScreen(
-                    streak: result.newStreak,
-                    onContinue: () => Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => QuizRewardScreen(
-                          correctCount: result.answers
-                              .where((a) => a.isCorrect)
-                              .length,
-                          totalCount: result.answers.length,
-                          seedsEarned: result.seedsEarned,
-                          energyEarned: result.energyEarned,
-                          onClaim: () {
-                            // 결과창을 걷어냈으니 학습과정 진급 안내는
-                            // 홈으로 돌아가면서 스낵바로 남긴다.
-                            _notifyStageAdvance(
-                              context,
-                              result.advancedLearningStage,
-                            );
-                            Navigator.of(context).pop(true);
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            builder: (_) =>
+                QuizResultScreen(result: result, profile: widget.profile),
           ),
         );
       } on QuizSessionException catch (e) {
@@ -191,15 +160,6 @@ class _QuizScreenState extends State<QuizScreen> {
       _showExplanation = false;
       _submitResult = null;
     });
-  }
-
-  void _notifyStageAdvance(BuildContext context, int? advancedStage) {
-    if (advancedStage == null) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('🎓 ${learningStageLabel(advancedStage)}로 넘어갔어요!'),
-      ),
-    );
   }
 
   /// 4지선다 Figma 화면은 버튼 하나로 제출 → 다음 문제를 처리한다.
