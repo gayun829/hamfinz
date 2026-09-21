@@ -78,13 +78,12 @@ abstract final class FigmaQuizOxTokens {
   static const explainCardBorder = Color(0xFFF9E08D);
   static const explainHeaderFill = Color(0xFFFFF8D3);
 
-  /// 질문 `137:5906` — 설계값은 1줄(top 411, height 19)이라 줄바꿈을 위해
-  /// 같은 중심(420.5)을 유지하는 3줄 높이 박스로 넓혔다.
+  /// 질문 `137:5906` — 짧은 문장은 Figma의 중심을 유지하고, 긴 문장은
+  /// 이 최소 높이에서 아래로 확장하며 카드·선택지·CTA를 함께 밀어낸다.
   static const questionLeft = 54.0;
   static const questionWidth = 284.0;
   static const questionFontSize = 22.0;
   static const questionLineHeight = 26 / 22;
-  static const questionMaxLines = 3;
   static const questionHeight = 78.0;
   static const questionTop = 381.5;
 

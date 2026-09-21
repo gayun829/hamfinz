@@ -13,6 +13,10 @@ class FigmaAssets {
 
   // Home
   static const hamsterMain = '$_home/hamster_main.png';
+  static const homeBagLeft = '$_home/bag_left.svg';
+  static const homeBagRight = '$_home/bag_right.svg';
+  static const homeStar = '$_home/star.svg';
+  static const homeSparkle = '$_home/sparkle.svg';
 
   /// 홈 카드·썸네일 — 단일 햄스터만 (`assets/images/hamster_auth.png`)
   static const hamsterCard = hamsterAuth;
