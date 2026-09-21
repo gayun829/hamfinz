@@ -61,6 +61,10 @@
   다시 로그인시켜 인증 단계부터 이어준다.
 - 인증까지 마친 계정은 로그인으로 들어와도 된다 — 로그인 직후 프로필이 없으면
   (`pendingProfileSetup`) 소셜과 같은 닉네임·약관 화면으로 보낸다.
+- 약관 화면에서 프로필이 만들어진 뒤 **카테고리 화면에서** 앱을 끄면 카테고리가 빈
+  계정이 남는다. `AuthGate`는 어느 경로로 들어오든 홈으로 넘기기 직전에 `_enterApp`을
+  거치고, `needsInterestCategorySelection`이면 `CategorySelectScreen`을 다시 띄운다
+  (소셜 가입도 같다).
 
 ## 로그인
 

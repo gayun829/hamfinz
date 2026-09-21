@@ -74,6 +74,11 @@ String? resolveActiveInterestCategoryId(List<String> ids) {
   return null;
 }
 
+/// 학습 카테고리를 아직 못 고른 계정 — 가입 마지막 단계(카테고리 선택)에서 앱을
+/// 껐거나, 골랐던 카테고리가 목록에서 빠졌을 때. 홈 대신 선택 화면으로 보낸다.
+bool needsInterestCategorySelection(List<String> ids) =>
+    resolveActiveInterestCategoryId(ids) == null;
+
 /// id로 카테고리를 찾는다. 없는 id면 null — 뉴스 카드처럼 표시용으로만 쓴다.
 InterestCategory? findInterestCategory(String id) {
   for (final category in kInterestCategories) {
