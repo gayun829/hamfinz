@@ -168,6 +168,13 @@ class _ShopScreenState extends State<ShopScreen> {
                           eyebrow: '햄핀이 꾸미러 가기',
                           subtitle: '내가 가진 아이템으로\n햄핀을 꾸며보세요',
                           color: const Color(0xFFC4F18E),
+                          avatar: ShopAvatar(
+                            catalogItems: _catalogItems,
+                            skinId: _profile.equippedSkinId,
+                            patternId: _profile.equippedPatternId,
+                            backgroundId: _profile.equippedBackgroundId,
+                            accessoryIds: _profile.equippedAccessoryIds,
+                          ),
                           asset: FigmaAssets.shopClosetBanner,
                           fallbackAsset: FigmaAssets.hamsterAuth,
                           onTap: _openCloset,
@@ -180,6 +187,9 @@ class _ShopScreenState extends State<ShopScreen> {
                           subtitle: '보유한 씨앗과 구매 가능한\n옷을 한눈에 볼 수 있어요!',
                           color: const Color(0xFFB9F0FF),
                           bottomColor: const Color(0xFFF1C38C),
+                          avatar: const ShopAvatar(
+                            accessoryIds: ['accessory_painter_set'],
+                          ),
                           asset: FigmaAssets.shopClothingBanner,
                           fallbackAsset: FigmaAssets.hamsterAuth,
                           onTap: _openClothingShop,
@@ -234,6 +244,7 @@ class _ShopBanner extends StatelessWidget {
     required this.subtitle,
     required this.color,
     this.bottomColor,
+    this.avatar,
     required this.asset,
     required this.fallbackAsset,
     required this.onTap,
@@ -244,6 +255,7 @@ class _ShopBanner extends StatelessWidget {
   final String subtitle;
   final Color color;
   final Color? bottomColor;
+  final Widget? avatar;
   final String asset;
   final String fallbackAsset;
   final VoidCallback onTap;
@@ -303,12 +315,14 @@ class _ShopBanner extends StatelessWidget {
               bottom: s(2),
               width: s(108),
               height: s(112),
-              child: Image.asset(
-                asset,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                    Image.asset(fallbackAsset, fit: BoxFit.contain),
-              ),
+              child:
+                  avatar ??
+                  Image.asset(
+                    asset,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Image.asset(fallbackAsset, fit: BoxFit.contain),
+                  ),
             ),
             Positioned(
               right: s(10),
@@ -364,10 +378,7 @@ class _ItemPurchaseTile extends StatelessWidget {
             Expanded(
               child: Container(
                 color: FigmaShopTokens.previewBackground,
-                child: ShopHamsterSprite(
-                  column: item.spriteCol,
-                  row: item.spriteRow,
-                ),
+                child: Center(child: ShopItemImage(item: item)),
               ),
             ),
             Padding(

@@ -25,7 +25,11 @@ class ShopCatalogService {
       final remoteItems = await getItems();
       final localIds = ShopData.items.map((item) => item.id).toSet();
       final newItems = remoteItems
-          .where((item) => !localIds.contains(item.id))
+          .where(
+            (item) =>
+                !localIds.contains(item.id) &&
+                !ShopData.retiredIds.contains(item.id),
+          )
           .toList();
       final ignoredIds = remoteItems
           .where((item) => localIds.contains(item.id))

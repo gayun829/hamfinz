@@ -21,7 +21,9 @@ class ShopPurchaseRepository {
       return const ShopPurchaseResult(status: ShopPurchaseStatus.notLoggedIn);
     }
 
-    final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid);
     final shopItemRef = FirebaseFirestore.instance
         .collection('shopItems')
         .doc(itemId);
@@ -35,7 +37,6 @@ class ShopPurchaseRepository {
             errorMessage: '유저 프로필을 찾을 수 없어요.',
           );
         }
-        final shopItemSnap = await tx.get(shopItemRef);
 
         ShopItem? fallback;
         try {
@@ -43,10 +44,14 @@ class ShopPurchaseRepository {
         } catch (_) {
           fallback = null;
         }
-        final remotePrice = shopItemSnap.exists
-            ? (shopItemSnap.data()?['price'] as num?)?.toInt()
+        // Bundled products do not require a Firestore catalog document.
+        // Reading a missing document is denied by the active-item read rules.
+        final shopItemSnap = fallback == null
+            ? await tx.get(shopItemRef)
             : null;
-        final price = remotePrice ?? fallback?.price;
+        final price =
+            fallback?.price ??
+            (shopItemSnap?.data()?['price'] as num?)?.toInt();
         if (price == null) {
           return const ShopPurchaseResult(
             status: ShopPurchaseStatus.failed,

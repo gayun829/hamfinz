@@ -61,6 +61,9 @@ void main() {
     expect(item.price, 123);
     expect(item.category, ShopCategory.accessory);
     expect(item.imageUrl, 'https://example.com/new_hat.png');
-    expect(ShopData.items.map((localItem) => localItem.id), contains('headband'));
+    expect(
+      ShopData.items.map((localItem) => localItem.id),
+      contains('skin_default'),
+    );
   });
 }

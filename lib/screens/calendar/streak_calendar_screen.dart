@@ -846,10 +846,7 @@ class _FriendRank extends StatelessWidget {
                 child: SizedBox(
                   width: hamster,
                   height: hamster,
-                  child: ShopHamsterSprite(
-                    column: friend.spriteCol,
-                    row: friend.spriteRow,
-                  ),
+                  child: const ShopAvatar(),
                 ),
               ),
             ],

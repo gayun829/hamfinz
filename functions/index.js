@@ -24,9 +24,23 @@ const MAX_STUDY_GUARD = 3;
 const ENERGY_PACK_AMOUNT = 20;
 
 // Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
-// 코스메틱(스킨/무늬/배경/악세서리)은 `shopItems` Firestore 문서를 우선 신뢰하고,
-// 여기 값은 그 문서가 없을 때만 쓰는 폴백이다.
+// 앱에 포함된 상품은 이 가격을 사용하고, 추가 상품은 Firestore에서 읽는다.
 const SHOP_CATALOG = {
+  skin_bee: { price: 579, kind: 'cosmetic' },
+  skin_bee_duckbill: { price: 579, kind: 'cosmetic' },
+  skin_default: { price: 0, kind: 'cosmetic' },
+  skin_bearded_cream: { price: 579, kind: 'cosmetic' },
+  skin_bearded_gray: { price: 579, kind: 'cosmetic' },
+  skin_caveman: { price: 579, kind: 'cosmetic' },
+  skin_caveman_bearded: { price: 579, kind: 'cosmetic' },
+  accessory_perm: { price: 579, kind: 'cosmetic' },
+  accessory_kindergarten_hair: { price: 579, kind: 'cosmetic' },
+  accessory_kindergarten: { price: 579, kind: 'cosmetic' },
+  accessory_propeller_hat: { price: 579, kind: 'cosmetic' },
+  accessory_genie_set: { price: 579, kind: 'cosmetic' },
+  accessory_grandma: { price: 579, kind: 'cosmetic' },
+  accessory_painter_set: { price: 579, kind: 'cosmetic' },
+
   headband: { price: 579, kind: 'cosmetic' },
   cap: { price: 579, kind: 'cosmetic' },
   hoodie: { price: 579, kind: 'cosmetic' },
@@ -434,7 +448,7 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
 
     const fallback = SHOP_CATALOG[itemId];
     const remote = shopItemSnap.exists ? shopItemSnap.data() : null;
-    const price = Number(remote?.price ?? fallback?.price);
+    const price = Number(fallback?.price ?? remote?.price);
     if (!Number.isFinite(price)) {
       throw new HttpsError('not-found', '존재하지 않는 상품이에요.');
     }
