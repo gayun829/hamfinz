@@ -14,8 +14,16 @@ abstract final class StreakCalendarMock {
 
   static const daysUntilGoal = 3;
   static const pauseUsed = 1;
-  static const pauseMax = 3;
+  static const pauseMax = 4;
   static const fallbackStreak = 12;
+  
+  /// 사용자의 현재 랭킹
+  static const userRank = 2;
+  
+  /// 사용자의 현재 연속학습 진행도
+  static const userLearned = 7;
+  static const userGoal = 15;
+  static const userName = '나';
 
   static const friends = <StreakFriendMock>[
     StreakFriendMock(

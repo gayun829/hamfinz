@@ -7,7 +7,6 @@ void main() {
     final profile = UserProfile(
       email: 'a@b.com',
       nickname: '햄찌',
-      xp: 250,
       streak: 4,
       energy: 30,
       seeds: 12,
@@ -17,18 +16,16 @@ void main() {
 
     final json = AuthService.clientOwnedJson(profile);
 
-    // 아래 필드는 퀴즈 트랜잭션·Functions(xp 등) 또는 상점 구매(seeds 등)만 쓴다.
+    // 아래 필드는 퀴즈 트랜잭션·Functions(학습 기록 등) 또는 상점 구매(seeds 등)만 쓴다.
     // 여기 섞이면 진행도·재화가 되돌아간다.
     for (final key in [
-      'xp',
       'streak',
       'energy',
       'lastEnergyResetDate',
       'lastQuizCompletedDate',
       'todayQuizCompleted',
-      'learningHistory',
+      'learningDates',
       'categoryStats',
-      'unlockedHamsterIds',
       'incorrectQuestionCount',
       'seeds',
       'ownedShopItemIds',

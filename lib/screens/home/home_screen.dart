@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -34,10 +35,12 @@ class HomeScreen extends StatefulWidget {
     this.profile,
     this.showReviewStage,
     this.tierOverride,
+    this.onNavTap,
   });
 
   /// [MainShell]에서 내려주면 학습과정 변경 시 홈 티어가 즉시 반영된다.
   final UserProfile? profile;
+  final ValueChanged<int>? onNavTap;
 
   /// 복습 기능 연결 전, Figma 복습 홈의 집 단계를 표시하는 화면 변형.
   final bool? showReviewStage;
@@ -229,11 +232,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => StreakCalendarScreen(
+          onNavTap: widget.onNavTap,
           streak: profile.streak,
           studyGuardCount: profile.studyGuardCount,
-          completedDates: profile.learningHistory
-              .map((record) => record.date)
-              .toSet(),
+          completedDates: profile.learningDates.toSet(),
         ),
       ),
     );
@@ -343,7 +345,7 @@ List<Widget> _buildFigmaHomeLayers({
       : 'HOT 뉴스 / $newsTitle';
 
   return [
-    // ── 131:5279~5324 학습 경로 (관람차 원 + 섹터) ──
+    // ── 맵 경로 Subtract + 발판 Ellipse 156/157/154/155/100 ──
     FigmaBox(
       figma: figma,
       left: 139.59765625,
@@ -351,6 +353,23 @@ List<Widget> _buildFigmaHomeLayers({
       width: 485.3046875,
       height: 541.802734375,
       child: FigmaSvg(tier.pathMap, fit: BoxFit.fill),
+    ),
+    if (!showReviewStage)
+      _homeEllipse(
+        figma: figma,
+        left: 145,
+        top: 526,
+        width: 210,
+        height: 119,
+        color: tier.platformShadow,
+      ),
+    _homeEllipse(
+      figma: figma,
+      left: 219,
+      top: 194,
+      width: 131,
+      height: 66,
+      color: tier.platformShadow,
     ),
     FigmaBox(
       figma: figma,
@@ -369,38 +388,163 @@ List<Widget> _buildFigmaHomeLayers({
         height: 119,
         child: FigmaSvg(tier.ellipse155, fit: BoxFit.fill),
       ),
-    FigmaBox(
+    // Ellipse 100 + Subtract 크레센트 — 햄스터 자리 3D (CSS 45,373 / 166×95·53).
+    _homeEllipse(
       figma: figma,
       left: 45,
       top: 373,
       width: 166,
       height: 95,
-      child: FigmaSvg(tier.ellipse100, fit: BoxFit.fill),
+      color: tier.hamsterSeat,
     ),
     FigmaBox(
       figma: figma,
-      left: 258.90625,
-      top: 359.197265625,
-      width: 46.0875624669402,
-      height: 46.427402590952624,
-      child: FigmaSvg(tier.decoVector1, fit: BoxFit.fill),
+      left: 45,
+      top: 373,
+      width: 166,
+      height: 52.994,
+      child: CustomPaint(
+        painter: _HamsterSeatCrescentPainter(color: tier.hamsterSeatTop),
+        child: const SizedBox.expand(),
+      ),
+    ),
+
+    // ── Group 367 / 271 햄스터 ──
+    FigmaBox(
+      figma: figma,
+      left: 51,
+      top: 319,
+      width: 154.404,
+      height: 150,
+      child: FigmaSvg(tier.hamsterMap, fit: BoxFit.fill),
+    ),
+
+    // ── Group 548/549 돈주머니 SVG (opacity는 에셋 g에 포함) ──
+    _homeEllipse(
+      figma: figma,
+      left: 65.07,
+      top: 271,
+      width: 50,
+      height: 20.9,
+      color: const Color(0xFFE8E8E8),
     ),
     FigmaBox(
       figma: figma,
-      left: 221.388671875,
-      top: 399.357421875,
-      width: 18.94550179868429,
-      height: 18.72608362290339,
-      child: FigmaSvg(tier.decoVector3, fit: BoxFit.fill),
+      left: 59.48,
+      top: 219.63,
+      width: 65.101,
+      height: 64.646,
+      child: const FigmaSvg(FigmaAssets.homeBagLeft, fit: BoxFit.fill),
     ),
     FigmaBox(
       figma: figma,
-      left: 22,
-      top: 356.4765625,
-      width: 24.489221139918072,
-      height: 23.995337006143018,
-      child: FigmaSvg(tier.decoVector4, fit: BoxFit.fill),
+      left: 255,
+      top: 374,
+      width: 120.989,
+      height: 128.141,
+      child: const FigmaSvg(FigmaAssets.homeBagRight, fit: BoxFit.fill),
     ),
+
+    // ── Star 6/7/8 + Rectangle 687 + 왼쪽 스파클 ──
+    _homeStar(
+      figma: figma,
+      left: 223.14,
+      top: 339.14,
+      boxSize: 54.136,
+      starSize: 49,
+      degrees: 6.37,
+      color: tier.starOuter,
+    ),
+    _homeStar(
+      figma: figma,
+      left: 231,
+      top: 348,
+      boxSize: 35.166,
+      starSize: 30.779,
+      degrees: 8.89,
+      color: tier.starMid,
+    ),
+    _homeStar(
+      figma: figma,
+      left: 209,
+      top: 381,
+      boxSize: 23.61,
+      starSize: 18,
+      degrees: 23.05,
+      color: tier.starTiny,
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 41,
+      top: 384,
+      width: 8.51,
+      height: 8.51,
+      child: Transform.rotate(
+        angle: 8.01 * math.pi / 180,
+        child: Center(
+          child: Container(
+            width: figma.s(7.534),
+            height: figma.s(7.534),
+            decoration: BoxDecoration(
+              color: tier.sparkle,
+              borderRadius: BorderRadius.circular(figma.s(3)),
+            ),
+          ),
+        ),
+      ),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 19,
+      top: 356.48,
+      width: 28.06,
+      height: 27.72,
+      child: Transform.rotate(
+        angle: -17.28 * math.pi / 180,
+        child: FigmaSvg(
+          FigmaAssets.homeSparkle,
+          fit: BoxFit.fill,
+          colorFilter: ColorFilter.mode(tier.starTiny, BlendMode.srcIn),
+        ),
+      ),
+    ),
+
+    // ── Stage nodes: CSS rotate(100.57deg) + box-shadow 오각형 ──
+    _HomeStagePentagon(
+      figma: figma,
+      left: 0.6718 * 393,
+      top: 0.2054 * 852,
+      width: (1 - 0.6718 - 0.237) * 393,
+      height: (1 - 0.2054 - 0.7535) * 852,
+      fill: tier.node1Fill,
+      extrusion: tier.node1Shadow,
+      extrusionOffset: const Offset(1.87584, 1.87584),
+      isLarge: false,
+      label: '$currentStep',
+      fontSize: 15.1668,
+      labelStroke: 1.01112,
+      labelShadowOffset: const Offset(0.781601, 0.781601),
+      labelShadowColor: const Color.fromRGBO(205, 85, 0, 0.25),
+    ),
+    if (showReviewStage)
+      _HomeReviewHouse(figma: figma, tier: tier)
+    else
+      _HomeStagePentagon(
+        figma: figma,
+        left: 0.5522 * 393,
+        top: 0.5751 * 852,
+        width: (1 - 0.5522 - 0.2765) * 393,
+        height: (1 - 0.5751 - 0.3477) * 852,
+        fill: tier.node3Fill,
+        extrusion: tier.node3Shadow,
+        extrusionOffset: const Offset(-2.90579, 5.08513),
+        isLarge: true,
+        label: '${homeMapUpcomingStep(currentStep)}',
+        fontSize: 28.4854,
+        labelStroke: 1.89903,
+        labelShadowOffset: const Offset(-1.45289, 1.46796),
+        labelShadowColor: tier.node3LabelShadow,
+      ),
 
     // ── 131:5325 뉴스 배너 ──
     FigmaPill(
@@ -576,56 +720,76 @@ List<Widget> _buildFigmaHomeLayers({
       onTap: onStreakCalendar,
       child: const SizedBox.expand(),
     ),
-
-    // ── Figma stage nodes: transformed wrapper·overlay·text 좌표 그대로 ──
-    _HomeStagePentagon(
-      figma: figma,
-      left: 263.6324462890625,
-      top: 175,
-      width: 38,
-      height: 38,
-      shadowLeft: 272.742,
-      shadowTop: 210.018,
-      shadowWidth: 29.6715,
-      shadowHeight: 12.354,
-      pngAsset: tier.node1Pentagon,
-      svgFallback: tier.decoVector2,
-      label: '$currentStep',
-      fontSize: 15.167,
-      shadowBlurSigma: 1.84902,
-      shadowOffset: const Offset(0.782, 0.782),
-    ),
-    if (showReviewStage)
-      _HomeReviewHouse(figma: figma, tier: tier)
-    else
-      _HomeStagePentagon(
-        figma: figma,
-        left: 219.0578155517578,
-        top: 490,
-        width: 71,
-        height: 72,
-        shadowLeft: 221.3769,
-        shadowTop: 556.8672,
-        shadowWidth: 55.6881,
-        shadowHeight: 23.1744,
-        pngAsset: tier.node3Pentagon,
-        svgFallback: tier.node3Flag,
-        label: '${homeMapUpcomingStep(currentStep)}',
-        fontSize: 28.485,
-        shadowBlurSigma: 2.3,
-        shadowOffset: const Offset(-1.453, 1.468),
-      ),
-
-    // ── 162:421 햄스터 (최상단) ──
-    FigmaBox(
-      figma: figma,
-      left: 52,
-      top: 324,
-      width: 152,
-      height: 144,
-      child: FigmaSvg(tier.hamsterMap, fit: BoxFit.contain),
-    ),
   ];
+}
+
+Widget _homeEllipse({
+  required FigmaScale figma,
+  required double left,
+  required double top,
+  required double width,
+  required double height,
+  required Color color,
+}) {
+  return FigmaBox(
+    figma: figma,
+    left: left,
+    top: top,
+    width: width,
+    height: height,
+    child: ClipOval(child: ColoredBox(color: color)),
+  );
+}
+
+/// Figma Subtract 166×53 — Ellipse 100 윗면을 잘라 만든 크레센트.
+class _HamsterSeatCrescentPainter extends CustomPainter {
+  const _HamsterSeatCrescentPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final oval = Rect.fromLTWH(0, 0, size.width, size.width * 95 / 166);
+    final outer = Path()..addOval(oval);
+    final inner = Path()..addOval(oval.shift(Offset(0, size.height * 0.22)));
+    canvas.drawPath(
+      Path.combine(PathOperation.difference, outer, inner),
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HamsterSeatCrescentPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+Widget _homeStar({
+  required FigmaScale figma,
+  required double left,
+  required double top,
+  required double boxSize,
+  required double starSize,
+  required double degrees,
+  required Color color,
+}) {
+  return FigmaBox(
+    figma: figma,
+    left: left,
+    top: top,
+    width: boxSize,
+    height: boxSize,
+    child: Transform.rotate(
+      angle: degrees * math.pi / 180,
+      child: Center(
+        child: FigmaSvg(
+          FigmaAssets.homeStar,
+          width: figma.s(starSize),
+          height: figma.s(starSize),
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        ),
+      ),
+    ),
+  );
 }
 
 /// Figma `268:3644` / `268:3808` / `137:1610`의 복습 집 단계.
@@ -810,9 +974,9 @@ class _HomeLearningCta extends StatelessWidget {
   }
 }
 
-/// Figma `131:5322`/`131:5423` 오각형 + `131:5421`/`131:5424` 번호.
+/// Figma 홈 오각형 — CSS `rotate(100.57deg)` + 단색 box-shadow 3D.
 ///
-/// 회전된 shape의 시각 중심을 Figma text layer 중심에 맞춘다.
+/// flutter_svg는 SVG filter drop-shadow를 그리지 않아 Canvas로 경로·그림자를 직접 칠한다.
 class _HomeStagePentagon extends StatelessWidget {
   const _HomeStagePentagon({
     required this.figma,
@@ -820,33 +984,33 @@ class _HomeStagePentagon extends StatelessWidget {
     required this.top,
     required this.width,
     required this.height,
-    required this.shadowLeft,
-    required this.shadowTop,
-    required this.shadowWidth,
-    required this.shadowHeight,
-    required this.pngAsset,
-    required this.svgFallback,
+    required this.fill,
+    required this.extrusion,
+    required this.extrusionOffset,
+    required this.isLarge,
     required this.label,
     required this.fontSize,
-    required this.shadowBlurSigma,
-    required this.shadowOffset,
+    required this.labelStroke,
+    required this.labelShadowOffset,
+    required this.labelShadowColor,
   });
+
+  static const _rotation = 100.57 * math.pi / 180;
 
   final FigmaScale figma;
   final double left;
   final double top;
   final double width;
   final double height;
-  final double shadowLeft;
-  final double shadowTop;
-  final double shadowWidth;
-  final double shadowHeight;
-  final String pngAsset;
-  final String svgFallback;
+  final Color fill;
+  final Color extrusion;
+  final Offset extrusionOffset;
+  final bool isLarge;
   final String label;
   final double fontSize;
-  final double shadowBlurSigma;
-  final Offset shadowOffset;
+  final double labelStroke;
+  final Offset labelShadowOffset;
+  final Color labelShadowColor;
 
   double get _fittedFontSize {
     if (label.length >= 3) return fontSize * 0.62;
@@ -857,128 +1021,209 @@ class _HomeStagePentagon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        FigmaBox(
-          figma: figma,
-          left: shadowLeft,
-          top: shadowTop,
-          width: shadowWidth,
-          height: shadowHeight,
-          child: CustomPaint(
-            painter: _FigmaPentagonShadowPainter(sigma: s(shadowBlurSigma)),
-          ),
-        ),
-        FigmaBox(
-          figma: figma,
-          left: left,
-          top: top,
-          width: width,
-          height: height,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Image.asset(
-                pngAsset,
-                fit: BoxFit.fill,
-                gaplessPlayback: true,
-                errorBuilder: (context, error, stackTrace) =>
-                    FigmaSvg(svgFallback, fit: BoxFit.fill),
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: FigmaHomeFonts.pretendard,
-                  fontSize: s(_fittedFontSize),
-                  fontWeight: FontWeight.w100,
-                  color: Colors.white,
-                  height: 1,
-                  shadows: [
-                    Shadow(
-                      offset: Offset(s(shadowOffset.dx), s(shadowOffset.dy)),
-                      color: const Color(0xFFCD5500).withValues(alpha: 0.25),
-                    ),
-                  ],
+    final style = TextStyle(
+      fontFamily: FigmaHomeFonts.pretendard,
+      fontSize: s(_fittedFontSize),
+      fontWeight: FontWeight.w100,
+      height: 1,
+    );
+    return FigmaBox(
+      figma: figma,
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Transform.rotate(
+            angle: _rotation,
+            child: CustomPaint(
+              painter: _FigmaStagePentagonPainter(
+                fill: fill,
+                extrusion: extrusion,
+                extrusionOffset: Offset(
+                  s(extrusionOffset.dx),
+                  s(extrusionOffset.dy),
                 ),
+                isLarge: isLarge,
               ),
-            ],
+              child: const SizedBox.expand(),
+            ),
           ),
-        ),
-      ],
+          Text(
+            label,
+            style: style.copyWith(
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = s(labelStroke)
+                ..color = Colors.white,
+              shadows: [
+                Shadow(
+                  offset: Offset(
+                    s(labelShadowOffset.dx),
+                    s(labelShadowOffset.dy),
+                  ),
+                  color: labelShadowColor,
+                ),
+              ],
+            ),
+          ),
+          Text(label, style: style.copyWith(color: Colors.white)),
+        ],
+      ),
     );
   }
 }
 
-/// Figma `node_1_overlay` / `node_3_overlay`의 path와 효과.
-///
-/// SVG filter와 mix-blend-mode를 flutter_svg가 지원하지 않아 Canvas에서
-/// Figma 값(`#2A1D00`, Overlay, Gaussian blur)을 그대로 그린다.
-class _FigmaPentagonShadowPainter extends CustomPainter {
-  const _FigmaPentagonShadowPainter({required this.sigma});
+/// deco_vector_2 / node_3_flag와 같은 둥근 오각형 경로.
+class _FigmaStagePentagonPainter extends CustomPainter {
+  const _FigmaStagePentagonPainter({
+    required this.fill,
+    required this.extrusion,
+    required this.extrusionOffset,
+    required this.isLarge,
+  });
 
-  final double sigma;
+  final Color fill;
+  final Color extrusion;
+  final Offset extrusionOffset;
+  final bool isLarge;
+
+  static const _smallSource = Size(36.3894, 35.423754);
+  static const _largeSource = Size(69.34858, 66.53081);
 
   @override
   void paint(Canvas canvas, Size size) {
-    const sourceWidth = 18.6856;
-    const sourceHeight = 36.6648;
-
-    Offset point(double x, double y) => Offset(
-      y / sourceHeight * size.width,
-      (sourceWidth - x) / sourceWidth * size.height,
+    final source = isLarge ? _largeSource : _smallSource;
+    final path = isLarge ? _largePath() : _smallPath();
+    final scaled = path.transform(
+      Matrix4.diagonal3Values(
+        size.width / source.width,
+        size.height / source.height,
+        1,
+      ).storage,
     );
 
+    canvas.drawPath(scaled.shift(extrusionOffset), Paint()..color = extrusion);
+    canvas.drawPath(scaled, Paint()..color = fill);
+  }
+
+  /// deco_vector_2 경로를 (minX, minY) 원점으로 옮긴 값.
+  static Path _smallPath() {
+    const ox = 0.534659;
+    const oy = 0.404554;
     final path = Path();
-    var p = point(8.17691, 4.7124);
-    path.moveTo(p.dx, p.dy);
-
-    var c1 = point(8.87195, 3.35991);
-    var c2 = point(9.8142, 3.35991);
-    p = point(10.5092, 4.7124);
-    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
-
-    p = point(14.1696, 11.8331);
-    path.lineTo(p.dx, p.dy);
-    c1 = point(14.8647, 13.1856);
-    c2 = point(15.1565, 15.5843);
-    p = point(14.8899, 17.7727);
-    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
-
-    p = point(13.492, 29.2961);
-    path.lineTo(p.dx, p.dy);
-    c1 = point(13.2264, 31.4845);
-    c2 = point(12.4645, 32.9668);
-    p = point(11.6046, 32.9668);
-    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
-
-    p = point(7.08053, 32.9668);
-    path.lineTo(p.dx, p.dy);
-    c1 = point(6.22069, 32.9668);
-    c2 = point(5.45875, 31.4845);
-    p = point(5.19314, 29.2961);
-    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
-
-    p = point(3.79529, 17.7727);
-    path.lineTo(p.dx, p.dy);
-    c1 = point(3.52968, 15.5843);
-    c2 = point(3.82049, 13.1856);
-    p = point(4.51651, 11.8331);
-    path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p.dx, p.dy);
-    path.close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFF2A1D00)
-        ..blendMode = BlendMode.overlay
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, sigma),
+    path.moveTo(14.2239 + ox, 1.21366 + oy);
+    path.cubicTo(
+      16.4312 + ox,
+      -0.404554 + oy,
+      19.4235 + ox,
+      -0.404554 + oy,
+      21.6309 + ox,
+      1.21366 + oy,
     );
+    path.lineTo(33.2554 + ox, 9.73338 + oy);
+    path.cubicTo(
+      35.4627 + ox,
+      11.3516 + oy,
+      36.3894 + ox,
+      14.2215 + oy,
+      35.5428 + ox,
+      16.8399 + oy,
+    );
+    path.lineTo(31.1035 + ox, 30.6273 + oy);
+    path.cubicTo(
+      30.26 + ox,
+      33.2457 + oy,
+      27.8403 + ox,
+      35.0192 + oy,
+      25.1096 + ox,
+      35.0192 + oy,
+    );
+    path.lineTo(10.742 + ox, 35.0192 + oy);
+    path.cubicTo(
+      8.01138 + ox,
+      35.0192 + oy,
+      5.59164 + ox,
+      33.2457 + oy,
+      4.74812 + ox,
+      30.6273 + oy,
+    );
+    path.lineTo(0.308862 + ox, 16.8399 + oy);
+    path.cubicTo(
+      -0.534659 + ox,
+      14.2215 + oy,
+      0.388904 + ox,
+      11.3516 + oy,
+      2.5993 + ox,
+      9.73338 + oy,
+    );
+    path.close();
+    return path;
+  }
+
+  /// node_3_flag 경로를 (minX, minY) 원점으로 옮긴 값.
+  static Path _largePath() {
+    const ox = -1.90162;
+    const oy = 0.75981;
+    final path = Path();
+    path.moveTo(29.6202 + ox, 2.27943 + oy);
+    path.cubicTo(
+      33.7659 + ox,
+      -0.75981 + oy,
+      39.3859 + ox,
+      -0.75981 + oy,
+      43.5316 + ox,
+      2.27943 + oy,
+    );
+    path.lineTo(65.3642 + ox, 18.2807 + oy);
+    path.cubicTo(
+      69.5098 + ox,
+      21.3199 + oy,
+      71.2502 + ox,
+      26.71 + oy,
+      69.6602 + ox,
+      31.6277 + oy,
+    );
+    path.lineTo(61.3226 + ox, 57.5225 + oy);
+    path.cubicTo(
+      59.7384 + ox,
+      62.4401 + oy,
+      55.1938 + ox,
+      65.771 + oy,
+      50.0652 + ox,
+      65.771 + oy,
+    );
+    path.lineTo(23.0809 + ox, 65.771 + oy);
+    path.cubicTo(
+      17.9523 + ox,
+      65.771 + oy,
+      13.4077 + ox,
+      62.4401 + oy,
+      11.8234 + ox,
+      57.5225 + oy,
+    );
+    path.lineTo(3.48587 + ox, 31.6277 + oy);
+    path.cubicTo(
+      1.90162 + ox,
+      26.71 + oy,
+      3.6362 + ox,
+      21.3199 + oy,
+      7.78764 + ox,
+      18.2807 + oy,
+    );
+    path.close();
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant _FigmaPentagonShadowPainter oldDelegate) =>
-      oldDelegate.sigma != sigma;
+  bool shouldRepaint(covariant _FigmaStagePentagonPainter oldDelegate) =>
+      oldDelegate.fill != fill ||
+      oldDelegate.extrusion != extrusion ||
+      oldDelegate.extrusionOffset != extrusionOffset ||
+      oldDelegate.isLarge != isLarge;
 }
 
 class _BeginnerMenuButton extends StatelessWidget {

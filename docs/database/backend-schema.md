@@ -16,7 +16,7 @@
 | **Firebase Auth**          | 이메일/비번, 이후 Google·Apple·Kakao                |
 | **Cloud Firestore**        | 프로필, 퀴즈, 뉴스 캐시, 학습 기록                  |
 | **Cloud Functions** (권장) | 에너지 차감·세션 완료를 트랜잭션으로, 뉴스 LLM 생성 |
-| **클라이언트 직접 쓰기**   | 관심 카테고리 정도만. XP·에너지는 Functions 권장    |
+| **클라이언트 직접 쓰기**   | 관심 카테고리 정도만. 에너지는 Functions 권장       |
 
 비밀번호 해시(`passwordHash`/`salt`)는 Firestore에 **넣지 않는다**. Auth가 담당한다.
 
@@ -28,11 +28,10 @@
 
 | 원칙                       | Firestore에서                                                  |
 | -------------------------- | -------------------------------------------------------------- |
-| 앱 규칙 유지               | 에너지 100, 문제당 −5, 세션 10문제, XP 10/2 (에너지 수치 잠정) |
-| 레벨은 저장하지 않음       | `xp`만. 레벨 = `min(xp ~/ 100 + 1, 10)`                        |
-| 작은 목록은 배열           | 관심 카테고리, 해금 햄스터 id (개수 고정·적음)                 |
+| 앱 규칙 유지               | 에너지 100, 문제당 −5, 세션 10문제 (에너지 수치 잠정)           |
+| 작은 목록은 배열           | 관심 카테고리 (개수 고정·적음)                                 |
 | 늘어나는 기록은 서브컬렉션 | 퀴즈 세션, 답안, 뉴스 퀴즈 기록                                |
-| 마스터는 탑레벨            | `categories`, `hamsters`, `quizQuestions`, `legalDocuments`    |
+| 마스터는 최상위            | `categories`, `hamsters`, `quizQuestions`, `legalDocuments`    |
 | 문서 ID                    | 의미 있는 id면 그대로 (`saving`, `q1`, `hamster_basic`)        |
 
 ### 게임 상수 (앱·Functions 공유)
@@ -42,10 +41,7 @@ MAX_ENERGY = 100
 ENERGY_PER_QUESTION = 5
 QUESTIONS_PER_SESSION = 10
 SESSION_ENERGY_COST = 50
-XP_CORRECT = 10
-XP_WRONG = 2
-XP_PER_LEVEL = 100
-MAX_LEVEL = 10
+ENERGY_SESSION_COMPLETE_REWARD = 20   # §7 제안
 ```
 
 ---
@@ -119,21 +115,13 @@ id: `allowance` | `saving` | `stock` | `insurance` | `tax` | `credit`
 ```json
 {
   "name": "기본 햄스터",
-  "emoji": "🐹",
-  "unlockDescription": "회원가입 시 기본 제공",
-  "unlockType": "signup",
-  "unlockValue": null
+  "emoji": "🐹"
 }
 ```
 
-| id               | unlockType      | unlockValue |
-| ---------------- | --------------- | ----------- |
-| `hamster_basic`  | `signup`        | —           |
-| `hamster_study`  | `first_session` | —           |
-| `hamster_streak` | `streak`        | 3           |
-| `hamster_level3` | `level`         | 3           |
-| `hamster_level5` | `level`         | 5           |
-| `hamster_master` | `level`         | 10          |
+현재 앱의 선택 항목 id는 `hamster_basic`, `hamster_study`, `hamster_streak`,
+`hamster_saver`, `hamster_scholar`, `hamster_master`다. 모든 항목을 프로필에서
+선택할 수 있다.
 
 ### `quizQuestions/{questionId}`
 
@@ -199,13 +187,11 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 {
   "email": "user@example.com",
   "nickname": "닉네임",
-  "xp": 0,
   "streak": 0,
   "lastQuizCompletedOn": "2026-08-21",
   "energy": 100,
   "energyResetOn": "2026-08-21",
   "selectedHamsterId": "hamster_basic",
-  "unlockedHamsterIds": ["hamster_basic"],
   "interestCategoryIds": ["saving", "credit"],
   "categoryStats": {
     "saving": { "correct": 3, "total": 5, "completedSessions": 2 },
@@ -230,7 +216,6 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 | `energy` / `energyResetOn` | `energy`, `lastEnergyResetDate` | 날짜 문자열 `yyyy-MM-dd` 또는 Timestamp |
 | `lastQuizCompletedOn`      | `lastQuizCompletedDate`         | streak용                                |
 | `todayQuizCompleted`       | **저장 안 함**                  | `lastQuizCompletedOn == today`로 계산   |
-| `unlockedHamsterIds`       | 배열 (최대 6)                   |                                         |
 | `interestCategoryIds`      | 배열 (1~6, 최소 1)              |                                         |
 | `categoryStats`            | map                             | `correct`/`total`/`completedSessions`. 홈 맵 step(1~200)은 활성 카테고리의 `completedSessions + 1` |
 | `incorrectQuestionCount`   | number                          | 고유 오답 문서 수. 11개부터 복습 홈     |
@@ -240,7 +225,6 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 가입 Cloud Function / 클라이언트 최초 쓰기:
 
 - `energy: 100`, `energyResetOn: today`
-- `unlockedHamsterIds: ["hamster_basic"]`
 - `selectedHamsterId: "hamster_basic"`
 - `interestCategoryIds`는 카테고리 선택 화면 이후 갱신
 
@@ -258,7 +242,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 ## 3. 학습 세션 (에너지 10문제)
 
-로컬 `learningHistory`는 세션 요약만 있었다. Firestore에서는 세션 + 문항 답을 남긴다.
+Firestore에서는 세션과 문항별 답을 함께 남긴다.
 
 ### `users/{uid}/sessions/{sessionId}`
 
@@ -270,8 +254,8 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
   "questionIds": ["q3", "q7", "..."],
   "questionCount": 7,
   "correctCount": 0,
-  "xpEarned": 0,
   "energySpent": 0,
+  "energyEarned": 0,
   "seedDate": "2026-08-21",
   "status": "inProgress",
   "startedAt": "<timestamp>",
@@ -280,7 +264,8 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 ```
 
 `source`: `energySession` | `reviewSession`  
-`status`: `inProgress` | `completed` | `abandoned`
+`status`: `inProgress` | `completed` | `abandoned`  
+`energyEarned`: 완료 보상으로 **실제로** 채워진 에너지 (§7 제안). 완료 시에만 기록.
 
 ### `users/{uid}/sessions/{sessionId}/answers/{questionId}`
 
@@ -322,9 +307,9 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 1. `startSession`: `energy >= 50` 확인, 세션 문서 생성 (에너지 아직 안 깎음 또는 예약)
 2. `submitAnswer`: 트랜잭션으로 `users.energy -= 5`, answers 문서 생성
-3. `completeSession`: XP·categoryStats·streak·해금 배열 갱신, `status: completed`
+3. `completeSession`: categoryStats·streak·학습일·보상 갱신, `status: completed`
 
-클라이언트가 energy/xp를 직접 쓰면 치트가 되므로 Functions + Admin SDK가 맞다.
+클라이언트가 energy를 직접 쓰면 치트가 되므로 Functions + Admin SDK가 맞다.
 
 ---
 
@@ -381,7 +366,6 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
   "articleId": "<urlHash>",
   "packId": "<urlHash>",
   "correctCount": 0,
-  "xpEarned": 0,
   "energySpent": null,
   "status": "completed",
   "startedAt": "<timestamp>",
@@ -438,7 +422,7 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 
 닉네임/이메일로 다른 유저를 검색하려면 상대 `users/{uid}` 문서를 읽어야 하는데, 이 문서 아래쪽 "Security Rules 초안"은 `users`를 **본인만 read** 하도록 막아뒀다. 그래서 `users` 자체를 공개하는 대신, §2에서 이미 언급된 `nicknames/{nicknameLower}` 예약 문서를 검색 인덱스로 겸용하고, 이메일 검색용으로 `emails/{emailLower}` 문서를 같은 방식으로 하나 더 두는 안을 제안한다.
 
-**검색 → 요청 흐름**: 검색창 입력 → `nicknames`(접두어) 또는 `emails`(정확히 일치) 조회 → uid 확보 → 결과에 닉네임 표시 + 이미 친구/요청 상태 있으면 `friendships/{uidA}_{uidB}` 확인 후 표시 → "추가" 누르면 `friendships` 문서 생성. `users` 원본 필드(레벨·streak 등)는 이 흐름에서 한 번도 읽지 않는다.
+**검색 → 요청 흐름**: 검색창 입력 → `nicknames`(접두어) 또는 `emails`(정확히 일치) 조회 → uid 확보 → 결과에 닉네임 표시 + 이미 친구/요청 상태 있으면 `friendships/{uidA}_{uidB}` 확인 후 표시 → "추가" 누르면 `friendships` 문서 생성. `users` 원본 필드(streak 등)는 이 흐름에서 한 번도 읽지 않는다.
 
 ### `nicknames/{nicknameLower}`
 
@@ -525,15 +509,85 @@ friendships/{uidA}_{uidB}
 
 ---
 
+## 7. 세션 완료 에너지 보상 · 에너지 회복 저장 — 제안 (초안)
+
+> 상태: 제안. `database-schema.md` 미반영. `lib/data/quiz_data.dart` ·
+> `lib/utils/energy_reset.dart` · `lib/services/quiz_session_repository.dart` ·
+> `functions/index.js` · `lib/models/quiz_question.dart`는 이 절 내용대로 이미
+> 구현됨 (§6 Friends와 같은 흐름 — draft 문서 + 실제 코드).  
+> 영향 범위: `users/{uid}`의 `energy` · `energyResetOn` **쓰기**를 건드린다 —
+> [접점 표](./database-collaboration.md#접점-표-단일-소스-ssot)상 SSOT가
+> `users/{uid}` (퀴즈 제안 → **Auth owner 승인** 필요)다. 읽기 스키마는 그대로.
+
+### 7.1 완료 보상 (신규)
+
+세션을 끝까지 풀면 에너지를 일부 돌려준다. 지금까지 에너지는 **차감만** 있었고
+퀴즈_결과보기창(Figma `131:3546`)이 "획득 에너지"를 보여줘야 해서 새로 넣었다.
+
+| 항목 | 값 |
+|------|-----|
+| 지급 시점 | `completeSession` 트랜잭션 (세션당 1회) |
+| 지급량 | 실제 소모량 이내에서 최대 `ENERGY_SESSION_COMPLETE_REWARD = 20` |
+| 상한 | `MAX_ENERGY = 100`까지만 (clamp) |
+| 기록 | `sessions/{id}.energyEarned` |
+
+**짧은 복습 세션이 에너지를 생성하지 않도록 실제 소모량보다 많이 돌려주지
+않는다.** 1문제 복습에서 5를 썼다면 보상 상한도 5다. 최대 에너지 상한에
+걸리면 실제로 채워진 양만 보상으로 잡는다. 에너지가 98이면 `energy = 100`,
+`energyEarned = 2`다.
+
+```
+rewardCap       = min(energySpent, ENERGY_SESSION_COMPLETE_REWARD)
+energyRemaining = min(MAX_ENERGY, energyBefore + rewardCap)
+energyEarned    = energyRemaining - energyBefore
+```
+
+### 7.2 에너지 회복을 저장까지 한다 (버그 수정)
+
+이 문서 [Cloud Functions에서 처리할 규칙](#cloud-functions에서-처리할-규칙) 1번
+(`energyResetOn != today`이면 `energy = 100`, `energyResetOn = today`)은 원래
+설계대로다. 그런데 **쓰기 경로마다 지키는 곳과 안 지키는 곳이 갈려 있었다.**
+
+| 쓰기 경로 | 회복 반영 | 저장 |
+|-----------|-----------|------|
+| `AuthService._profileFromJson` (읽기) | O | **X** — 화면용 계산만 |
+| `ShopPurchaseRepository` (에너지팩) | O | O |
+| `functions/index.js` `resolveEnergy` | O | O |
+| `QuizSessionRepository.submitAnswer` | O | O |
+| `QuizSessionRepository.completeSession` | O | O |
+| Functions `completeSession` | O | O |
+
+읽기는 회복을 보여주는데 저장은 안 하고, 퀴즈 트랜잭션은 저장값을 그대로 읽어
+깎기만 해서 **저장된 `energy`가 날짜가 바뀌어도 회복되지 않고 줄기만 했다.**
+화면에는 100이 뜨는데 제출은 "에너지가 부족해요"로 막히고, 에너지팩 구매나
+Functions 호출이 `energyResetOn`을 오늘로 저장하는 순간 실제 값이 드러나면서
+퀴즈 시작 자체가 막힌다.
+
+**규칙:** `energy`를 저장하는 쪽은 `energyResetOn`(코드: `lastEnergyResetDate`)을
+**항상 같이** 쓴다. 회복 계산은 `lib/utils/energy_reset.dart`의
+`resolveDailyEnergy` 한 곳에만 둔다.
+
+### 7.3 열린 질문
+
+- 보상 20이 적정한지 (문제당 −5 × 10 = −50 대비 40% 환급)
+- 복습 세션(`source: reviewSession`)도 보상을 주지만 실제 소모량까지만 환급한다
+- 상수가 Dart(`QuizData.sessionCompleteEnergyReward`)와
+  Functions(`ENERGY_SESSION_COMPLETE_REWARD`) **두 곳**에 있다. 게임 상수 전체가
+  같은 문제라, 한쪽만 바꾸면 개발/배포 모드 동작이 갈린다 — 공유 방법 논의 필요
+- `AuthService`·`ShopPurchaseRepository`·Functions에 회복 계산이 각각 남아 있다.
+  이번 버그가 그 어긋남에서 나왔으므로 합치는 게 맞는데, 지금 정상 동작하는
+  경로라 이번에는 손대지 않았다 — Auth owner와 범위 논의 필요
+
+---
+
 ## 로컬 JSON → Firestore
 
 | 로컬                            | Firestore                   |
 | ------------------------------- | --------------------------- |
 | `users[email]` + session 이메일 | Auth + `users/{uid}`        |
-| `profile.xp/streak/energy`      | `users/{uid}` 필드          |
+| `profile.streak/energy`         | `users/{uid}` 필드          |
 | `interestCategories[]`          | `interestCategoryIds`       |
-| `unlockedHamsterIds[]`          | 동일 배열                   |
-| `learningHistory[]`             | `users/{uid}/sessions`      |
+| `learningDates[]`               | `users/{uid}.learningDates` |
 | `categoryStats{}`               | `users/{uid}.categoryStats` |
 | (구) `QuizData.allQuestions`    | `quizQuestions` (Firestore · 12k+ 문항) |
 | `kInterestCategories`           | `categories`                |
@@ -583,11 +637,11 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth.uid == uid;
-      // energy, xp, streak, unlockedHamsterIds 는 Functions만 수정하는 편이 안전
+      // energy, streak, categoryStats는 Functions만 수정하는 편이 안전
       allow update: if request.auth.uid == uid
                     && !request.resource.data.diff(resource.data)
                          .affectedKeys()
-                         .hasAny(['xp', 'energy', 'streak', 'unlockedHamsterIds', 'categoryStats']);
+                         .hasAny(['energy', 'streak', 'categoryStats']);
       allow delete: if false;
 
       match /sessions/{sid} {
@@ -634,7 +688,7 @@ service cloud.firestore {
 3. **답 제출**
    `energy >= 5`일 때만 −5 + answers 문서.
 4. **세션 완료**
-   XP 합산, `categoryStats`, 당일 첫 완료면 streak, 해금 id 배열에 추가.
+   `categoryStats`, 학습일, 당일 첫 완료면 streak, 씨앗·에너지 보상 갱신.
 5. **관심 카테고리**
    배열 길이가 1이면 마지막 id 제거 거부.
 6. **탈퇴**
@@ -647,6 +701,7 @@ service cloud.firestore {
 ## 아직 안 정한 것
 
 - 뉴스 퀴즈가 에너지를 쓰는지
+- 세션 완료 에너지 보상 20이 적정한지, 복습 세션도 주는지 (§7.3)
 - 세션 시작 시 50을 한 번에 깎을지, 문제마다 5씩 깎을지 (앱은 **문제 제출 시 −5**, 수치 잠정)
 - 닉네임 예약 컬렉션 사용 여부
 - LLM 팩 TTL·재생성

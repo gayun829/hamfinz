@@ -98,6 +98,7 @@ abstract final class FigmaQuizQuestionTokens {
   static const questionWidth = 284.0;
   static const questionHeight = 62.0;
   static const questionFontSize = 22.0;
+  static const questionLineHeight = 1.2;
 
   static const characterLeft = 24.0;
   static const characterTop = 265.213;

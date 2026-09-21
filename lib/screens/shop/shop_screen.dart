@@ -21,7 +21,7 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
-  static const _maxStudyGuards = 3;
+  static const _maxStudyGuards = 4;
   static const _energyPackAmount = 20;
 
   late UserProfile _profile;
@@ -47,7 +47,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   Future<void> _buyStudyGuard() async {
     if (_profile.studyGuardCount >= _maxStudyGuards) {
-      _showSnackBar('방어권은 최대 3개까지 보유할 수 있어요.');
+      _showSnackBar('방어권은 최대 4개까지 보유할 수 있어요.');
       return;
     }
     final price = _catalogItem('study_guard').price;

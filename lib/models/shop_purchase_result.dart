@@ -34,7 +34,7 @@ class ShopPurchaseResult {
       case ShopPurchaseStatus.insufficientSeeds:
         return '씨앗이 부족해요.';
       case ShopPurchaseStatus.studyGuardMaxCapacity:
-        return '방어권은 최대 3개까지 보유할 수 있어요.';
+        return '방어권은 최대 4개까지 보유할 수 있어요.';
       case ShopPurchaseStatus.energyAlreadyFull:
         return '에너지가 이미 가득 차 있어요.';
       case ShopPurchaseStatus.notLoggedIn:

@@ -3,6 +3,8 @@ class FigmaAssets {
   static const _homeBeginner = '$_home/beginner';
   static const _auth = 'assets/figma/auth';
   static const _quiz = 'assets/figma/quiz';
+  static const _quizStreak = '$_quiz/streak';
+  static const _quizReward = '$_quiz/reward';
   static const _shop = 'assets/figma/shop';
   static const _calendar = 'assets/figma/calendar';
   static const _friends = 'assets/figma/friends';
@@ -11,6 +13,10 @@ class FigmaAssets {
 
   // Home
   static const hamsterMain = '$_home/hamster_main.png';
+  static const homeBagLeft = '$_home/bag_left.svg';
+  static const homeBagRight = '$_home/bag_right.svg';
+  static const homeStar = '$_home/star.svg';
+  static const homeSparkle = '$_home/sparkle.svg';
 
   /// 홈 카드·썸네일 — 단일 햄스터만 (`assets/images/hamster_auth.png`)
   static const hamsterCard = hamsterAuth;
@@ -116,6 +122,21 @@ class FigmaAssets {
   static const quizOxCharacterShadow = '$_quiz/ox_character_shadow.svg';
   static const quizOxMarkO = '$_quiz/ox_mark_o.svg';
   static const quizOxMarkX = '$_quiz/ox_mark_x.svg';
+
+  // 퀴즈_중간 학습창 (293:1649)
+  static const quizStreakCircleOuter = '$_quizStreak/circle_outer.svg';
+  static const quizStreakCircleInner = '$_quizStreak/circle_inner.svg';
+  static const quizStreakRayHub = '$_quizStreak/ray_hub.svg';
+  static const quizStreakSparkleBlue = '$_quizStreak/sparkle_blue.svg';
+  static const quizStreakSparkleWhite = '$_quizStreak/sparkle_white.svg';
+  static const quizStreakCloud = '$_quizStreak/cloud.svg';
+  static const quizStreakHamster = '$_quizStreak/hamster.svg';
+
+  // 퀴즈_결과보기창 (131:3546) — 씨앗·에너지 아이콘은 홈과 같은 것을 쓴다.
+  static const quizRewardHamster = '$_quizReward/hamster.svg';
+  static const quizRewardHamsterShadow = '$_quizReward/hamster_shadow.svg';
+  static const quizRewardStatCorrect = '$_quizReward/stat_correct.svg';
+  static const quizRewardSparkle = '$_quizReward/sparkle.svg';
 
   // 단일 햄스터 PNG (손 흔드는 캐릭터)
   static const hamsterAuth = 'assets/images/hamster_auth.png';

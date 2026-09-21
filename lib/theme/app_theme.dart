@@ -26,7 +26,6 @@ class AppTheme {
   static const figmaYellow = Color(0xFFFFCA55);
   static const figmaOrange = Color(0xFFFB8B3B);
   static const figmaNewsBanner = Color(0xFFB7F1F3);
-  static const figmaLevelPill = Color(0xFFEEF9FD);
   static const figmaSpeechBubble = Color(0xFFF5FAFF);
 
   static ThemeData get theme {

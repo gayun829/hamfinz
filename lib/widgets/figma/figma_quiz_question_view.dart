@@ -6,6 +6,7 @@ import '../../theme/figma_quiz_question_tokens.dart';
 import 'figma_asset_image.dart';
 import 'figma_canvas.dart';
 import 'figma_scale.dart';
+import 'quiz_question_layout.dart';
 
 /// Figma `137:5521` 문제 / `137:5589` 정답 / `291:931` 해설 — 4지선다 전용.
 ///
@@ -50,20 +51,42 @@ class FigmaQuizQuestionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final questionHeight = showExplanation
+        ? FigmaQuizQuestionTokens.questionHeight
+        : QuizQuestionLayout.textHeight(
+            text: question,
+            width: FigmaQuizQuestionTokens.questionWidth,
+            fontSize: FigmaQuizQuestionTokens.questionFontSize,
+            lineHeight: FigmaQuizQuestionTokens.questionLineHeight,
+            minimumHeight: FigmaQuizQuestionTokens.questionHeight,
+            fontFamily: FigmaQuizFonts.pretendard,
+            textScaler: MediaQuery.textScalerOf(context),
+          );
+    final contentShift =
+        questionHeight - FigmaQuizQuestionTokens.questionHeight;
+
     return Scaffold(
       backgroundColor: FigmaQuizQuestionTokens.background,
       body: FigmaCanvas(
         designWidth: FigmaScale.quizDesignWidth,
-        designHeight: FigmaScale.quizDesignHeight,
+        designHeight: FigmaScale.quizDesignHeight + contentShift,
         backgroundColor: FigmaQuizQuestionTokens.background,
         fit: FigmaCanvasFit.widthScroll,
         scrollable: true,
-        builder: (context, figma) => _layers(figma),
+        builder: (context, figma) => _layers(
+          figma,
+          questionHeight: questionHeight,
+          contentShift: contentShift,
+        ),
       ),
     );
   }
 
-  List<Widget> _layers(FigmaScale figma) {
+  List<Widget> _layers(
+    FigmaScale figma, {
+    required double questionHeight,
+    required double contentShift,
+  }) {
     final progress = questionNumber / totalQuestions.clamp(1, 999);
     final fillWidth =
         FigmaQuizQuestionTokens.progressWidth * progress.clamp(0.0, 1.0);
@@ -173,13 +196,15 @@ class FigmaQuizQuestionView extends StatelessWidget {
           left: FigmaQuizQuestionTokens.bubbleLeft,
           top: FigmaQuizQuestionTokens.bubbleTop,
           width: FigmaQuizQuestionTokens.bubbleWidth,
-          height: FigmaQuizQuestionTokens.bubbleHeight,
+          height: FigmaQuizQuestionTokens.bubbleHeight + contentShift,
           child: Transform.flip(
             flipX: true,
             child: FigmaSvg(
               FigmaAssets.quizSpeechBubble,
               width: figma.s(FigmaQuizQuestionTokens.bubbleWidth),
-              height: figma.s(FigmaQuizQuestionTokens.bubbleHeight),
+              height: figma.s(
+                FigmaQuizQuestionTokens.bubbleHeight + contentShift,
+              ),
               fit: BoxFit.fill,
             ),
           ),
@@ -189,19 +214,15 @@ class FigmaQuizQuestionView extends StatelessWidget {
           left: FigmaQuizQuestionTokens.questionLeft,
           top: FigmaQuizQuestionTokens.questionTop,
           width: FigmaQuizQuestionTokens.questionWidth,
-          height: FigmaQuizQuestionTokens.questionHeight,
+          height: questionHeight,
           child: Center(
             child: Text(
               question,
               textAlign: TextAlign.center,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: QuizQuestionLayout.textStyle(
                 fontFamily: FigmaQuizFonts.pretendard,
                 fontSize: figma.s(FigmaQuizQuestionTokens.questionFontSize),
-                fontWeight: FontWeight.w400,
-                color: Colors.black,
-                height: 1.2,
+                lineHeight: FigmaQuizQuestionTokens.questionLineHeight,
               ),
             ),
           ),
@@ -209,7 +230,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
         FigmaBox(
           figma: figma,
           left: FigmaQuizQuestionTokens.characterShadowLeft,
-          top: FigmaQuizQuestionTokens.characterShadowTop,
+          top: FigmaQuizQuestionTokens.characterShadowTop + contentShift,
           width: FigmaQuizQuestionTokens.characterShadowWidth,
           height: FigmaQuizQuestionTokens.characterShadowHeight,
           child: FigmaSvg(
@@ -222,7 +243,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
         FigmaBox(
           figma: figma,
           left: FigmaQuizQuestionTokens.characterLeft,
-          top: FigmaQuizQuestionTokens.characterTop,
+          top: FigmaQuizQuestionTokens.characterTop + contentShift,
           width: FigmaQuizQuestionTokens.characterWidth,
           height: FigmaQuizQuestionTokens.characterHeight,
           child: FigmaSvg(
@@ -232,12 +253,12 @@ class FigmaQuizQuestionView extends StatelessWidget {
           ),
         ),
       ],
-      if (showAnswer) ..._answerToggle(figma),
+      if (showAnswer) ..._answerToggle(figma, contentShift),
       for (var i = 0; i < FigmaQuizQuestionTokens.optionTops.length; i++)
         FigmaTapArea(
           figma: figma,
           left: FigmaQuizQuestionTokens.optionLeft,
-          top: FigmaQuizQuestionTokens.optionTops[i],
+          top: FigmaQuizQuestionTokens.optionTops[i] + contentShift,
           width: FigmaQuizQuestionTokens.optionWidth,
           height: FigmaQuizQuestionTokens.optionHeight,
           onTap: locked || i >= options.length ? null : () => onSelect(i),
@@ -275,7 +296,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
       FigmaTapArea(
         figma: figma,
         left: FigmaQuizQuestionTokens.ctaLeft,
-        top: FigmaQuizQuestionTokens.ctaTop,
+        top: FigmaQuizQuestionTokens.ctaTop + contentShift,
         width: FigmaQuizQuestionTokens.ctaWidth,
         height: FigmaQuizQuestionTokens.ctaHeight,
         onTap: canNext ? onNext : null,
@@ -374,7 +395,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
     ];
   }
 
-  List<Widget> _answerToggle(FigmaScale figma) {
+  List<Widget> _answerToggle(FigmaScale figma, double contentShift) {
     final explain = showExplanation;
     final questionColor = explain
         ? FigmaQuizQuestionTokens.toggleInactive
@@ -391,7 +412,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
             : FigmaQuizQuestionTokens.toggleLeft,
         top: explain
             ? FigmaQuizQuestionTokens.explainToggleTop
-            : FigmaQuizQuestionTokens.toggleTop,
+            : FigmaQuizQuestionTokens.toggleTop + contentShift,
         width: FigmaQuizQuestionTokens.toggleWidth,
         height: FigmaQuizQuestionTokens.toggleHeight,
         child: DecoratedBox(
@@ -414,7 +435,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
             : FigmaQuizQuestionTokens.toggleQuestionLeft,
         top: explain
             ? FigmaQuizQuestionTokens.explainToggleQuestionTop
-            : FigmaQuizQuestionTokens.toggleQuestionTop,
+            : FigmaQuizQuestionTokens.toggleQuestionTop + contentShift,
         width: FigmaQuizQuestionTokens.toggleQuestionWidth,
         height: FigmaQuizQuestionTokens.toggleLabelHeight,
         onTap: onQuestionTap,
@@ -437,7 +458,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
             : FigmaQuizQuestionTokens.toggleDividerLeft,
         top: explain
             ? FigmaQuizQuestionTokens.explainToggleDividerTop
-            : FigmaQuizQuestionTokens.toggleDividerTop,
+            : FigmaQuizQuestionTokens.toggleDividerTop + contentShift,
         width: FigmaQuizQuestionTokens.toggleDividerWidth,
         height: FigmaQuizQuestionTokens.toggleDividerHeight,
         child: ColoredBox(color: FigmaQuizQuestionTokens.toggleBorder),
@@ -449,7 +470,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
             : FigmaQuizQuestionTokens.toggleExplainLeft,
         top: explain
             ? FigmaQuizQuestionTokens.explainToggleExplainTop
-            : FigmaQuizQuestionTokens.toggleExplainTop,
+            : FigmaQuizQuestionTokens.toggleExplainTop + contentShift,
         width: FigmaQuizQuestionTokens.toggleExplainWidth,
         height: FigmaQuizQuestionTokens.toggleLabelHeight,
         onTap: onExplanationTap,
