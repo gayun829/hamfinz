@@ -6,6 +6,7 @@ import '../../theme/figma_quiz_ox_tokens.dart';
 import 'figma_asset_image.dart';
 import 'figma_canvas.dart';
 import 'figma_scale.dart';
+import 'quiz_question_layout.dart';
 
 /// Figma `137:5890` 문제 / `137:5957` 정답 / `291:971` 해설.
 class FigmaQuizOxView extends StatelessWidget {
@@ -48,20 +49,39 @@ class FigmaQuizOxView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final questionHeight = QuizQuestionLayout.textHeight(
+      text: question,
+      width: FigmaQuizOxTokens.questionWidth,
+      fontSize: FigmaQuizOxTokens.questionFontSize,
+      lineHeight: FigmaQuizOxTokens.questionLineHeight,
+      minimumHeight: FigmaQuizOxTokens.questionHeight,
+      fontFamily: FigmaQuizFonts.pretendard,
+      textScaler: MediaQuery.textScalerOf(context),
+    );
+    final contentShift = questionHeight - FigmaQuizOxTokens.questionHeight;
+
     return Scaffold(
       backgroundColor: FigmaQuizOxTokens.background,
       body: FigmaCanvas(
         designWidth: FigmaScale.quizDesignWidth,
-        designHeight: FigmaScale.quizDesignHeight,
+        designHeight: FigmaScale.quizDesignHeight + contentShift,
         backgroundColor: FigmaQuizOxTokens.background,
         fit: FigmaCanvasFit.widthScroll,
         scrollable: true,
-        builder: (context, figma) => _layers(figma),
+        builder: (context, figma) => _layers(
+          figma,
+          questionHeight: questionHeight,
+          contentShift: contentShift,
+        ),
       ),
     );
   }
 
-  List<Widget> _layers(FigmaScale figma) {
+  List<Widget> _layers(
+    FigmaScale figma, {
+    required double questionHeight,
+    required double contentShift,
+  }) {
     final progress = questionNumber / totalQuestions.clamp(1, 999);
     final fillWidth =
         FigmaQuizOxTokens.progressWidth * progress.clamp(0.0, 1.0);
@@ -200,7 +220,7 @@ class FigmaQuizOxView extends StatelessWidget {
         left: FigmaQuizOxTokens.cardLeft,
         top: FigmaQuizOxTokens.cardTop,
         width: FigmaQuizOxTokens.cardWidth,
-        height: FigmaQuizOxTokens.cardHeight,
+        height: FigmaQuizOxTokens.cardHeight + contentShift,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -221,7 +241,7 @@ class FigmaQuizOxView extends StatelessWidget {
         left: FigmaQuizOxTokens.cardLeft,
         top: FigmaQuizOxTokens.cardTop,
         width: FigmaQuizOxTokens.cardWidth,
-        height: FigmaQuizOxTokens.headerHeight,
+        height: FigmaQuizOxTokens.headerHeight + contentShift,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: showExplanation
@@ -238,31 +258,27 @@ class FigmaQuizOxView extends StatelessWidget {
         left: FigmaQuizOxTokens.questionLeft,
         top: FigmaQuizOxTokens.questionTop,
         width: FigmaQuizOxTokens.questionWidth,
-        height: FigmaQuizOxTokens.questionHeight,
+        height: questionHeight,
         child: Center(
           child: Text(
             question,
             textAlign: TextAlign.center,
-            maxLines: FigmaQuizOxTokens.questionMaxLines,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: QuizQuestionLayout.textStyle(
               fontFamily: FigmaQuizFonts.pretendard,
               fontSize: figma.s(FigmaQuizOxTokens.questionFontSize),
-              fontWeight: FontWeight.w400,
-              color: Colors.black,
-              height: FigmaQuizOxTokens.questionLineHeight,
+              lineHeight: FigmaQuizOxTokens.questionLineHeight,
             ),
           ),
         ),
       ),
-      if (showAnswer) ..._answerToggle(figma),
-      if (showExplanation) ..._explanationText(figma),
+      if (showAnswer) ..._answerToggle(figma, contentShift),
+      if (showExplanation) ..._explanationText(figma, contentShift),
       if (!showExplanation)
         for (var i = 0; i < FigmaQuizOxTokens.optionLefts.length; i++) ...[
           FigmaTapArea(
             figma: figma,
             left: FigmaQuizOxTokens.optionLefts[i],
-            top: FigmaQuizOxTokens.optionTop,
+            top: FigmaQuizOxTokens.optionTop + contentShift,
             width: FigmaQuizOxTokens.optionWidth,
             height: FigmaQuizOxTokens.optionHeight,
             onTap: locked || i >= options.length ? null : () => onSelect(i),
@@ -282,7 +298,7 @@ class FigmaQuizOxView extends StatelessWidget {
           FigmaBox(
             figma: figma,
             left: FigmaQuizOxTokens.markLefts[i],
-            top: FigmaQuizOxTokens.markTops[i],
+            top: FigmaQuizOxTokens.markTops[i] + contentShift,
             width: FigmaQuizOxTokens.markSizes[i],
             height: FigmaQuizOxTokens.markSizes[i],
             // 마크는 선택 박스 위에 그려지므로 탭을 통과시킨다.
@@ -299,7 +315,7 @@ class FigmaQuizOxView extends StatelessWidget {
       FigmaTapArea(
         figma: figma,
         left: FigmaQuizOxTokens.ctaLeft,
-        top: FigmaQuizOxTokens.ctaTop,
+        top: FigmaQuizOxTokens.ctaTop + contentShift,
         width: FigmaQuizOxTokens.ctaWidth,
         height: FigmaQuizOxTokens.ctaHeight,
         onTap: canNext ? onNext : null,
@@ -357,12 +373,12 @@ class FigmaQuizOxView extends StatelessWidget {
     );
   }
 
-  List<Widget> _explanationText(FigmaScale figma) {
+  List<Widget> _explanationText(FigmaScale figma, double contentShift) {
     return [
       FigmaBox(
         figma: figma,
         left: FigmaQuizOxTokens.explainTextLeft,
-        top: FigmaQuizOxTokens.explainTextTop,
+        top: FigmaQuizOxTokens.explainTextTop + contentShift,
         width: FigmaQuizOxTokens.explainTextWidth,
         height: FigmaQuizOxTokens.explainTextHeight,
         child: SingleChildScrollView(
@@ -419,7 +435,7 @@ class FigmaQuizOxView extends StatelessWidget {
         : FigmaQuizOxTokens.optionBorderWidth;
   }
 
-  List<Widget> _answerToggle(FigmaScale figma) {
+  List<Widget> _answerToggle(FigmaScale figma, double contentShift) {
     final explain = showExplanation;
     final questionColor = explain
         ? FigmaQuizOxTokens.toggleInactive
@@ -432,7 +448,7 @@ class FigmaQuizOxView extends StatelessWidget {
       FigmaBox(
         figma: figma,
         left: FigmaQuizOxTokens.toggleLeft,
-        top: FigmaQuizOxTokens.toggleTop,
+        top: FigmaQuizOxTokens.toggleTop + contentShift,
         width: FigmaQuizOxTokens.toggleWidth,
         height: FigmaQuizOxTokens.toggleHeight,
         child: DecoratedBox(
@@ -451,7 +467,7 @@ class FigmaQuizOxView extends StatelessWidget {
       FigmaTapArea(
         figma: figma,
         left: FigmaQuizOxTokens.toggleQuestionLeft,
-        top: FigmaQuizOxTokens.toggleQuestionTop,
+        top: FigmaQuizOxTokens.toggleQuestionTop + contentShift,
         width: FigmaQuizOxTokens.toggleQuestionWidth,
         height: FigmaQuizOxTokens.toggleLabelHeight,
         onTap: onQuestionTap,
@@ -470,7 +486,7 @@ class FigmaQuizOxView extends StatelessWidget {
       FigmaBox(
         figma: figma,
         left: FigmaQuizOxTokens.toggleDividerLeft,
-        top: FigmaQuizOxTokens.toggleDividerTop,
+        top: FigmaQuizOxTokens.toggleDividerTop + contentShift,
         width: FigmaQuizOxTokens.toggleDividerWidth,
         height: FigmaQuizOxTokens.toggleDividerHeight,
         child: ColoredBox(color: FigmaQuizOxTokens.toggleBorder),
@@ -478,7 +494,7 @@ class FigmaQuizOxView extends StatelessWidget {
       FigmaTapArea(
         figma: figma,
         left: FigmaQuizOxTokens.toggleExplainLeft,
-        top: FigmaQuizOxTokens.toggleExplainTop,
+        top: FigmaQuizOxTokens.toggleExplainTop + contentShift,
         width: FigmaQuizOxTokens.toggleExplainWidth,
         height: FigmaQuizOxTokens.toggleLabelHeight,
         onTap: onExplanationTap,
