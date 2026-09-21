@@ -60,11 +60,22 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
-    if (widget.onAuthenticated != null) {
-      widget.onAuthenticated!();
+
+    // 인증까지 마치고 약관 전에 그만둔 이메일 가입자는 프로필 없이 로그인된다.
+    // 그대로 홈에 보내면 프로필을 못 찾아 멈추므로 닉네임·약관부터 받는다.
+    final SocialSignInResult? pending;
+    try {
+      pending = await AuthService.instance.pendingProfileSetup();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '회원 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.';
+      });
       return;
     }
-    Navigator.of(context).pop(true);
+    if (!mounted) return;
+    await _finishSignIn(pending ?? const SocialSignInResult.signedIn());
   }
 
   Future<void> _loginWithGoogle() =>
@@ -96,7 +107,12 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+    await _finishSignIn(result);
+  }
 
+  /// 로그인이 끝난 뒤. 프로필 문서가 없는 계정이면 닉네임·약관 → 카테고리를
+  /// 먼저 거치고, 중간에 그만두면 이 화면에 남는다.
+  Future<void> _finishSignIn(SocialSignInResult result) async {
     if (result.needsProfileSetup) {
       final completed = await SocialProfileSetupScreen.push(
         context,

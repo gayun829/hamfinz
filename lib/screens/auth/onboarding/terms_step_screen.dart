@@ -54,10 +54,15 @@ class _TermsStepScreenState extends State<TermsStepScreen> {
       _error = null;
     });
 
-    final error = await AuthService.instance.completeSignUp(
-      nickname: widget.draft.nickname,
-      marketingConsent: _marketing,
-    );
+    String? error;
+    try {
+      error = await AuthService.instance.completeSignUp(
+        nickname: widget.draft.nickname,
+        marketingConsent: _marketing,
+      );
+    } catch (_) {
+      error = '가입을 마치지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
 
     if (!mounted) return;
     if (error != null) {

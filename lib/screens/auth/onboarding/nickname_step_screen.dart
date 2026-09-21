@@ -15,9 +15,9 @@ class NicknameStepScreen extends StatefulWidget {
 
   final SignupDraft draft;
 
-  static const minLength = 2;
-  static const maxLength = 12;
-  static const hint = '2자~12자 사이로 입력해 주세요';
+  static const minLength = AuthService.nicknameMinLength;
+  static const maxLength = AuthService.nicknameMaxLength;
+  static const hint = AuthService.nicknameLengthHint;
 
   @override
   State<NicknameStepScreen> createState() => _NicknameStepScreenState();
@@ -36,9 +36,10 @@ class _NicknameStepScreenState extends State<NicknameStepScreen> {
 
   Future<void> _next() async {
     final nickname = _controller.text.trim();
-    if (nickname.length < NicknameStepScreen.minLength ||
-        nickname.length > NicknameStepScreen.maxLength) {
-      setState(() => _error = NicknameStepScreen.hint);
+    // 소셜 가입과 같은 규칙 — 길이와 문서 id로 못 쓰는 문자(`/` 등).
+    final invalid = AuthService.nicknameError(nickname);
+    if (invalid != null) {
+      setState(() => _error = invalid);
       return;
     }
 

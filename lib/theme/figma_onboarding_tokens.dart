@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 /// | 다른 방법 로그인_약관 | `439:2779` |
 ///
 /// 입력 화면 4개는 좌표가 같다 — 말풍선·햄스터·라벨·밑줄 위치를 공유하고
-/// 밑줄 아래 보조 영역(도움말·타이머·규칙)만 화면마다 다르다.
+/// 밑줄 아래 보조 영역(도움말·재전송·규칙)만 화면마다 다르다.
 abstract final class FigmaOnboardingTokens {
   static const designWidth = 393.0;
 
@@ -68,8 +68,9 @@ abstract final class FigmaOnboardingTokens {
   static const inputToUnderline = 19.0; // 279 − 260
   // 아래 네 값은 글자 높이를 뺀 "실제로 비우는 간격"이다.
   static const underlineToHelper = 6.0; // 도움말 중심 293.5
-  static const underlineToTimer = 14.0; // 타이머 중심 301.5
-  static const timerToResend = 10.0; // 재전송 중심 328.5
+  /// 인증 단계. 디자인은 밑줄 → 타이머(301.5) → 재전송(328.5)인데, 타이머를
+  /// 빼서 재전송이 타이머 자리로 올라간다.
+  static const underlineToResend = 14.0;
   static const underlineToRules = 13.8; // 규칙 1행 중심 300
   static const ruleRowGap = 13.6; // 규칙 2행 중심 328
   static const ruleColumnLeft = 36.0;

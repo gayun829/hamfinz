@@ -384,7 +384,7 @@ class _ClearButton extends StatelessWidget {
   }
 }
 
-/// 밑줄 아래 한 줄 (도움말·타이머). 왼쪽 들여쓰기를 디자인 좌표로 받는다.
+/// 밑줄 아래 한 줄 (도움말·재전송). 왼쪽 들여쓰기를 디자인 좌표로 받는다.
 class OnboardingHelperLine extends StatelessWidget {
   const OnboardingHelperLine({
     super.key,

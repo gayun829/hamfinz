@@ -19,7 +19,7 @@ SplashScreen (1.6초 + 세션 확인)
 | NicknameStepScreen | `lib/screens/auth/onboarding/nickname_step_screen.dart` | 가입 1 — 닉네임 + 중복 확인 |
 | EmailStepScreen | `lib/screens/auth/onboarding/email_step_screen.dart` | 가입 2 — 이메일 |
 | PasswordStepScreen | `lib/screens/auth/onboarding/password_step_screen.dart` | 가입 3 — 비밀번호(규칙 4개) |
-| VerifyStepScreen | `lib/screens/auth/onboarding/verify_step_screen.dart` | 가입 4 — 이메일 인증 + 타이머 |
+| VerifyStepScreen | `lib/screens/auth/onboarding/verify_step_screen.dart` | 가입 4 — 이메일 인증 + 재전송 |
 | TermsStepScreen | `lib/screens/auth/onboarding/terms_step_screen.dart` | 가입 5 — 약관 동의 |
 | LoginScreen | `lib/screens/auth/login_screen.dart` | 로그인, 비밀번호 찾기 |
 | FindPasswordScreen | `lib/screens/auth/find_password_screen.dart` | 비밀번호 재설정 |

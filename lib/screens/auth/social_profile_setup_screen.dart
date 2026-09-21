@@ -9,6 +9,7 @@ import '../legal/legal_document_screen.dart';
 import 'category_select_screen.dart';
 
 /// 소셜 로그인(구글·카카오)으로 처음 들어온 계정의 가입 마무리 화면.
+/// 이메일 인증까지 마치고 약관 전에 그만둔 계정이 로그인으로 들어와도 여기서 마친다.
 ///
 /// 제공자가 준 이름을 그대로 닉네임으로 박아 넣지 않고, 이메일 가입과 똑같이
 /// 닉네임을 직접 고르고 약관에 동의하게 한다. 여기서 [AuthService.completeSocialSignUp]이
@@ -71,11 +72,15 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
   }
 
   /// 닉네임 옆 "중복확인". 소셜 로그인은 이미 인증된 상태라 예약 인덱스를 읽을 수 있다.
+  ///
+  /// `_loading` 동안은 뒤로가기·취소·시작하기가 모두 잠기므로, 실패해도 반드시
+  /// 풀어야 한다 — 안 그러면 앱을 끄는 것 말고는 빠져나갈 길이 없다.
   Future<void> _checkNicknameDuplicate() async {
     final nickname = _nicknameController.text.trim();
-    if (nickname.isEmpty) {
+    final invalid = AuthService.nicknameError(nickname);
+    if (invalid != null) {
       setState(() {
-        _error = '닉네임을 입력해주세요.';
+        _error = invalid;
         _notice = null;
       });
       return;
@@ -87,17 +92,22 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
       _notice = null;
     });
 
-    final taken = await AuthService.instance.isNicknameTaken(nickname);
-
-    if (!mounted) return;
-    setState(() {
-      _loading = false;
-      if (taken) {
-        _error = '이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.';
-      } else {
-        _notice = '사용할 수 있는 닉네임이에요.';
-      }
-    });
+    try {
+      final taken = await AuthService.instance.isNicknameTaken(nickname);
+      if (!mounted) return;
+      setState(() {
+        if (taken) {
+          _error = '이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.';
+        } else {
+          _notice = '사용할 수 있는 닉네임이에요.';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = '중복 확인에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -108,6 +118,14 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
       });
       return;
     }
+    final invalid = AuthService.nicknameError(_nicknameController.text);
+    if (invalid != null) {
+      setState(() {
+        _error = invalid;
+        _notice = null;
+      });
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -115,9 +133,14 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
       _notice = null;
     });
 
-    final error = await AuthService.instance.completeSocialSignUp(
-      nickname: _nicknameController.text,
-    );
+    String? error;
+    try {
+      error = await AuthService.instance.completeSocialSignUp(
+        nickname: _nicknameController.text,
+      );
+    } catch (_) {
+      error = '가입을 마치지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
 
     if (!mounted) return;
     if (error != null) {
@@ -140,7 +163,12 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
   /// 다음에 앱을 켤 때 애매한 상태가 되므로 로그아웃까지 한다.
   Future<void> _cancel() async {
     setState(() => _loading = true);
-    await AuthService.instance.logout();
+    try {
+      await AuthService.instance.logout();
+    } catch (_) {
+      // 로그아웃이 실패해도 화면에 가두지 않는다. 프로필 없는 세션이 남으면
+      // 다음 실행 때 AuthGate가 이 화면으로 다시 데려온다.
+    }
     if (!mounted) return;
     widget.onCancelled();
   }

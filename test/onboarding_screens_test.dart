@@ -57,6 +57,23 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('문서 id로 못 쓰는 문자는 중복 확인 전에 막는다', (tester) async {
+      await pump(
+        tester,
+        const Size(393, 852),
+        NicknameStepScreen(draft: SignupDraft()),
+      );
+
+      // `/`가 들어가면 `nicknames/{닉네임}` 경로가 깨진다. 예전에는 길이만 봐서
+      // Firestore까지 갔다가 "중복 확인에 실패했어요"로 끝났다.
+      await tester.enterText(find.byType(TextField), '햄/핀');
+      await tester.tap(find.text('다음'));
+      await tester.pump();
+
+      expect(find.text('닉네임에 쓸 수 없는 문자가 들어 있어요.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('작은 화면에서도 넘치지 않는다', (tester) async {
       await pump(
         tester,

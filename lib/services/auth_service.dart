@@ -130,40 +130,95 @@ class AuthService {
   }
 
   /// 닉네임을 예약하고 프로필 문서를 만든다 — 이메일·소셜 가입의 마지막 단계.
+  ///
+  /// 예약과 프로필을 한 트랜잭션으로 쓴다. 따로 쓰면 중간에 끊겼을 때 예약만
+  /// 남는데, 예약 문서는 Rules가 수정·삭제를 막아서 다시 시도할 때 같은 문서에
+  /// `set`(= update)하면 거절된다 — 이어서 가입하려는 본인이 자기 닉네임에
+  /// 막히고 그 계정은 가입을 끝낼 수 없게 된다. 그래서 이미 내 uid로 잡혀 있는
+  /// 예약은 다시 쓰지 않고 넘어간다.
   Future<String?> _createProfile(
     User user,
     String nickname, {
     bool marketingConsent = false,
   }) async {
     final trimmedNickname = nickname.trim();
-    if (trimmedNickname.isEmpty) {
-      return '닉네임을 입력해주세요.';
-    }
+    final invalid = nicknameError(trimmedNickname);
+    if (invalid != null) return invalid;
 
-    try {
-      await _reserveNickname(user.uid, trimmedNickname);
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        return '이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.';
+    final nicknameRef = _nicknames.doc(trimmedNickname.toLowerCase());
+    final taken = await FirebaseFirestore.instance.runTransaction((tx) async {
+      final reservation = await tx.get(nicknameRef);
+      final available = nicknameAvailableFor(
+        reserved: reservation.exists,
+        ownerUid: reservation.data()?['uid'] as String?,
+        uid: user.uid,
+      );
+      if (!available) return true;
+      if (!reservation.exists) {
+        tx.set(nicknameRef, {'uid': user.uid, 'nickname': trimmedNickname});
       }
-      rethrow;
-    }
-    await _reserveEmail(user.uid, trimmedNickname, user.email);
-
-    await _users.doc(user.uid).set({
-      'nickname': trimmedNickname,
-      ..._defaultProfileJson(user, marketingConsent: marketingConsent),
+      tx.set(_users.doc(user.uid), {
+        'nickname': trimmedNickname,
+        ..._defaultProfileJson(user, marketingConsent: marketingConsent),
+      });
+      return false;
     });
+    if (taken) return '이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.';
+
+    // 이메일 검색 인덱스는 친구 찾기용이라 가입을 막을 이유가 없다. 이미 있으면
+    // (앞선 시도에서 만들어졌으면) Rules가 덮어쓰기를 거절하는데, 그대로 두면 되고
+    // 빠졌으면 다음 로그인 때 [_backfillSearchIndexes]가 채운다.
+    try {
+      await _reserveEmail(user.uid, trimmedNickname, user.email);
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+    }
     return null;
   }
+
+  static const nicknameMinLength = 2;
+  static const nicknameMaxLength = 12;
+  static const nicknameLengthHint = '2자~12자 사이로 입력해 주세요';
+
+  /// 닉네임 규칙. 이메일·소셜 가입이 같은 기준을 쓴다. 통과하면 null.
+  ///
+  /// 닉네임은 소문자로 바꿔 `nicknames/{닉네임}` 문서 id가 되므로, Firestore가
+  /// 문서 id로 받지 않는 `/`·`..`·`__이름__`도 여기서 막는다.
+  static String? nicknameError(String nickname) {
+    final trimmed = nickname.trim();
+    if (trimmed.length < nicknameMinLength ||
+        trimmed.length > nicknameMaxLength) {
+      return nicknameLengthHint;
+    }
+    if (trimmed.contains('/') ||
+        trimmed == '..' ||
+        RegExp(r'^__.*__$').hasMatch(trimmed)) {
+      return '닉네임에 쓸 수 없는 문자가 들어 있어요.';
+    }
+    return null;
+  }
+
+  /// [uid]가 이 닉네임을 쓸 수 있는지. 예약이 없거나 내가 잡아둔 것이면 쓸 수 있다
+  /// — 가입을 이어서 할 때 앞선 시도의 내 예약이 남아 있다.
+  ///
+  /// 중복 확인([isNicknameTaken])과 실제 예약([_createProfile])이 이 한 규칙을
+  /// 같이 써야 "확인은 통과했는데 가입에서 막히는" 일이 없다.
+  static bool nicknameAvailableFor({
+    required bool reserved,
+    required String? ownerUid,
+    required String? uid,
+  }) => !reserved || (uid != null && ownerUid == uid);
 
   /// 닉네임 중복 확인. 예약 문서가 내 uid면 내가 잡아둔 것이라 사용 가능으로 본다.
   Future<bool> isNicknameTaken(String nickname) async {
     final key = nickname.trim().toLowerCase();
     if (key.isEmpty) return false;
     final doc = await _nicknames.doc(key).get();
-    if (!doc.exists) return false;
-    return doc.data()?['uid'] != _auth.currentUser?.uid;
+    return !nicknameAvailableFor(
+      reserved: doc.exists,
+      ownerUid: doc.data()?['uid'] as String?,
+      uid: _auth.currentUser?.uid,
+    );
   }
 
   Future<String?> login({
@@ -258,6 +313,18 @@ class AuthService {
     if (providerIds.isEmpty || providerIds.every((id) => id == 'password')) {
       return null;
     }
+    return pendingProfileSetup();
+  }
+
+  /// 로그인은 됐는데 `users/{uid}` 문서가 없으면 닉네임·약관 화면이 필요하다고
+  /// 알려준다. 프로필이 있으면 null.
+  ///
+  /// 이메일 가입자가 인증까지 마치고 약관 단계에서 그만둔 뒤 로그인 화면으로
+  /// 들어온 경우도 여기에 걸린다 — 그냥 통과시키면 홈이 프로필을 못 찾아
+  /// "사용자 정보를 불러올 수 없습니다"에서 멈춘다.
+  Future<SocialSignInResult?> pendingProfileSetup() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
     final doc = await _users.doc(user.uid).get();
     if (doc.exists) return null;
     return SocialSignInResult.needsSetup(
@@ -266,6 +333,8 @@ class AuthService {
   }
 
   /// 소셜 가입 마무리. 사용자가 직접 고른 닉네임으로 프로필 문서를 만든다.
+  /// 프로필 없이 로그인한 이메일 계정([pendingProfileSetup])도 여기서 마친다
+  /// — 로그인이 이미 이메일 인증을 확인했다.
   Future<String?> completeSocialSignUp({required String nickname}) async {
     final user = _auth.currentUser;
     if (user == null) return '로그인 정보가 없어요. 다시 로그인해 주세요.';
