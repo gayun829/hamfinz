@@ -7,12 +7,15 @@ import '../../theme/app_theme.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/home_bottom_nav.dart';
 
-/// 기사에서 잡은 금융 용어 하나를 3지선다 한 문제로 묻는다.
+/// 기사에서 잡은 금융 용어 하나를 가르치고 3지선다 한 문제로 묻는다.
 ///
-/// Figma `뉴스_퀴즈창 → 뉴스_정오답 → 뉴스_해설` 세 장면을 한 화면의 상태로 돈다.
+/// Figma `뉴스_퀴즈창 → 뉴스_정오답 → 뉴스_해설` 세 장면 **앞에 학습 단계**를 둔다.
+/// 무슨 용어인지 모른 채 문제부터 받으면 찍고 넘기게 된다. 뜻을 먼저 보여 주고
+/// 나서 물어야 해설이 남는다.
 ///
 /// | 단계 | 보기 | 버튼 |
 /// |---|---|---|
+/// | 학습 | 용어 뜻 + 「나한테는?」 | 퀴즈 풀기 |
 /// | 문제 | 고른 보기만 하늘색 테두리 | 정답 보기 |
 /// | 정오답 | 정답은 하늘색, 내가 틀리게 고른 건 빨강 | 해설 보기 |
 /// | 해설 | 정답 하나만 노랑으로 남기고 아래에 해설 상자 | 나가기 |
@@ -46,10 +49,10 @@ class TermQuizScreen extends StatefulWidget {
   State<TermQuizScreen> createState() => _TermQuizScreenState();
 }
 
-enum _Stage { question, graded, explain }
+enum _Stage { learn, question, graded, explain }
 
 class _TermQuizScreenState extends State<TermQuizScreen> {
-  _Stage _stage = _Stage.question;
+  _Stage _stage = _Stage.learn;
 
   /// 고른 보기. null이면 아직 안 골랐다.
   int? _picked;
@@ -59,6 +62,13 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
 
   TermQuiz get _quiz => widget.term.quiz!;
   bool get _isCorrect => _picked == _quiz.answer;
+
+  /// 이미 씨앗을 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
+  bool get _showReward =>
+      _earned > 0 ||
+      !NewsQuizRepository.instance.isRewarded(widget.term.term);
+
+  void _startQuiz() => setState(() => _stage = _Stage.question);
 
   void _pick(int index) {
     if (_stage != _Stage.question) return;
@@ -96,25 +106,28 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                   children: [
                     _BackChevron(onTap: _exit),
                     const SizedBox(height: 28),
-                    _QuestionHeader(
-                      reward: NewsQuizRepository.seedsPerCorrect,
-                      // 이미 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
-                      showReward:
-                          _earned > 0 ||
-                          !NewsQuizRepository.instance.isRewarded(
-                            widget.term.term,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _quiz.question,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.45,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                    if (_stage == _Stage.learn)
+                      _LearnHeader(
+                        term: widget.term.term,
+                        reward: NewsQuizRepository.seedsPerCorrect,
+                        showReward: _showReward,
+                      )
+                    else ...[
+                      _QuestionHeader(
+                        reward: NewsQuizRepository.seedsPerCorrect,
+                        showReward: _showReward,
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _quiz.question,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          height: 1.45,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 22),
                     // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
                     Expanded(
@@ -122,7 +135,9 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (_stage == _Stage.explain)
+                            if (_stage == _Stage.learn)
+                              _buildLearn()
+                            else if (_stage == _Stage.explain)
                               _buildExplain()
                             else
                               _buildOptions(),
@@ -142,6 +157,29 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
           HomeBottomNav(currentIndex: 0, onTap: (_) => _exit()),
         ],
       ),
+    );
+  }
+
+  /// 학습 — 용어 뜻과 「나한테는?」. 문제는 아직 안 보여준다.
+  Widget _buildLearn() {
+    final term = widget.term;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _LearnBox(
+          label: '이런 뜻이에요',
+          body: term.summary,
+          accent: _OptionStyle.accent,
+        ),
+        if (term.forMe.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _LearnBox(
+            label: '나한테는?',
+            body: term.forMe,
+            accent: _OptionStyle.answer.border,
+          ),
+        ],
+      ],
     );
   }
 
@@ -165,6 +203,8 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
     final isAnswer = index == _quiz.answer;
     final isPicked = index == _picked;
     switch (_stage) {
+      // 학습 단계에선 보기를 아예 안 그리지만 switch를 다 덮어 둔다.
+      case _Stage.learn:
       case _Stage.question:
         return isPicked ? _OptionStyle.picked : _OptionStyle.idle;
       case _Stage.graded:
@@ -247,6 +287,8 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
 
   Widget _buildButton() {
     switch (_stage) {
+      case _Stage.learn:
+        return _PrimaryButton(label: '퀴즈 풀기', onPressed: _startQuiz);
       case _Stage.question:
         return _PrimaryButton(
           label: '정답 보기',
@@ -282,6 +324,102 @@ class _BackChevron extends StatelessWidget {
   }
 }
 
+/// 학습 단계 머리 — 용어 이름과 씨앗 배지. `Q` 자리에 용어가 온다.
+class _LearnHeader extends StatelessWidget {
+  const _LearnHeader({
+    required this.term,
+    required this.reward,
+    required this.showReward,
+  });
+
+  final String term;
+  final int reward;
+  final bool showReward;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              '오늘의 용어',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: _OptionStyle.accent,
+              ),
+            ),
+            if (showReward) ...[
+              const SizedBox(width: 8),
+              _SeedBadge(reward: reward),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          term,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 학습 단계의 설명 상자. 해설 상자와 같은 흰 상자에 색 라벨만 얹는다.
+class _LearnBox extends StatelessWidget {
+  const _LearnBox({
+    required this.label,
+    required this.body,
+    required this.accent,
+  });
+
+  final String label;
+  final String body;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _OptionStyle.idle.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: accent,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.55,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// `Q` 마크 + 씨앗 `+3` 배지.
 class _QuestionHeader extends StatelessWidget {
   const _QuestionHeader({required this.reward, required this.showReward});
@@ -304,34 +442,45 @@ class _QuestionHeader extends StatelessWidget {
         ),
         if (showReward) ...[
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
-            decoration: BoxDecoration(
-              color: AppTheme.figmaMintCard,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: FigmaSvg(FigmaAssets.shopSeedPouch),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  '+$reward',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
+          _SeedBadge(reward: reward),
+        ],
+      ],
+    );
+  }
+}
+
+class _SeedBadge extends StatelessWidget {
+  const _SeedBadge({required this.reward});
+
+  final int reward;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+      decoration: BoxDecoration(
+        color: AppTheme.figmaMintCard,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: FigmaSvg(FigmaAssets.shopSeedPouch),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            '+$reward',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 }
