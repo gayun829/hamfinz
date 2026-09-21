@@ -12,6 +12,9 @@ class ShopItem {
     this.featured = false,
     this.hideFromCloset = false,
     this.imageUrl,
+    this.assetPath,
+    this.included = false,
+    this.sharedCanvas = false,
   });
 
   final String id;
@@ -24,6 +27,10 @@ class ShopItem {
   final bool featured;
   final bool hideFromCloset;
   final String? imageUrl;
+  final String? assetPath;
+  final bool included;
+  final bool sharedCanvas;
+  bool get usesSharedCanvas => assetPath != null || sharedCanvas;
 
   factory ShopItem.fromFirestore(String id, Map<String, dynamic> data) {
     final categoryName = data['category'] as String? ?? 'accessory';
@@ -43,14 +50,22 @@ class ShopItem {
       featured: data['featured'] as bool? ?? false,
       hideFromCloset: data['hideFromCloset'] as bool? ?? false,
       imageUrl: data['imageUrl'] as String?,
+      sharedCanvas:
+          data['sharedCanvas'] as bool? ??
+          (category == ShopCategory.skin || category == ShopCategory.accessory),
     );
   }
 }
 
 abstract final class ShopData {
-  /// Figma `image 64` 스프라이트 — 6열 × 5행.
-  static const spriteColumns = 6;
-  static const spriteRows = 5;
+  static const retiredIds = {
+    'headband',
+    'cap',
+    'hoodie',
+    'glasses',
+    'bow',
+    'coconut',
+  };
 
   /// [items]의 id·price는 `functions/index.js`의 `SHOP_CATALOG`와 값을 맞춰야
   /// 한다 — 배포(cloudFunctions) 모드에서는 Functions가 이 두 카탈로그 중
@@ -58,59 +73,151 @@ abstract final class ShopData {
   /// 조용히 처리하므로) 가격·종류가 어긋난 채로 구매가 성사될 수 있다.
   static const items = <ShopItem>[
     ShopItem(
-      id: 'headband',
-      name: '머리띠',
-      description: '머리띠를 쓰면 용감한 햄핀이',
-      price: 579,
-      category: ShopCategory.accessory,
-      spriteCol: 5,
-      spriteRow: 0,
-      featured: true,
-    ),
-    ShopItem(
-      id: 'cap',
-      name: '모자',
-      description: '모자를 쓰면 멋진 햄핀이',
-      price: 579,
-      category: ShopCategory.accessory,
-      spriteCol: 2,
-      spriteRow: 0,
-    ),
-    ShopItem(
-      id: 'hoodie',
-      name: '후드티',
-      description: '후드티를 입으면 포근한 햄핀이',
-      price: 579,
+      id: 'skin_default',
+      name: '기본 햄핀',
+      description: '기본 햄핀으로 햄핀을 꾸며보세요.',
+      price: 0,
       category: ShopCategory.skin,
-      spriteCol: 3,
-      spriteRow: 0,
-    ),
-    ShopItem(
-      id: 'glasses',
-      name: '안경',
-      description: '안경을 쓰면 똑똑한 햄핀이',
-      price: 579,
-      category: ShopCategory.accessory,
-      spriteCol: 1,
-      spriteRow: 0,
-    ),
-    ShopItem(
-      id: 'bow',
-      name: '리본',
-      description: '리본을 달면 사랑스러운 햄핀이',
-      price: 579,
-      category: ShopCategory.pattern,
-      spriteCol: 1,
-      spriteRow: 1,
-    ),
-    ShopItem(
-      id: 'coconut',
-      name: '코코넛 하우스',
-      description: '코코넛 집에서 쉬는 햄핀이',
-      price: 579,
-      category: ShopCategory.background,
       spriteCol: 0,
       spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_default.png',
+      included: true,
+    ),
+    ShopItem(
+      id: 'skin_bearded_cream',
+      name: '수염 햄핀',
+      description: '수염 햄핀으로 햄핀을 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.skin,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_bearded_cream.png',
+      included: false,
+    ),
+    ShopItem(
+      id: 'skin_bearded_gray',
+      name: '회색 수염 햄핀',
+      description: '회색 수염 햄핀으로 햄핀을 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.skin,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_bearded_gray.png',
+      included: false,
+    ),
+    ShopItem(
+      id: 'skin_caveman',
+      name: '원시인 햄핀',
+      description: '원시인 햄핀으로 햄핀을 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.skin,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_caveman.png',
+      included: false,
+    ),
+    ShopItem(
+      id: 'skin_caveman_bearded',
+      name: '수염 원시인 햄핀',
+      description: '수염 원시인 햄핀으로 햄핀을 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.skin,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_caveman_bearded.png',
+      included: false,
+    ),
+    ShopItem(
+      id: 'skin_bee',
+      name: '꿀벌 햄핀',
+      description: '귀여운 날개와 줄무늬를 가진 꿀벌 햄핀이에요.',
+      price: 579,
+      category: ShopCategory.skin,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_bee.png',
+    ),
+    ShopItem(
+      id: 'skin_bee_duckbill',
+      name: '오리입 꿀벌 햄핀',
+      description: '오리입이 매력적인 꿀벌 햄핀이에요.',
+      price: 579,
+      category: ShopCategory.skin,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/skins/skin_bee_duckbill.png',
+    ),
+    ShopItem(
+      id: 'accessory_grandma',
+      name: '할머니 장식',
+      description: '할머니 장식으로 햄핀을 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_grandma.png',
+      included: false,
+    ),
+    ShopItem(
+      id: 'accessory_painter_set',
+      name: '화가 세트',
+      description: '베레모와 앞치마를 함께 착용해요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_painter_set.png',
+      included: false,
+    ),
+    ShopItem(
+      id: 'accessory_perm',
+      name: '파마 머리',
+      description: '동글동글한 파마 머리로 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_perm.png',
+    ),
+    ShopItem(
+      id: 'accessory_kindergarten_hair',
+      name: '유치원생 세트 (머리 있음)',
+      description: '머리카락이 있는 모자와 유치원복 세트예요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_kindergarten_hair.png',
+    ),
+    ShopItem(
+      id: 'accessory_kindergarten',
+      name: '유치원생 세트 (머리 없음)',
+      description: '모자와 유치원복을 함께 착용해요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_kindergarten.png',
+    ),
+    ShopItem(
+      id: 'accessory_propeller_hat',
+      name: '헬리콥터 모자',
+      description: '프로펠러 모자로 햄핀을 꾸며보세요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_propeller_hat.png',
+    ),
+    ShopItem(
+      id: 'accessory_genie_set',
+      name: '요술지니 세트',
+      description: '지니 머리와 수염, 장식을 함께 착용해요.',
+      price: 579,
+      category: ShopCategory.accessory,
+      spriteCol: 0,
+      spriteRow: 0,
+      assetPath: 'assets/figma/shop/accessories/accessory_genie_set.png',
     ),
     ShopItem(
       id: 'study_guard',

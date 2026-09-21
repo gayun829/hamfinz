@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
@@ -29,7 +28,8 @@ class ClosetScreen extends StatefulWidget {
 
 class _ClosetScreenState extends State<ClosetScreen> {
   late UserProfile _profile;
-  _ClosetTab _tab = _ClosetTab.accessory;
+  _ClosetTab _tab = _ClosetTab.skin;
+  bool _saving = false;
   String? _stagedSkinId;
   String? _stagedPatternId;
   String? _stagedBackgroundId;
@@ -60,7 +60,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
           .where(
             (item) =>
                 !item.hideFromCloset &&
-                _profile.ownedShopItemIds.contains(item.id),
+                (item.included || _profile.ownedShopItemIds.contains(item.id)),
           )
           .toList();
     }
@@ -70,7 +70,8 @@ class _ClosetScreenState extends State<ClosetScreen> {
             .where(
               (item) =>
                   !item.hideFromCloset &&
-                  _profile.ownedShopItemIds.contains(item.id),
+                  (item.included ||
+                      _profile.ownedShopItemIds.contains(item.id)),
             )
             .toList();
       case _ClosetTab.skin:
@@ -119,11 +120,13 @@ class _ClosetScreenState extends State<ClosetScreen> {
     );
     if (!mounted) return;
     final latest = await AuthService.instance.getCurrentUser();
+    if (!mounted) return;
     if (latest != null) setState(() => _profile = latest);
   }
 
   Future<bool> _purchaseOrEquipFromPreview(ShopItem item) async {
-    final owned = _profile.ownedShopItemIds.contains(item.id);
+    final owned =
+        (item.included || _profile.ownedShopItemIds.contains(item.id));
     var skinId = _profile.equippedSkinId;
     var patternId = _profile.equippedPatternId;
     var backgroundId = _profile.equippedBackgroundId;
@@ -144,57 +147,61 @@ class _ClosetScreenState extends State<ClosetScreen> {
       _showSnackBar(_seedShortageMessage(item.price));
       return false;
     }
-    await _equipOrBuyItem(
+    return _equipOrBuyItem(
       item,
       skinId: skinId,
       patternId: patternId,
       backgroundId: backgroundId,
       accessoryIds: accessoryIds,
     );
-    return true;
   }
 
-  Future<void> _equipOrBuyItem(
+  Future<bool> _equipOrBuyItem(
     ShopItem item, {
     required String? skinId,
     required String? patternId,
     required String? backgroundId,
     required List<String> accessoryIds,
   }) async {
-    final owned = _profile.ownedShopItemIds.contains(item.id);
-    if (!owned) {
-      if (_profile.seeds < item.price) {
-        _showSnackBar(_seedShortageMessage(item.price));
-        return;
+    if (_saving) return false;
+    setState(() => _saving = true);
+    try {
+      final owned =
+          item.included || _profile.ownedShopItemIds.contains(item.id);
+      if (!owned) {
+        final result = await ShopService.instance.purchaseItem(
+          profile: _profile,
+          itemId: item.id,
+        );
+        if (!mounted) return false;
+        if (!result.isSuccess) {
+          _showSnackBar(result.message ?? '구매에 실패했어요.');
+          return false;
+        }
       }
-      final result = await ShopService.instance.purchaseItem(
-        profile: _profile,
-        itemId: item.id,
+      await AuthService.instance.updateShopEquipment(
+        skinId: skinId,
+        patternId: patternId,
+        backgroundId: backgroundId,
+        accessoryIds: accessoryIds,
       );
-      if (!mounted) return;
-      if (!result.isSuccess) {
-        _showSnackBar(result.message ?? '구매에 실패했어요.');
-        return;
-      }
+      if (!mounted) return false;
+      setState(() {
+        _profile.equippedSkinId = _stagedSkinId = skinId;
+        _profile.equippedPatternId = _stagedPatternId = patternId;
+        _profile.equippedBackgroundId = _stagedBackgroundId = backgroundId;
+        _profile.equippedAccessoryIds = List.of(accessoryIds);
+        _stagedAccessoryIds
+          ..clear()
+          ..addAll(accessoryIds);
+      });
+      return true;
+    } catch (_) {
+      _showSnackBar('착용을 저장하지 못했어요. 구매한 아이템은 옷장에서 다시 착용할 수 있어요.');
+      return false;
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-
-    _profile.equippedSkinId = skinId;
-    _profile.equippedPatternId = patternId;
-    _profile.equippedBackgroundId = backgroundId;
-    _profile.equippedAccessoryIds = accessoryIds;
-    await AuthService.instance.saveProfile(_profile);
-    if (!mounted) return;
-    setState(() {
-      _stagedSkinId = skinId;
-      _stagedPatternId = patternId;
-      _stagedBackgroundId = backgroundId;
-      _stagedAccessoryIds
-        ..clear()
-        ..addAll(accessoryIds);
-    });
-    _showSnackBar(
-      owned ? '${item.name}을(를) 착용했어요.' : '${item.name}을(를) 구매하고 착용했어요.',
-    );
   }
 
   void _showSnackBar(String message) {
@@ -208,15 +215,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
     return '씨앗이 부족해요. 총 $total씨앗이 필요합니다. (현재 $_profile.seeds)';
   }
 
-  ShopItem? _itemById(String? id) {
-    if (id == null) return null;
-    try {
-      return _catalogItems.firstWhere((i) => i.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
-
   Widget _buildCompositePreview(
     double width,
     double height, {
@@ -224,58 +222,13 @@ class _ClosetScreenState extends State<ClosetScreen> {
     required String? patternId,
     required String? backgroundId,
     required List<String> accessoryIds,
-  }) {
-    // Order: base hamster -> background -> skin -> pattern -> accessories
-    final List<Widget> layers = [];
-
-    // base
-    layers.add(
-      Image.asset(
-        FigmaAssets.hamsterAuth,
-        width: width,
-        height: height,
-        fit: BoxFit.contain,
-        errorBuilder: (c, e, s) => const SizedBox.shrink(),
-      ),
-    );
-
-    final background = _itemById(backgroundId);
-    final skin = _itemById(skinId);
-    final pattern = _itemById(patternId);
-
-    if (background != null) {
-      layers.add(
-        ShopHamsterSprite(
-          column: background.spriteCol,
-          row: background.spriteRow,
-        ),
-      );
-    }
-    if (skin != null) {
-      layers.add(
-        ShopHamsterSprite(column: skin.spriteCol, row: skin.spriteRow),
-      );
-    }
-    if (pattern != null) {
-      layers.add(
-        ShopHamsterSprite(column: pattern.spriteCol, row: pattern.spriteRow),
-      );
-    }
-    for (final accId in accessoryIds) {
-      final acc = _itemById(accId);
-      if (acc != null) {
-        layers.add(
-          ShopHamsterSprite(column: acc.spriteCol, row: acc.spriteRow),
-        );
-      }
-    }
-
-    return Stack(
-      children: layers
-          .map((w) => SizedBox(width: width, height: height, child: w))
-          .toList(),
-    );
-  }
+  }) => ShopAvatar(
+    catalogItems: _catalogItems,
+    skinId: skinId,
+    patternId: patternId,
+    backgroundId: backgroundId,
+    accessoryIds: accessoryIds,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -376,9 +329,9 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                 ),
                             itemBuilder: (context, index) {
                               final item = items[index];
-                              final owned = _profile.ownedShopItemIds.contains(
-                                item.id,
-                              );
+                              final owned =
+                                  item.included ||
+                                  _profile.ownedShopItemIds.contains(item.id);
                               Widget card = ShopItemCard(
                                 figma: figma,
                                 item: item,
@@ -391,48 +344,40 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                   (!widget.showCatalog ||
                                       _tab == _ClosetTab.my)) {
                                 bool isEquipped() {
-                                  return _stagedSkinId == item.id ||
+                                  return (item.included &&
+                                          _stagedSkinId == null) ||
+                                      _stagedSkinId == item.id ||
                                       _stagedPatternId == item.id ||
                                       _stagedBackgroundId == item.id ||
                                       _stagedAccessoryIds.contains(item.id);
                                 }
 
-                                void toggleEquip() {
-                                  setState(() {
-                                    switch (item.category) {
-                                      case ShopCategory.skin:
-                                        _stagedSkinId = _stagedSkinId == item.id
-                                            ? null
-                                            : item.id;
-                                        break;
-                                      case ShopCategory.pattern:
-                                        _stagedPatternId =
-                                            _stagedPatternId == item.id
-                                            ? null
-                                            : item.id;
-                                        break;
-                                      case ShopCategory.accessory:
-                                        if (_stagedAccessoryIds.contains(
-                                          item.id,
-                                        )) {
-                                          _stagedAccessoryIds.remove(item.id);
-                                        } else {
-                                          _stagedAccessoryIds.add(item.id);
-                                        }
-                                        break;
-                                      case ShopCategory.background:
-                                        _stagedBackgroundId =
-                                            _stagedBackgroundId == item.id
-                                            ? null
-                                            : item.id;
-                                        break;
-                                    }
-                                  });
+                                Future<void> toggleEquip() async {
+                                  if (_saving) return;
+                                  final removing = isEquipped();
+                                  await _equipOrBuyItem(
+                                    item,
+                                    skinId: item.category == ShopCategory.skin
+                                        ? (removing ? null : item.id)
+                                        : _stagedSkinId,
+                                    patternId:
+                                        item.category == ShopCategory.pattern
+                                        ? (removing ? null : item.id)
+                                        : _stagedPatternId,
+                                    backgroundId:
+                                        item.category == ShopCategory.background
+                                        ? (removing ? null : item.id)
+                                        : _stagedBackgroundId,
+                                    accessoryIds:
+                                        item.category == ShopCategory.accessory
+                                        ? (removing ? <String>[] : [item.id])
+                                        : List.of(_stagedAccessoryIds),
+                                  );
                                 }
 
                                 return Column(
                                   children: [
-                                    card,
+                                    Expanded(child: card),
                                     SizedBox(height: s(8)),
                                     GestureDetector(
                                       onTap: toggleEquip,

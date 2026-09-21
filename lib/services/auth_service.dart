@@ -247,6 +247,23 @@ class AuthService {
     await _auth.signOut();
   }
 
+  /// 착용 정보만 저장해 다른 화면에서 변경한 프로필 값을 보호한다.
+  Future<void> updateShopEquipment({
+    required String? skinId,
+    required String? patternId,
+    required String? backgroundId,
+    required List<String> accessoryIds,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('로그인이 필요해요.');
+    await _users.doc(user.uid).update({
+      'equippedSkinId': skinId,
+      'equippedPatternId': patternId,
+      'equippedBackgroundId': backgroundId,
+      'equippedAccessoryIds': accessoryIds,
+    });
+  }
+
   /// 클라이언트가 직접 고치는 필드만 쓴다.
   ///
   /// energy·streak·learningDates·categoryStats는

@@ -28,40 +28,40 @@ class ShopHeader extends StatelessWidget {
       child: SizedBox(
         height: s(48).clamp(44, 56),
         child: Row(
-        children: [
-          SizedBox(
-            width: s(48),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              onPressed: onBack,
-              icon: Text(
-                '<',
-                style: TextStyle(
-                  fontSize: s(32),
-                  fontWeight: FontWeight.w600,
-                  color: FigmaShopTokens.seed,
-                  height: 1,
+          children: [
+            SizedBox(
+              width: s(48),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                onPressed: onBack,
+                icon: Text(
+                  '<',
+                  style: TextStyle(
+                    fontSize: s(32),
+                    fontWeight: FontWeight.w600,
+                    color: FigmaShopTokens.seed,
+                    height: 1,
+                  ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: FigmaShopTokens.headerTitle(figma.scale),
+            Expanded(
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: FigmaShopTokens.headerTitle(figma.scale),
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: s(14)),
-            child: ShopSeedChip(
-              figma: figma,
-              seeds: seeds,
-              iconSize: FigmaShopTokens.seedIconHeader,
-              amountSize: 17.243,
+            Padding(
+              padding: EdgeInsets.only(right: s(14)),
+              child: ShopSeedChip(
+                figma: figma,
+                seeds: seeds,
+                iconSize: FigmaShopTokens.seedIconHeader,
+                amountSize: 17.243,
+              ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
@@ -104,61 +104,6 @@ class ShopSeedChip extends StatelessWidget {
   }
 }
 
-/// Figma `image 64` 스프라이트 한 칸.
-class ShopHamsterSprite extends StatelessWidget {
-  const ShopHamsterSprite({
-    super.key,
-    required this.column,
-    required this.row,
-  });
-
-  final int column;
-  final int row;
-
-  @override
-  Widget build(BuildContext context) {
-        return LayoutBuilder(
-      builder: (context, constraints) {
-        final cellW = constraints.maxWidth;
-        final cellH = constraints.maxHeight;
-        if (!cellW.isFinite ||
-            !cellH.isFinite ||
-            cellW <= 0 ||
-            cellH <= 0) {
-          return const SizedBox.shrink();
-        }
-        final cols = ShopData.spriteColumns;
-        final rows = ShopData.spriteRows;
-        return ClipRect(
-          child: OverflowBox(
-            maxWidth: cellW * cols,
-            maxHeight: cellH * rows,
-            alignment: Alignment(
-              cols == 1 ? 0 : -1 + (2 * column / (cols - 1)),
-              rows == 1 ? 0 : -1 + (2 * row / (rows - 1)),
-            ),
-            child: Image.asset(
-              FigmaAssets.shopHamsterSheet,
-              width: cellW * cols,
-              height: cellH * rows,
-              fit: BoxFit.fill,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (context, error, stackTrace) {
-                return Image.asset(
-                  FigmaAssets.hamsterAuth,
-                  width: cellW,
-                  height: cellH,
-                  fit: BoxFit.contain,
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 class ShopItemCard extends StatelessWidget {
   const ShopItemCard({
     super.key,
@@ -188,37 +133,52 @@ class ShopItemCard extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(s(12), s(12), s(12), s(8)),
-                child: item.imageUrl == null || item.imageUrl!.isEmpty
-                    ? ShopHamsterSprite(
-                        column: item.spriteCol,
-                        row: item.spriteRow,
+                child: item.usesSharedCanvas
+                    ? ShopAvatar(
+                        catalogItems: [
+                          ...ShopData.items.where((i) => i.id != item.id),
+                          item,
+                        ],
+                        skinId: item.category == ShopCategory.skin
+                            ? item.id
+                            : null,
+                        patternId: item.category == ShopCategory.pattern
+                            ? item.id
+                            : null,
+                        backgroundId: item.category == ShopCategory.background
+                            ? item.id
+                            : null,
+                        accessoryIds: item.category == ShopCategory.accessory
+                            ? [item.id]
+                            : const [],
                       )
-                    : Image.network(
-                        item.imageUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            ShopHamsterSprite(
-                              column: item.spriteCol,
-                              row: item.spriteRow,
-                            ),
-                      ),
+                    : ShopItemImage(item: item),
               ),
             ),
+            Text(
+              item.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: FigmaShopTokens.body(figma.scale),
+            ),
+            SizedBox(height: s(6)),
             Padding(
               padding: EdgeInsets.fromLTRB(s(20), 0, s(20), s(16)),
               child: Container(
                 height: s(32),
                 decoration: BoxDecoration(
                   color: FigmaShopTokens.chip,
-                  borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
+                  borderRadius: BorderRadius.circular(
+                    s(FigmaShopTokens.cardRadius),
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: owned
                     ? Text(
-                        'Owned',
-                        style: FigmaShopTokens.body(figma.scale).copyWith(
-                          fontSize: 15 * figma.scale,
-                        ),
+                        item.included ? '기본 제공' : '보유 중',
+                        style: FigmaShopTokens.body(
+                          figma.scale,
+                        ).copyWith(fontSize: 15 * figma.scale),
                       )
                     : ShopSeedChip(
                         figma: figma,
@@ -228,6 +188,85 @@ class ShopItemCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Every local layer keeps its original common canvas coordinates.
+class ShopItemImage extends StatelessWidget {
+  const ShopItemImage({super.key, required this.item});
+  final ShopItem item;
+  @override
+  Widget build(BuildContext context) {
+    if (item.assetPath != null) {
+      return Image.asset(item.assetPath!, fit: BoxFit.contain);
+    }
+    if (item.imageUrl?.isNotEmpty == true) {
+      return Image.network(
+        item.imageUrl!,
+        fit: BoxFit.contain,
+        errorBuilder: (_, error, stack) =>
+            const Icon(Icons.broken_image_outlined),
+      );
+    }
+    return Icon(
+      item.id == 'study_guard'
+          ? Icons.shield_rounded
+          : item.id == 'energy_pack'
+          ? Icons.bolt_rounded
+          : Icons.checkroom_rounded,
+      size: 64,
+      color: const Color(0xFF38C5F5),
+    );
+  }
+}
+
+class ShopAvatar extends StatelessWidget {
+  const ShopAvatar({
+    super.key,
+    this.catalogItems = ShopData.items,
+    this.skinId,
+    this.patternId,
+    this.backgroundId,
+    this.accessoryIds = const [],
+  });
+  final List<ShopItem> catalogItems;
+  final String? skinId, patternId, backgroundId;
+  final List<String> accessoryIds;
+  @override
+  Widget build(BuildContext context) {
+    ShopItem? lookup(String? id) {
+      for (final item in catalogItems) {
+        if (item.id == id) return item;
+      }
+      return null;
+    }
+
+    final skin =
+        lookup(skinId) ??
+        ShopData.items.firstWhere((i) => i.id == 'skin_default');
+    final layers = [
+      lookup(backgroundId),
+      skin,
+      lookup(patternId),
+      ...accessoryIds.map(lookup),
+    ].whereType<ShopItem>();
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              for (final item in layers)
+                Transform.scale(
+                  scale: item.usesSharedCanvas ? 1.65 : 1,
+                  child: ShopItemImage(key: ValueKey(item.id), item: item),
+                ),
+            ],
+          ),
         ),
       ),
     );

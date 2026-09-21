@@ -81,7 +81,6 @@ class FigmaAssets {
 
   // Shop
   static const shopSeedPouch = '$_shop/seed_pouch.svg';
-  static const shopHamsterSheet = '$_shop/hamster_headband.png';
   static const shopClosetBanner = '$_shop/closet_banner_hamster.png';
   static const shopClothingBanner = '$_shop/clothing_shop_hamster.png';
 

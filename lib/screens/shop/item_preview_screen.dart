@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 
-class ItemPreviewScreen extends StatelessWidget {
+class ItemPreviewScreen extends StatefulWidget {
   const ItemPreviewScreen({
     super.key,
     required this.item,
@@ -21,10 +20,37 @@ class ItemPreviewScreen extends StatelessWidget {
   final List<ShopItem> catalogItems;
   final Future<bool> Function() onPurchase;
 
+  @override
+  State<ItemPreviewScreen> createState() => _ItemPreviewScreenState();
+}
+
+class _ItemPreviewScreenState extends State<ItemPreviewScreen> {
+  bool _busy = false;
+  ShopItem get item => widget.item;
+  UserProfile get profile => widget.profile;
+  List<ShopItem> get catalogItems => widget.catalogItems;
+  Future<bool> Function() get onPurchase => widget.onPurchase;
+
   Future<void> _buy(BuildContext context) async {
-    if (profile.ownedShopItemIds.contains(item.id)) {
-      await onPurchase();
-      if (context.mounted) Navigator.of(context).pop();
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await _performBuy(context);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('처리하지 못했어요. 잠시 후 다시 시도해주세요.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _performBuy(BuildContext context) async {
+    if ((item.included || profile.ownedShopItemIds.contains(item.id))) {
+      final success = await onPurchase();
+      if (success && context.mounted) Navigator.of(context).pop();
       return;
     }
 
@@ -127,10 +153,15 @@ class ItemPreviewScreen extends StatelessWidget {
                           ),
                           SizedBox(height: s(14)),
                           _ActionButton(
-                            label: profile.ownedShopItemIds.contains(item.id)
+                            label: _busy
+                                ? '처리 중…'
+                                : (item.included ||
+                                      profile.ownedShopItemIds.contains(
+                                        item.id,
+                                      ))
                                 ? '착용하기'
                                 : '구매하기',
-                            onPressed: () => _buy(context),
+                            onPressed: _busy ? null : () => _buy(context),
                           ),
                           SizedBox(height: s(14)),
                         ],
@@ -171,29 +202,20 @@ class _PreviewHamster extends StatelessWidget {
     final backgroundId = item.category == ShopCategory.background
         ? item.id
         : profile.equippedBackgroundId;
-    final layers = <Widget>[
-      Image.asset(FigmaAssets.hamsterAuth, fit: BoxFit.contain),
-    ];
-    final ids = [backgroundId, skinId, patternId, ...accessoryIds];
-    for (final id in ids) {
-      final match = catalogItems.where((entry) => entry.id == id);
-      if (match.isNotEmpty) {
-        layers.add(
-          ShopHamsterSprite(
-            column: match.first.spriteCol,
-            row: match.first.spriteRow,
-          ),
-        );
-      }
-    }
-    return Stack(children: layers);
+    return ShopAvatar(
+      catalogItems: catalogItems,
+      skinId: skinId,
+      patternId: patternId,
+      backgroundId: backgroundId,
+      accessoryIds: accessoryIds,
+    );
   }
 }
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({required this.label, required this.onPressed});
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => SizedBox(
