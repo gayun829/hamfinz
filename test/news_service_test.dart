@@ -133,6 +133,7 @@ void main() {
   test('학습이 붙은 용어는 3지선다 한 문제와 해설을 다 갖고 있다', () {
     final lessons = kFinanceTerms.where((t) => t.hasLesson).toList();
     // 자주 걸리는 용어부터 채운다. 하나도 없으면 뉴스 퀴즈가 통째로 안 뜬다.
+    // 실측: 연합뉴스 경제 TOP 10이 전부 퀴즈로 이어지는 수준.
     expect(lessons.length, greaterThanOrEqualTo(10));
 
     for (final term in lessons) {
@@ -155,5 +156,24 @@ void main() {
   test('설명이 없는 용어는 학습으로 안 이어진다', () {
     final bare = kFinanceTerms.firstWhere((t) => t.quiz == null);
     expect(bare.hasLesson, isFalse);
+  });
+
+  test('길이가 같으면 제목에서 먼저 나온 용어를 고른다', () {
+    // 예전에는 선언 순서로 이겨서 `금리`가 2글자 동점을 전부 쓸어갔다.
+    // 실측 연합뉴스 TOP 10 중 6건이 금리였고 그중 3건이 이 동점 탓이었다.
+    expect(matchFinanceTerm('미국 국채금리 급등에 대미투자 막판 변수')?.term, '국채');
+    expect(matchFinanceTerm('금리 인상에 국채 시장 출렁')?.term, '금리');
+    // 길이 우선은 그대로 — 뒤에 나와도 더 긴 쪽이 이긴다.
+    expect(matchFinanceTerm('금리 부담에 주택담보대출 갈아타기')?.term, '주택담보대출');
+  });
+
+  test('금리 복합어는 뭉뚱그리지 않고 따로 잡는다', () {
+    // 경제 뉴스는 금리 기사가 절반이라, 복합어를 안 쪼개면 같은 퀴즈만 계속 뜬다.
+    expect(matchFinanceTerm('조달금리 올랐지만 카드론 금리 동결')?.term, '조달금리');
+    expect(matchFinanceTerm('고금리에 깊어진 양극화')?.term, '고금리');
+    expect(matchFinanceTerm('은행 대출금리 또 올랐다')?.term, '대출금리');
+    for (final term in ['조달금리', '고금리', '대출금리']) {
+      expect(matchFinanceTerm(term)?.hasLesson, isTrue, reason: term);
+    }
   });
 }
