@@ -8,6 +8,7 @@ import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
+import '../utils/incorrect_questions.dart';
 import '../utils/learning_dates.dart';
 
 class AuthService {
@@ -26,8 +27,46 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) return null;
     final doc = await _users.doc(user.uid).get();
-    if (!doc.exists) return null;
-    return _profileFromJson(user.email ?? '', doc.data()!);
+    if (!doc.exists || doc.data() == null) return null;
+    final data = Map<String, dynamic>.from(doc.data()!);
+    if (data['incorrectQuestionCounts'] is! Map) {
+      final counts = await ensureIncorrectQuestionCounts(user.uid);
+      data['incorrectQuestionCounts'] = counts;
+      data['incorrectQuestionCount'] = totalIncorrectQuestionCount(counts);
+    }
+    return _profileFromJson(user.email ?? '', data);
+  }
+
+  /// 예전 계정은 오답 수가 전체 합계만 있다.
+  /// 카테고리별 맵이 없으면 `incorrectQuestions`를 세어 채운다.
+  ///
+  /// 프로덕션 규칙은 이 필드를 클라이언트 쓰기에서 막으므로, 저장이 거절되면
+  /// 집계 결과만 돌려준다. 다음 제출의 Functions가 문서를 저장한다.
+  Future<Map<String, int>> ensureIncorrectQuestionCounts(String uid) async {
+    final userRef = _users.doc(uid);
+    final doc = await userRef.get();
+    final data = doc.data();
+    if (data != null && data['incorrectQuestionCounts'] is Map) {
+      return readIncorrectQuestionCounts(data);
+    }
+
+    final snap = await userRef.collection('incorrectQuestions').get();
+    final counts = <String, int>{};
+    for (final item in snap.docs) {
+      final categoryId =
+          item.data()['categoryId'] as String? ?? 'allowance';
+      counts[categoryId] = (counts[categoryId] ?? 0) + 1;
+    }
+
+    try {
+      await userRef.update({
+        'incorrectQuestionCounts': counts,
+        'incorrectQuestionCount': totalIncorrectQuestionCount(counts),
+      });
+    } on FirebaseException {
+      // permission-denied: 프로덕션에서는 Functions가 저장한다.
+    }
+    return counts;
   }
 
   /// 회원가입 1단계: 계정을 만들고 인증 메일을 보낸다.
@@ -624,6 +663,7 @@ class AuthService {
     'categoryStats': <String, dynamic>{},
     'interestCategories': <String>[],
     'learningStage': kMinLearningStage,
+    'incorrectQuestionCounts': <String, int>{},
     'incorrectQuestionCount': 0,
     'seeds': 0,
     'ownedShopItemIds': <String>[],
@@ -693,6 +733,7 @@ class AuthService {
       learningStage: normalizeLearningStage(
         readLearningStageField(data['learningStage']),
       ),
+      incorrectQuestionCounts: readIncorrectQuestionCounts(data),
       incorrectQuestionCount:
           (data['incorrectQuestionCount'] as num?)?.toInt() ?? 0,
       seeds: data['seeds'] as int? ?? 0,

@@ -10,6 +10,7 @@ void main() {
       streak: 4,
       energy: 30,
       seeds: 12,
+      incorrectQuestionCounts: const {'saving': 11},
       incorrectQuestionCount: 11,
       selectedHamsterId: 'hamster_streak',
     );
@@ -27,6 +28,7 @@ void main() {
       'learningDates',
       'categoryStats',
       'incorrectQuestionCount',
+      'incorrectQuestionCounts',
       'seeds',
       'ownedShopItemIds',
       'studyGuardCount',

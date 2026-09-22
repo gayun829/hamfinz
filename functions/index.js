@@ -1,5 +1,11 @@
 const { learningDatesFromUser } = require('./learning_dates');
 const { completionEnergyReward } = require('./quiz_energy');
+const {
+  aggregateIncorrectQuestionCounts,
+  nextIncorrectQuestionCounts,
+  readIncorrectQuestionCounts,
+  totalIncorrectQuestionCount,
+} = require('./incorrect_questions');
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
@@ -94,6 +100,29 @@ function resolveEnergy(user, today) {
   return { energy, lastEnergyResetDate };
 }
 
+// 카테고리별 오답 수가 없는 예전 계정은 incorrectQuestions를 세어 채운다.
+// 제출 트랜잭션은 컬렉션 조회를 할 수 없어서, 그 전에 한 번 맞춘다.
+async function ensureIncorrectQuestionCounts(userRef) {
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) return;
+  const existing = userSnap.data().incorrectQuestionCounts;
+  if (existing && typeof existing === 'object') return;
+
+  const incorrectSnap = await userRef.collection('incorrectQuestions').get();
+  const counts = aggregateIncorrectQuestionCounts(
+    incorrectSnap.docs.map((doc) => doc.data()),
+  );
+  await db.runTransaction(async (tx) => {
+    const fresh = await tx.get(userRef);
+    if (!fresh.exists) return;
+    const already = fresh.data().incorrectQuestionCounts;
+    if (already && typeof already === 'object') return;
+    tx.update(userRef, {
+      incorrectQuestionCounts: counts,
+      incorrectQuestionCount: totalIncorrectQuestionCount(counts),
+    });
+  });
+}
 
 exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => {
   const uid = request.auth?.uid;
@@ -112,6 +141,7 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
   }
 
   const userRef = db.collection('users').doc(uid);
+  await ensureIncorrectQuestionCounts(userRef);
   const sessionRef = userRef.collection('sessions').doc(sessionId);
   const answerRef = sessionRef.collection('answers').doc(questionId);
   const questionRef = db.collection('quizQuestions').doc(questionId);
@@ -172,18 +202,19 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     energy = Math.max(0, energy - ENERGY_PER_QUESTION);
 
     const userUpdate = { energy, lastEnergyResetDate };
-    const currentCount = Number(user.incorrectQuestionCount ?? 0);
-    const alreadyTracked = incorrectSnap.exists;
-    let nextCount = currentCount;
-    if (isCorrect) {
-      if (alreadyTracked) {
-        nextCount = Math.max(0, currentCount - 1);
-      }
-    } else if (!alreadyTracked) {
-      nextCount = currentCount + 1;
-    }
-    if (nextCount !== currentCount) {
-      userUpdate.incorrectQuestionCount = nextCount;
+    const categoryId = q.categoryId || 'allowance';
+    const counts = readIncorrectQuestionCounts(user);
+    const nextCounts = nextIncorrectQuestionCounts({
+      counts,
+      categoryId,
+      isCorrect,
+      alreadyTracked: incorrectSnap.exists,
+    });
+    const nextTotal = totalIncorrectQuestionCount(nextCounts);
+    const currentTotal = Number(user.incorrectQuestionCount ?? 0);
+    if (nextTotal !== currentTotal) {
+      userUpdate.incorrectQuestionCounts = nextCounts;
+      userUpdate.incorrectQuestionCount = nextTotal;
     }
     tx.update(userRef, userUpdate);
 
