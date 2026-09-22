@@ -1,0 +1,452 @@
+[
+  {
+    "id": "skin_bearded_cream",
+    "name": "수염 햄핀",
+    "source": "Group 416.svg",
+    "file": "skin_bearded_cream.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 8,
+    "headSourceBounds": {
+      "index": 8,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_black",
+    "name": "검정 햄핀",
+    "source": "Group 417.svg",
+    "file": "skin_black.svg",
+    "scale": 0.6328828828828829,
+    "translate": [
+      107.82657657657658,
+      99.86148648648648
+    ],
+    "headPathIndex": 10,
+    "headSourceBounds": {
+      "index": 10,
+      "x": 22,
+      "y": 25.5,
+      "w": 222,
+      "h": 170
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.59009009009009
+    }
+  },
+  {
+    "id": "skin_bee",
+    "name": "꿀벌 햄핀",
+    "source": "Group 418.svg",
+    "file": "skin_bee.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      94.24115044247787
+    ],
+    "headPathIndex": 2,
+    "headSourceBounds": {
+      "index": 2,
+      "x": 22,
+      "y": 35,
+      "w": 226,
+      "h": 172
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 106.929203539823
+    }
+  },
+  {
+    "id": "skin_bee_duckbill",
+    "name": "오리입 꿀벌 햄핀",
+    "source": "Group 419.svg",
+    "file": "skin_bee_duckbill.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      94.24115044247787
+    ],
+    "headPathIndex": 2,
+    "headSourceBounds": {
+      "index": 2,
+      "x": 22,
+      "y": 35,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_caveman_bearded",
+    "name": "수염 원시인 햄핀",
+    "source": "Group 420.svg",
+    "file": "skin_caveman_bearded.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 5,
+    "headSourceBounds": {
+      "index": 5,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_dinosaur",
+    "name": "공룡 햄핀",
+    "source": "Group 421.svg",
+    "file": "skin_dinosaur.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      93.93030973451327
+    ],
+    "headPathIndex": 5,
+    "headSourceBounds": {
+      "index": 5,
+      "x": 22,
+      "y": 35.5,
+      "w": 226,
+      "h": 172
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 106.929203539823
+    }
+  },
+  {
+    "id": "skin_ninja",
+    "name": "닌자 햄핀",
+    "source": "Group 422.svg",
+    "file": "skin_ninja.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      106.5188053097345,
+      100.14712389380531
+    ],
+    "headPathIndex": 11,
+    "headSourceBounds": {
+      "index": 11,
+      "x": 24.5,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_pirate",
+    "name": "안대 햄핀",
+    "source": "Group 423.svg",
+    "file": "skin_pirate.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 8,
+    "headSourceBounds": {
+      "index": 8,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_genie_blue",
+    "name": "파란 지니 햄핀",
+    "source": "Group 424.svg",
+    "file": "skin_genie_blue.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      88.02433628318585
+    ],
+    "headPathIndex": 2,
+    "headSourceBounds": {
+      "index": 2,
+      "x": 22,
+      "y": 45,
+      "w": 226,
+      "h": 172
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 106.929203539823
+    }
+  },
+  {
+    "id": "skin_genie_tail",
+    "name": "지니 꼬리 햄핀",
+    "source": "Group 425.svg",
+    "file": "skin_genie_tail.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      88.02433628318585
+    ],
+    "headPathIndex": 2,
+    "headSourceBounds": {
+      "index": 2,
+      "x": 22,
+      "y": 45,
+      "w": 226,
+      "h": 172
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 106.929203539823
+    }
+  },
+  {
+    "id": "skin_crewcut",
+    "name": "군필 햄핀",
+    "source": "Group 426.svg",
+    "file": "skin_crewcut.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 6,
+    "headSourceBounds": {
+      "index": 6,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_grandma",
+    "name": "할머니 햄핀",
+    "source": "Group 427.svg",
+    "file": "skin_grandma.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 5,
+    "headSourceBounds": {
+      "index": 5,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_kindergarten",
+    "name": "유치원생 햄핀",
+    "source": "Group 428.svg",
+    "file": "skin_kindergarten.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      94.55199115044248
+    ],
+    "headPathIndex": 7,
+    "headSourceBounds": {
+      "index": 7,
+      "x": 22,
+      "y": 34.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_perm",
+    "name": "파마 햄핀",
+    "source": "Group 429.svg",
+    "file": "skin_perm.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      90.82190265486726
+    ],
+    "headPathIndex": 5,
+    "headSourceBounds": {
+      "index": 5,
+      "x": 22,
+      "y": 40.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_genie",
+    "name": "지니 햄핀",
+    "source": "Group 430.svg",
+    "file": "skin_genie.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      88.02433628318585
+    ],
+    "headPathIndex": 5,
+    "headSourceBounds": {
+      "index": 5,
+      "x": 22,
+      "y": 45,
+      "w": 226,
+      "h": 172
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 106.929203539823
+    }
+  },
+  {
+    "id": "skin_business",
+    "name": "넥타이 햄핀",
+    "source": "Group 431.svg",
+    "file": "skin_business.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 0,
+    "headSourceBounds": {
+      "index": 0,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_bearded_gray",
+    "name": "회색 수염 햄핀",
+    "source": "Group 432.svg",
+    "file": "skin_bearded_gray.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 8,
+    "headSourceBounds": {
+      "index": 8,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  },
+  {
+    "id": "skin_default",
+    "name": "기본 햄핀",
+    "source": "Group-1.svg",
+    "file": "skin_default.svg",
+    "scale": 0.6216814159292036,
+    "translate": [
+      108.07300884955752,
+      100.14712389380531
+    ],
+    "headPathIndex": 9,
+    "headSourceBounds": {
+      "index": 9,
+      "x": 22,
+      "y": 25.5,
+      "w": 226,
+      "h": 172.5
+    },
+    "headTargetBounds": {
+      "x": 121.75,
+      "y": 116,
+      "width": 140.5,
+      "height": 107.24004424778761
+    }
+  }
+]

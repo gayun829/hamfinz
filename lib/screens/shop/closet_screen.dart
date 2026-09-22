@@ -8,7 +8,7 @@ import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
-import 'item_preview_screen.dart';
+import '../../widgets/shop/closet_stage.dart';
 
 enum _ClosetTab { my, skin, pattern, accessory, background }
 
@@ -30,6 +30,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   late UserProfile _profile;
   _ClosetTab _tab = _ClosetTab.skin;
   bool _saving = false;
+  ShopItem? _selectedItem;
   String? _stagedSkinId;
   String? _stagedPatternId;
   String? _stagedBackgroundId;
@@ -54,74 +55,150 @@ class _ClosetScreenState extends State<ClosetScreen> {
     setState(() => _catalogItems = items);
   }
 
+  bool _owns(ShopItem item) =>
+      item.included || _profile.ownedShopItemIds.contains(item.id);
+
   List<ShopItem> get _visibleItems {
-    if (!widget.showCatalog) {
-      return _catalogItems
-          .where(
-            (item) =>
-                !item.hideFromCloset &&
-                (item.included || _profile.ownedShopItemIds.contains(item.id)),
-          )
-          .toList();
-    }
-    switch (_tab) {
-      case _ClosetTab.my:
-        return _catalogItems
-            .where(
-              (item) =>
-                  !item.hideFromCloset &&
-                  (item.included ||
-                      _profile.ownedShopItemIds.contains(item.id)),
-            )
-            .toList();
-      case _ClosetTab.skin:
-        return _catalogItems
-            .where(
-              (item) =>
-                  item.category == ShopCategory.skin && !item.hideFromCloset,
-            )
-            .toList();
-      case _ClosetTab.pattern:
-        return _catalogItems
-            .where(
-              (item) =>
-                  item.category == ShopCategory.pattern && !item.hideFromCloset,
-            )
-            .toList();
-      case _ClosetTab.accessory:
-        return _catalogItems
-            .where(
-              (item) =>
-                  item.category == ShopCategory.accessory &&
-                  !item.hideFromCloset,
-            )
-            .toList();
-      case _ClosetTab.background:
-        return _catalogItems
-            .where(
-              (item) =>
-                  item.category == ShopCategory.background &&
-                  !item.hideFromCloset,
-            )
-            .toList();
+    final items = _filteredItems;
+    if (!widget.showCatalog) return items;
+    return [...items.where((item) => !_owns(item)), ...items.where(_owns)];
+  }
+
+  List<ShopItem> get _filteredItems {
+    final category = switch (_tab) {
+      _ClosetTab.skin => ShopCategory.skin,
+      _ClosetTab.pattern => ShopCategory.pattern,
+      _ClosetTab.accessory => ShopCategory.accessory,
+      _ClosetTab.background => ShopCategory.background,
+      _ClosetTab.my => null,
+    };
+    return _catalogItems
+        .where(
+          (item) =>
+              !item.hideFromCloset &&
+              (widget.showCatalog || _owns(item)) &&
+              (category == null || item.category == category),
+        )
+        .toList();
+  }
+
+  String? _normalizedSkin(String? id) => id == 'skin_default' ? null : id;
+
+  bool get _hasChanges =>
+      _normalizedSkin(_stagedSkinId) !=
+          _normalizedSkin(_profile.equippedSkinId) ||
+      _stagedPatternId != _profile.equippedPatternId ||
+      _stagedBackgroundId != _profile.equippedBackgroundId ||
+      _stagedAccessoryIds.length != _profile.equippedAccessoryIds.length ||
+      !_stagedAccessoryIds.every(_profile.equippedAccessoryIds.contains);
+
+  bool _isEquipped(ShopItem item) =>
+      (item.included && _normalizedSkin(_stagedSkinId) == null) ||
+      _stagedSkinId == item.id ||
+      _stagedPatternId == item.id ||
+      _stagedBackgroundId == item.id ||
+      _stagedAccessoryIds.contains(item.id);
+
+  void _stageItem(ShopItem item) {
+    if (_saving || !_owns(item)) return;
+    final removing = _isEquipped(item);
+    setState(() {
+      switch (item.category) {
+        case ShopCategory.skin:
+          _stagedSkinId = removing ? null : item.id;
+        case ShopCategory.pattern:
+          _stagedPatternId = removing ? null : item.id;
+        case ShopCategory.background:
+          _stagedBackgroundId = removing ? null : item.id;
+        case ShopCategory.accessory:
+          _stagedAccessoryIds
+            ..clear()
+            ..addAll(removing ? <String>[] : [item.id]);
+      }
+    });
+  }
+
+  Future<void> _saveOutfit() async {
+    if (_saving || !_hasChanges) return;
+    setState(() => _saving = true);
+    try {
+      await AuthService.instance.updateShopEquipment(
+        skinId: _stagedSkinId,
+        patternId: _stagedPatternId,
+        backgroundId: _stagedBackgroundId,
+        accessoryIds: List.of(_stagedAccessoryIds),
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile.equippedSkinId = _stagedSkinId;
+        _profile.equippedPatternId = _stagedPatternId;
+        _profile.equippedBackgroundId = _stagedBackgroundId;
+        _profile.equippedAccessoryIds = List.of(_stagedAccessoryIds);
+      });
+      _showSnackBar('착용 정보를 저장했어요.');
+    } catch (_) {
+      _showSnackBar('저장하지 못했어요. 다시 시도해주세요.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  Future<void> _onItemTap(ShopItem item) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ItemPreviewScreen(
-          item: item,
-          profile: _profile,
-          catalogItems: _catalogItems,
-          onPurchase: () => _purchaseOrEquipFromPreview(item),
+  void _onItemTap(ShopItem item) {
+    if (_saving) return;
+    if (!widget.showCatalog) {
+      _stageItem(item);
+      return;
+    }
+    setState(() {
+      _selectedItem = item;
+      _stagedSkinId = item.category == ShopCategory.skin
+          ? item.id
+          : _profile.equippedSkinId;
+      _stagedPatternId = item.category == ShopCategory.pattern
+          ? item.id
+          : _profile.equippedPatternId;
+      _stagedBackgroundId = item.category == ShopCategory.background
+          ? item.id
+          : _profile.equippedBackgroundId;
+      _stagedAccessoryIds
+        ..clear()
+        ..addAll(
+          item.category == ShopCategory.accessory
+              ? [item.id]
+              : _profile.equippedAccessoryIds,
+        );
+    });
+  }
+
+  Future<void> _confirmSelection() async {
+    final item = _selectedItem;
+    if (item == null || _saving) return;
+    final owned = _owns(item);
+    if (!owned) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('${item.name}을 구매할까요?'),
+          content: Text('${item.price}씨앗이 필요해요.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('구매하기'),
+            ),
+          ],
         ),
-      ),
-    );
-    if (!mounted) return;
-    final latest = await AuthService.instance.getCurrentUser();
-    if (!mounted) return;
-    if (latest != null) setState(() => _profile = latest);
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    final success = await _purchaseOrEquipFromPreview(item);
+    if (success && mounted) {
+      setState(() => _selectedItem = null);
+      _showSnackBar(owned ? '착용했어요.' : '구매하고 착용했어요.');
+    }
   }
 
   Future<bool> _purchaseOrEquipFromPreview(ShopItem item) async {
@@ -215,34 +292,18 @@ class _ClosetScreenState extends State<ClosetScreen> {
     return '씨앗이 부족해요. 총 $total씨앗이 필요합니다. (현재 $_profile.seeds)';
   }
 
-  Widget _buildCompositePreview(
-    double width,
-    double height, {
-    required String? skinId,
-    required String? patternId,
-    required String? backgroundId,
-    required List<String> accessoryIds,
-  }) => ShopAvatar(
-    catalogItems: _catalogItems,
-    skinId: skinId,
-    patternId: patternId,
-    backgroundId: backgroundId,
-    accessoryIds: accessoryIds,
-  );
-
   @override
   Widget build(BuildContext context) {
     final items = _visibleItems;
-    final textScaler = MediaQuery.textScalerOf(context);
-    final clampedScaler = TextScaler.linear(
-      textScaler.scale(1).clamp(0.9, 1.1),
-    );
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: FigmaShopTokens.background,
       body: SafeArea(
         child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: clampedScaler),
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              MediaQuery.textScalerOf(context).scale(1).clamp(0.9, 1.1),
+            ),
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final figma = FigmaScale.ofLayout(
@@ -250,165 +311,138 @@ class _ClosetScreenState extends State<ClosetScreen> {
                 designWidth: FigmaShopTokens.designWidth,
               );
               final s = figma.s;
-              final previewHeight = (constraints.maxHeight * 0.34).clamp(
-                160.0,
-                280.0,
+              final previewHeight = (constraints.maxHeight * .36).clamp(
+                140.0,
+                s(280),
               );
-              final hamsterSize = (previewHeight * 0.58).clamp(96.0, 180.0);
+              final showAction = widget.showCatalog
+                  ? _selectedItem != null
+                  : _hasChanges;
               return Column(
                 children: [
                   ShopHeader(
                     figma: figma,
-                    title: widget.showCatalog ? '옷 상점' : '햄핀 옷장',
+                    title: widget.showCatalog ? '햄핀이 옷 상점' : '햄핀이 옷장',
                     seeds: _profile.seeds,
                     onBack: () => Navigator.of(context).pop(),
                   ),
-                  SizedBox(
+                  ClosetStage(
                     height: previewHeight,
-                    child: ColoredBox(
-                      color: FigmaShopTokens.previewBackground,
-                      child: Center(
-                        child: SizedBox(
-                          width: hamsterSize,
-                          height: hamsterSize,
-                          child: _buildCompositePreview(
-                            hamsterSize,
-                            hamsterSize,
-                            skinId: _profile.equippedSkinId,
-                            patternId: _profile.equippedPatternId,
-                            backgroundId: _profile.equippedBackgroundId,
-                            accessoryIds: _profile.equippedAccessoryIds,
-                          ),
-                        ),
-                      ),
+                    avatar: ShopAvatar(
+                      catalogItems: _catalogItems,
+                      skinId: _stagedSkinId,
+                      patternId: _stagedPatternId,
+                      backgroundId: _stagedBackgroundId,
+                      accessoryIds: _stagedAccessoryIds,
                     ),
                   ),
-                  if (widget.showCatalog)
-                    SingleChildScrollView(
+                  Container(
+                    height: s(56),
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE3E3E3), width: 2),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      padding: EdgeInsets.fromLTRB(s(16), s(10), s(16), s(8)),
+                      padding: EdgeInsets.symmetric(horizontal: s(20)),
                       child: Row(
                         children: [
-                          _tabLabel(figma, _ClosetTab.my, 'MY'),
-                          SizedBox(width: s(16)),
                           _tabLabel(figma, _ClosetTab.skin, '스킨'),
-                          SizedBox(width: s(16)),
                           _tabLabel(figma, _ClosetTab.pattern, '무늬'),
-                          SizedBox(width: s(16)),
                           _tabLabel(figma, _ClosetTab.accessory, '악세서리'),
-                          SizedBox(width: s(16)),
                           _tabLabel(figma, _ClosetTab.background, '배경'),
+                          _tabLabel(figma, _ClosetTab.my, '전체'),
                         ],
                       ),
                     ),
-                  Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
+                  ),
                   Expanded(
-                    child: items.isEmpty
-                        ? Center(
+                    child: Stack(
+                      children: [
+                        if (items.isEmpty)
+                          Center(
                             child: Text(
-                              !widget.showCatalog || _tab == _ClosetTab.my
-                                  ? '아직 가진 아이템이 없어요'
-                                  : '준비 중인 아이템이에요',
+                              widget.showCatalog
+                                  ? '준비 중인 아이템이에요'
+                                  : '아직 가진 아이템이 없어요',
                               style: FigmaShopTokens.body(figma.scale),
                             ),
                           )
-                        : GridView.builder(
+                        else
+                          GridView.builder(
                             padding: EdgeInsets.fromLTRB(
-                              s(16),
-                              s(12),
-                              s(16),
-                              s(24),
+                              s(20),
+                              s(23),
+                              s(20),
+                              showAction ? s(92) : s(24),
                             ),
                             itemCount: items.length,
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: s(12),
-                                  mainAxisSpacing: s(12),
-                                  childAspectRatio: 0.82,
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: s(10),
+                                  mainAxisSpacing: s(16),
+                                  childAspectRatio: 111 / 145,
                                 ),
                             itemBuilder: (context, index) {
                               final item = items[index];
-                              final owned =
-                                  item.included ||
-                                  _profile.ownedShopItemIds.contains(item.id);
-                              Widget card = ShopItemCard(
+                              return ShopItemCard(
+                                key: ValueKey('shop-item-${item.id}'),
                                 figma: figma,
                                 item: item,
-                                owned: owned,
+                                owned: _owns(item),
+                                actionLabel: widget.showCatalog
+                                    ? null
+                                    : (_isEquipped(item) ? '착용 중' : '착용하기'),
+                                selected: widget.showCatalog
+                                    ? _selectedItem?.id == item.id
+                                    : _isEquipped(item),
                                 onTap: () => _onItemTap(item),
                               );
-
-                              // MY 탭에서는 소유한 아이템에 대해 '장착' 토글 버튼을 보여줍니다.
-                              if (owned &&
-                                  (!widget.showCatalog ||
-                                      _tab == _ClosetTab.my)) {
-                                bool isEquipped() {
-                                  return (item.included &&
-                                          _stagedSkinId == null) ||
-                                      _stagedSkinId == item.id ||
-                                      _stagedPatternId == item.id ||
-                                      _stagedBackgroundId == item.id ||
-                                      _stagedAccessoryIds.contains(item.id);
-                                }
-
-                                Future<void> toggleEquip() async {
-                                  if (_saving) return;
-                                  final removing = isEquipped();
-                                  await _equipOrBuyItem(
-                                    item,
-                                    skinId: item.category == ShopCategory.skin
-                                        ? (removing ? null : item.id)
-                                        : _stagedSkinId,
-                                    patternId:
-                                        item.category == ShopCategory.pattern
-                                        ? (removing ? null : item.id)
-                                        : _stagedPatternId,
-                                    backgroundId:
-                                        item.category == ShopCategory.background
-                                        ? (removing ? null : item.id)
-                                        : _stagedBackgroundId,
-                                    accessoryIds:
-                                        item.category == ShopCategory.accessory
-                                        ? (removing ? <String>[] : [item.id])
-                                        : List.of(_stagedAccessoryIds),
-                                  );
-                                }
-
-                                return Column(
-                                  children: [
-                                    Expanded(child: card),
-                                    SizedBox(height: s(8)),
-                                    GestureDetector(
-                                      onTap: toggleEquip,
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: s(12),
-                                          vertical: s(8),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isEquipped()
-                                              ? Colors.green.shade600
-                                              : FigmaShopTokens.chip,
-                                          borderRadius: BorderRadius.circular(
-                                            s(8),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          isEquipped() ? '장착 해제' : '장착',
-                                          style: FigmaShopTokens.sectionTitle(
-                                            figma.scale,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }
-
-                              return card;
                             },
                           ),
+                        if (showAction)
+                          Positioned(
+                            left: s(23),
+                            right: s(23),
+                            bottom: s(16),
+                            child: SizedBox(
+                              height: s(52),
+                              child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF38C5F5),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(s(14)),
+                                  ),
+                                  textStyle: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontSize: s(20),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                onPressed: _saving
+                                    ? null
+                                    : (widget.showCatalog
+                                          ? _confirmSelection
+                                          : _saveOutfit),
+                                child: Text(
+                                  _saving
+                                      ? '저장 중…'
+                                      : widget.showCatalog
+                                      ? (_owns(_selectedItem!)
+                                            ? '착용하기'
+                                            : '구매하기')
+                                      : '저장',
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               );
@@ -420,12 +454,27 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   Widget _tabLabel(FigmaScale figma, _ClosetTab tab, String label) {
-    final selected = _tab == tab;
-    return GestureDetector(
-      onTap: () => setState(() => _tab = tab),
-      child: Text(
-        label,
-        style: FigmaShopTokens.tab(figma.scale, selected: selected),
+    return InkWell(
+      onTap: _saving
+          ? null
+          : () => setState(() {
+              _tab = tab;
+              if (widget.showCatalog) {
+                _selectedItem = null;
+                _stagedSkinId = _profile.equippedSkinId;
+                _stagedPatternId = _profile.equippedPatternId;
+                _stagedBackgroundId = _profile.equippedBackgroundId;
+                _stagedAccessoryIds
+                  ..clear()
+                  ..addAll(_profile.equippedAccessoryIds);
+              }
+            }),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: figma.s(12)),
+        child: Text(
+          label,
+          style: FigmaShopTokens.tab(figma.scale, selected: _tab == tab),
+        ),
       ),
     );
   }

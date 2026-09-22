@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
@@ -23,46 +24,45 @@ class ShopHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(s(4), s(4), s(8), s(4)),
-      child: SizedBox(
-        height: s(48).clamp(44, 56),
-        child: Row(
-          children: [
-            SizedBox(
-              width: s(48),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                onPressed: onBack,
-                icon: Text(
-                  '<',
-                  style: TextStyle(
-                    fontSize: s(32),
-                    fontWeight: FontWeight.w600,
-                    color: FigmaShopTokens.seed,
-                    height: 1,
-                  ),
+    return Container(
+      height: s(72),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE4E4E4))),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Text(title, style: FigmaShopTokens.headerTitle(figma.scale)),
+          Positioned(
+            left: s(14),
+            child: IconButton(
+              tooltip: '뒤로',
+              onPressed: onBack,
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: const Color(0xFFD6D6D6),
+                size: s(26),
+              ),
+            ),
+          ),
+          Positioned(
+            right: s(20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: s(94)),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: ShopSeedChip(
+                  figma: figma,
+                  seeds: seeds,
+                  iconSize: FigmaShopTokens.seedIconHeader,
+                  amountSize: 18,
                 ),
               ),
             ),
-            Expanded(
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: FigmaShopTokens.headerTitle(figma.scale),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(right: s(14)),
-              child: ShopSeedChip(
-                figma: figma,
-                seeds: seeds,
-                iconSize: FigmaShopTokens.seedIconHeader,
-                amountSize: 17.243,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -111,11 +111,15 @@ class ShopItemCard extends StatelessWidget {
     required this.item,
     required this.owned,
     required this.onTap,
+    this.actionLabel,
+    this.selected = false,
   });
 
   final FigmaScale figma;
   final ShopItem item;
   final bool owned;
+  final String? actionLabel;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
@@ -126,13 +130,23 @@ class ShopItemCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: FigmaShopTokens.card,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 12,
+              offset: Offset(0, 2),
+            ),
+          ],
+          border: selected
+              ? Border.all(color: const Color(0xFF38C5F5), width: 2)
+              : null,
           borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
         ),
         child: Column(
           children: [
             Expanded(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(s(12), s(12), s(12), s(8)),
+                padding: EdgeInsets.fromLTRB(s(6), s(8), s(6), s(4)),
                 child: item.usesSharedCanvas
                     ? ShopAvatar(
                         catalogItems: [
@@ -163,27 +177,31 @@ class ShopItemCard extends StatelessWidget {
             ),
             SizedBox(height: s(6)),
             Padding(
-              padding: EdgeInsets.fromLTRB(s(20), 0, s(20), s(16)),
+              padding: EdgeInsets.fromLTRB(s(9), 0, s(9), s(13)),
               child: Container(
-                height: s(32),
+                height: s(30),
                 decoration: BoxDecoration(
-                  color: FigmaShopTokens.chip,
+                  color: owned && actionLabel == null
+                      ? const Color(0xFFFFF7D0)
+                      : FigmaShopTokens.chip,
                   borderRadius: BorderRadius.circular(
                     s(FigmaShopTokens.cardRadius),
                   ),
                 ),
                 alignment: Alignment.center,
-                child: owned
+                child: actionLabel != null || owned
                     ? Text(
-                        item.included ? '기본 제공' : '보유 중',
-                        style: FigmaShopTokens.body(
-                          figma.scale,
-                        ).copyWith(fontSize: 15 * figma.scale),
+                        actionLabel ?? '보유',
+                        style: FigmaShopTokens.body(figma.scale).copyWith(
+                          fontSize: 12 * figma.scale,
+                          color: const Color(0xFFF99832),
+                        ),
                       )
                     : ShopSeedChip(
                         figma: figma,
                         seeds: item.price,
-                        iconSize: FigmaShopTokens.seedIconList,
+                        iconSize: const Size(17, 17),
+                        amountSize: 14,
                       ),
               ),
             ),
@@ -201,6 +219,9 @@ class ShopItemImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (item.assetPath != null) {
+      if (item.assetPath!.toLowerCase().endsWith('.svg')) {
+        return SvgPicture.asset(item.assetPath!, fit: BoxFit.contain);
+      }
       return Image.asset(item.assetPath!, fit: BoxFit.contain);
     }
     if (item.imageUrl?.isNotEmpty == true) {

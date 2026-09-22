@@ -27,17 +27,17 @@ void main() {
 
   testWidgets('shop fits a small phone', (tester) async {
     await pumpShop(tester, const Size(360, 740));
-    expect(find.text('상점'), findsOneWidget);
-    expect(find.text('햄핀 옷장'), findsOneWidget);
-    expect(find.text('옷 상점'), findsOneWidget);
+    expect(find.text('아이템 상점'), findsOneWidget);
+    expect(find.text('햄핀이 옷장'), findsOneWidget);
+    expect(find.text('햄핀이 옷 상점'), findsOneWidget);
     expect(find.text('아이템 목록'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('shop fits a large phone', (tester) async {
     await pumpShop(tester, const Size(430, 932));
-    expect(find.text('상점'), findsOneWidget);
-    expect(find.text('옷 상점'), findsOneWidget);
+    expect(find.text('아이템 상점'), findsOneWidget);
+    expect(find.text('햄핀이 옷 상점'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
