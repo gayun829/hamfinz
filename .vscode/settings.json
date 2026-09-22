@@ -1,5 +1,6 @@
 {
   "dart.flutterSelectDeviceWhenConnected": false,
   "dart.deviceId": "chrome",
-  "cmake.sourceDirectory": "C:/Users/lucia/Desktop/2026 예소/hamfinz_streak/windows"
+  "cmake.sourceDirectory": "C:/Users/lucia/Desktop/2026 예소/hamfinz_streak/windows",
+  "dart.flutterSdkPath": ".fvm/versions/3.47.5"
 }
