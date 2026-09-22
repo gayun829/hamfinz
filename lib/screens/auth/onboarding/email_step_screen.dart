@@ -1,0 +1,77 @@
+import 'package:flutter/material.dart';
+
+import '../../../theme/figma_onboarding_tokens.dart';
+import '../../../widgets/figma_onboarding_widgets.dart';
+import 'password_step_screen.dart';
+import 'signup_draft.dart';
+
+/// 가입 2단계 — 이메일 (Figma `439:463`).
+///
+/// 여기선 형식만 본다. 이미 가입된 메일인지는 계정을 만드는 비밀번호 화면에서
+/// Firebase가 `email-already-in-use`로 알려준다.
+class EmailStepScreen extends StatefulWidget {
+  const EmailStepScreen({super.key, required this.draft});
+
+  final SignupDraft draft;
+
+  @override
+  State<EmailStepScreen> createState() => _EmailStepScreenState();
+}
+
+class _EmailStepScreenState extends State<EmailStepScreen> {
+  late final _controller = TextEditingController(text: widget.draft.email);
+  String? _error;
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _next() async {
+    final email = _controller.text.trim().toLowerCase();
+    if (!_emailPattern.hasMatch(email)) {
+      setState(() => _error = '올바른 이메일 형식이 아니에요.');
+      return;
+    }
+
+    widget.draft.email = email;
+    setState(() => _error = null);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PasswordStepScreen(draft: widget.draft),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OnboardingStepScaffold(
+      message: '이메일을 입력해조~',
+      onBack: () => Navigator.of(context).pop(),
+      ctaLabel: '다음',
+      onCta: _next,
+      children: [
+        OnboardingField(
+          label: '이메일',
+          controller: _controller,
+          placeholder: '이메일을 입력해 주세요',
+          keyboardType: TextInputType.emailAddress,
+          onClear: () => setState(() {
+            _controller.clear();
+            _error = null;
+          }),
+          onSubmitted: (_) => _next(),
+        ),
+        if (_error != null)
+          OnboardingHelperLine(
+            text: _error!,
+            topGap: FigmaOnboardingTokens.underlineToHelper,
+            color: FigmaOnboardingTokens.timer,
+          ),
+      ],
+    );
+  }
+}

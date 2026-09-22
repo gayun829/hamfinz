@@ -31,6 +31,24 @@ get_design_context(..., nodeId: 0:1)
 
 fileKey: `PLn1jwyOU2194plYlLdRkl`
 
+### 온보딩 (파일이 다르다)
+
+fileKey: `xC5ZE0FcHnWZi0VEpttVp8` (`👀 9.6 화면작업중`)
+
+| 순서 | 화면 | node ID | 상태 |
+|------|------|---------|------|
+| 1 | 로고+햄핀 등장창 | `478:1213` | ✅ 프레임 PNG 1장 (벡터 20개 초과) |
+| 2 | 맨처음 설치 시 초기 화면 | `102:12145` | ✅ 위젯 + `figma_onboarding_tokens` |
+| 3 | 다른 방법 로그인_닉네임 | `439:419` | ✅ 공통 `OnboardingStepScaffold` |
+| 4 | 다른 방법 로그인_이메일 | `439:463` | ✅ |
+| 5 | 다른 방법 로그인_비밀번호 | `439:700` | ✅ |
+| 6 | 다른 방법 로그인_인증번호 | `439:644` | ✅ (링크 인증으로 대체 — `auth.md` 참고) |
+| 7 | 다른 방법 로그인_약관 | `439:2779` | ✅ |
+
+입력 화면 4개는 좌표가 같다 — 말풍선·햄스터·라벨·밑줄을 `OnboardingStepScaffold`·
+`OnboardingField`로 묶고, 밑줄 아래 보조 영역만 화면별로 넘긴다.
+디자인의 `goolge로 계속하기`는 오타라 `Google로 계속하기`로 고쳤다 (디자이너 확인 완료).
+
 ---
 
 ### 2. Code Connect (컴포넌트 재사용)
@@ -100,7 +118,7 @@ Dev Mode CSS → `lib/theme/figma_auth_tokens.dart`
 **참고**
 
 - `lib/screens/auth/login_screen.dart` (`1:152`)
-- `lib/screens/auth/signup_screen.dart` (`1:195`)
+- 회원가입(`1:195`)은 온보딩 단계형 화면으로 교체됐다 — 위 [온보딩](#온보딩-파일이-다르다) 표 참고
 
 ---
 
@@ -123,15 +141,18 @@ FigmaCanvas(
 
 ```
 lib/theme/figma_auth_tokens.dart
+lib/theme/figma_onboarding_tokens.dart
 lib/theme/figma_quiz_tokens.dart
 lib/theme/figma_settings_tokens.dart
 lib/widgets/figma_auth_widgets.dart
+lib/widgets/figma_onboarding_widgets.dart
 lib/widgets/quiz_widgets.dart
 lib/widgets/figma/                    # FigmaSvg, FigmaScale, FigmaCanvas
+lib/screens/auth/onboarding/          # 스플래시·초기 화면·가입 5단계
 lib/constants/figma_assets.dart
 
-assets/icons/{auth,home,quiz}/
-assets/figma/{auth,home,quiz}/
+assets/icons/{auth,onboarding,home,quiz}/
+assets/figma/{auth,onboarding,home,quiz}/
 ```
 ## 알려진 한계
 

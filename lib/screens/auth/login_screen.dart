@@ -6,17 +6,23 @@ import '../../theme/figma_auth_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/figma_auth_widgets.dart';
 import 'find_password_screen.dart';
-import 'signup_screen.dart';
+import 'onboarding/nickname_step_screen.dart';
+import 'onboarding/signup_draft.dart';
+import 'social_profile_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
     this.onAuthenticated,
     this.onSwitchToSignup,
+    this.onBack,
   });
 
   final VoidCallback? onAuthenticated;
   final VoidCallback? onSwitchToSignup;
+
+  /// 시작 화면(`102:12145`)에서 들어온 경우 돌아갈 곳.
+  final VoidCallback? onBack;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -54,56 +60,71 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
-    if (widget.onAuthenticated != null) {
-      widget.onAuthenticated!();
-      return;
-    }
-    Navigator.of(context).pop(true);
-  }
 
-  Future<void> _loginWithGoogle() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    final error = await AuthService.instance.signInWithGoogle();
-
-    if (!mounted) return;
-    if (error != null) {
+    // 인증까지 마치고 약관 전에 그만둔 이메일 가입자는 프로필 없이 로그인된다.
+    // 그대로 홈에 보내면 프로필을 못 찾아 멈추므로 닉네임·약관부터 받는다.
+    final SocialSignInResult? pending;
+    try {
+      pending = await AuthService.instance.pendingProfileSetup();
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error;
+        _error = '회원 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.';
       });
       return;
     }
-    if (widget.onAuthenticated != null) {
-      widget.onAuthenticated!();
-      return;
-    }
-    Navigator.of(context).pop(true);
+    if (!mounted) return;
+    await _finishSignIn(pending ?? const SocialSignInResult.signedIn());
   }
+
+  Future<void> _loginWithGoogle() =>
+      _loginWithSocial(AuthService.instance.signInWithGoogle);
 
   void _loginWithApple() {
     // 나중에 추가: Apple 로그인 연동
   }
 
-  Future<void> _loginWithKakao() async {
+  Future<void> _loginWithKakao() =>
+      _loginWithSocial(AuthService.instance.signInWithKakao);
+
+  /// 소셜 로그인. 처음 보는 계정이면 닉네임·약관 → 카테고리 온보딩을 먼저 거친다.
+  Future<void> _loginWithSocial(
+    Future<SocialSignInResult> Function() signIn,
+  ) async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    final error = await AuthService.instance.signInWithKakao();
+    final result = await signIn();
 
     if (!mounted) return;
-    if (error != null) {
+    if (result.error != null) {
       setState(() {
         _loading = false;
-        _error = error;
+        _error = result.error;
       });
       return;
     }
+    await _finishSignIn(result);
+  }
+
+  /// 로그인이 끝난 뒤. 프로필 문서가 없는 계정이면 닉네임·약관 → 카테고리를
+  /// 먼저 거치고, 중간에 그만두면 이 화면에 남는다.
+  Future<void> _finishSignIn(SocialSignInResult result) async {
+    if (result.needsProfileSetup) {
+      final completed = await SocialProfileSetupScreen.push(
+        context,
+        suggestedNickname: result.suggestedNickname,
+      );
+      if (!mounted) return;
+      if (!completed) {
+        setState(() => _loading = false);
+        return;
+      }
+    }
+
     if (widget.onAuthenticated != null) {
       widget.onAuthenticated!();
       return;
@@ -122,8 +143,10 @@ class _LoginScreenState extends State<LoginScreen> {
       widget.onSwitchToSignup!();
       return;
     }
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const SignupScreen()),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NicknameStepScreen(draft: SignupDraft()),
+      ),
     );
   }
 
@@ -144,6 +167,15 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.onBack != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    onPressed: widget.onBack,
+                    icon: const Icon(Icons.arrow_back_ios_new),
+                    color: FigmaAuthTokens.link,
+                  ),
+                ),
               const FigmaHamsterHero(useSignupAsset: false),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: fieldPad),

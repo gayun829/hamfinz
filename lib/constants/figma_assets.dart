@@ -10,6 +10,8 @@ class FigmaAssets {
   static const _friends = 'assets/figma/friends';
   static const _settings = 'assets/figma/settings';
   static const _iconsAuth = 'assets/icons/auth';
+  static const _onboarding = 'assets/figma/onboarding';
+  static const _iconsOnboarding = 'assets/icons/onboarding';
 
   // Home
   static const hamsterMain = '$_home/hamster_main.png';
@@ -78,6 +80,20 @@ class FigmaAssets {
   static const googleSignup = '$_auth/google_signup.png';
   static const appleSignup = '$_auth/apple_signup.png';
   static const kakaoSignup = '$_auth/kakao_signup.png';
+
+  // 온보딩 (Figma `👀 9.6 화면작업중`) — 스플래시·초기 화면·가입 단계
+  static const onboardingSplash = '$_onboarding/splash.png';
+  static const onboardingHamsterIntro = '$_onboarding/hamster_intro.svg';
+  static const onboardingHamsterBubble = '$_onboarding/hamster_bubble.svg';
+  static const onboardingKakao = '$_onboarding/kakao.png';
+  static const onboardingBackArrow = '$_iconsOnboarding/back_arrow.svg';
+  static const onboardingClearMark = '$_iconsOnboarding/clear_mark.svg';
+  static const onboardingEye = '$_iconsOnboarding/eye.svg';
+  static const onboardingEyeOff = '$_iconsOnboarding/eye_off.svg';
+  static const onboardingCheckMark = '$_iconsOnboarding/check_mark.svg';
+  static const onboardingCheckSmall = '$_iconsOnboarding/check_small.svg';
+  static const onboardingChevron = '$_iconsOnboarding/chevron.svg';
+  static const onboardingIntroDot = '$_iconsOnboarding/intro_dot.svg';
 
   // Shop
   static const shopSeedPouch = '$_shop/seed_pouch.svg';

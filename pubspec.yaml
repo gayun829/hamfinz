@@ -77,6 +77,8 @@ flutter:
     - assets/figma/home/advanced/node_1_pentagon.png
     - assets/figma/home/advanced/node_3_pentagon.png
     - assets/figma/auth/
+    - assets/figma/onboarding/
+    - assets/icons/onboarding/
     - assets/figma/quiz/
     - assets/figma/quiz/complete/
     - assets/figma/quiz/streak/

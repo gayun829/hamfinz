@@ -59,7 +59,12 @@ service cloud.firestore {
     }
 
     match /nicknames/{nicknameLower} {
-      allow read: if request.auth != null;
+      // 가입 흐름의 닉네임 중복 확인은 로그인 전에 일어나서 get은 비로그인에도 연다.
+      // 대가: 누구나 닉네임을 알면 한 건씩 uid를 조회할 수 있고, 읽기 비용도 공개된다
+      // (App Check로 막을 것). list는 로그인 사용자에게만 열려 있지만 소셜 가입이
+      // 원터치라 목록 보호는 약하다 — 이 인덱스에는 uid·닉네임 말고 아무것도 두지 않는다.
+      allow get: if true;
+      allow list: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nickname']);

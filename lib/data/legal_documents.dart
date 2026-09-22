@@ -8,6 +8,29 @@ abstract final class LegalDocuments {
   static const termsTitle = '이용약관';
   static const privacyTitle = '개인정보 처리방침';
 
+  static const marketingTitle = '광고성 정보, 마케팅 활용 동의';
+
+  static const marketingBody = '''
+[임시] 광고성 정보 수신 및 마케팅 활용 동의 (선택)
+
+동의하지 않아도 서비스를 모두 이용할 수 있습니다.
+
+1. 수집·이용 항목
+- 이메일, 닉네임, 앱 이용 기록(학습 패턴, 관심 카테고리)
+
+2. 이용 목적
+- 새 학습 콘텐츠·이벤트·혜택 안내
+- 관심사에 맞춘 추천 콘텐츠 제공
+
+3. 보관 기간
+- 동의 철회 또는 회원 탈퇴 시까지
+
+4. 철회 방법
+- 마이페이지 > 설정에서 언제든지 철회할 수 있습니다.
+
+(세부 내용은 추후 업데이트됩니다.)
+''';
+
   static const termsBody = '''
 [임시] 햄핀즈 이용약관
 
