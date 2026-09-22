@@ -30,25 +30,35 @@ abstract final class QuizQuestionLayout {
     FontWeight fontWeight = FontWeight.w400,
     TextAlign textAlign = TextAlign.center,
     TextScaler textScaler = TextScaler.noScaling,
+    double scale = 1,
   }) {
-    final style = textStyle(
-      fontFamily: fontFamily,
-      fontSize: fontSize,
-      lineHeight: lineHeight,
-      fontWeight: fontWeight,
-    );
+    final safeScale = scale.isFinite && scale > 0 ? scale : 1.0;
     final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
+      text: TextSpan(
+        text: text,
+        style: textStyle(
+          fontFamily: fontFamily,
+          fontSize: fontSize * safeScale,
+          lineHeight: lineHeight,
+          fontWeight: fontWeight,
+        ),
+      ),
       textAlign: textAlign,
       textDirection: TextDirection.ltr,
       textScaler: textScaler,
-    )..layout(maxWidth: math.max(0, width - 2));
-
-    final metricsHeight = painter.computeLineMetrics().fold<double>(
-      0,
-      (sum, line) => sum + line.height,
     );
-    final measured = math.max(painter.height, metricsHeight);
-    return math.max(minimumHeight, measured.ceilToDouble());
+    try {
+      painter.layout(maxWidth: math.max(0, (width - 2) * safeScale));
+      final designHeight = painter.height / safeScale;
+      return math.max(minimumHeight, _ceilDesignPx(designHeight));
+    } finally {
+      painter.dispose();
+    }
+  }
+
+  /// 줄 높이의 정확한 배수에서 부동소수점 오차가 1px 올림으로 이어지지 않게 한다.
+  static double _ceilDesignPx(double value) {
+    const epsilon = 0.01;
+    return (value - epsilon).ceilToDouble();
   }
 }

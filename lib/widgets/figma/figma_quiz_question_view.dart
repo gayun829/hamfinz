@@ -51,33 +51,42 @@ class FigmaQuizQuestionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final questionHeight = showExplanation
-        ? FigmaQuizQuestionTokens.questionHeight
-        : QuizQuestionLayout.textHeight(
-            text: question,
-            width: FigmaQuizQuestionTokens.questionWidth,
-            fontSize: FigmaQuizQuestionTokens.questionFontSize,
-            lineHeight: FigmaQuizQuestionTokens.questionLineHeight,
-            minimumHeight: FigmaQuizQuestionTokens.questionHeight,
-            fontFamily: FigmaQuizFonts.pretendard,
-            textScaler: MediaQuery.textScalerOf(context),
-          );
-    final contentShift =
-        questionHeight - FigmaQuizQuestionTokens.questionHeight;
-
     return Scaffold(
       backgroundColor: FigmaQuizQuestionTokens.background,
-      body: FigmaCanvas(
-        designWidth: FigmaScale.quizDesignWidth,
-        designHeight: FigmaScale.quizDesignHeight + contentShift,
-        backgroundColor: FigmaQuizQuestionTokens.background,
-        fit: FigmaCanvasFit.widthScroll,
-        scrollable: true,
-        builder: (context, figma) => _layers(
-          figma,
-          questionHeight: questionHeight,
-          contentShift: contentShift,
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final scale = FigmaScale.ofWidth(
+            constraints.maxWidth,
+            designWidth: FigmaScale.quizDesignWidth,
+          ).scale;
+          final questionHeight = showExplanation
+              ? FigmaQuizQuestionTokens.questionHeight
+              : QuizQuestionLayout.textHeight(
+                  text: question,
+                  width: FigmaQuizQuestionTokens.questionWidth,
+                  fontSize: FigmaQuizQuestionTokens.questionFontSize,
+                  lineHeight: FigmaQuizQuestionTokens.questionLineHeight,
+                  minimumHeight: FigmaQuizQuestionTokens.questionHeight,
+                  fontFamily: FigmaQuizFonts.pretendard,
+                  textScaler: MediaQuery.textScalerOf(context),
+                  scale: scale,
+                );
+          final contentShift =
+              questionHeight - FigmaQuizQuestionTokens.questionHeight;
+
+          return FigmaCanvas(
+            designWidth: FigmaScale.quizDesignWidth,
+            designHeight: FigmaScale.quizDesignHeight + contentShift,
+            backgroundColor: FigmaQuizQuestionTokens.background,
+            fit: FigmaCanvasFit.widthScroll,
+            scrollable: true,
+            builder: (context, figma) => _layers(
+              figma,
+              questionHeight: questionHeight,
+              contentShift: contentShift,
+            ),
+          );
+        },
       ),
     );
   }

@@ -1077,7 +1077,7 @@ class _HomeStagePentagon extends StatelessWidget {
   }
 }
 
-/// deco_vector_2 / node_3_flag와 같은 둥근 오각형 경로.
+/// 홈 단계 오각형. 회전 전 벡터를 Canvas로 채운다.
 class _FigmaStagePentagonPainter extends CustomPainter {
   const _FigmaStagePentagonPainter({
     required this.fill,
@@ -1110,7 +1110,7 @@ class _FigmaStagePentagonPainter extends CustomPainter {
     canvas.drawPath(scaled, Paint()..color = fill);
   }
 
-  /// deco_vector_2 경로를 (minX, minY) 원점으로 옮긴 값.
+  /// 작은 단계 오각형 경로를 (minX, minY) 원점으로 옮긴 값.
   static Path _smallPath() {
     const ox = 0.534659;
     const oy = 0.404554;
@@ -1164,7 +1164,7 @@ class _FigmaStagePentagonPainter extends CustomPainter {
     return path;
   }
 
-  /// node_3_flag 경로를 (minX, minY) 원점으로 옮긴 값.
+  /// 큰 단계 오각형 경로를 (minX, minY) 원점으로 옮긴 값.
   static Path _largePath() {
     const ox = -1.90162;
     const oy = 0.75981;

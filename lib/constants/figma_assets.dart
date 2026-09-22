@@ -44,16 +44,8 @@ class FigmaAssets {
   // Home beginner (131:5278)
   static const homePathMap = '$_homeBeginner/path_map.svg';
   static const homeHamsterMap = '$_homeBeginner/hamster_map.svg';
-  static const homeEllipse100 = '$_homeBeginner/ellipse_100.svg';
   static const homeEllipse154 = '$_homeBeginner/ellipse_154.svg';
   static const homeEllipse155 = '$_homeBeginner/ellipse_155.svg';
-  static const homeNode1Overlay = '$_homeBeginner/node_1_overlay.svg';
-  static const homeDecoVector1 = '$_homeBeginner/deco_vector_1.svg';
-  static const homeDecoVector2 = '$_homeBeginner/deco_vector_2.svg';
-  static const homeDecoVector3 = '$_homeBeginner/deco_vector_3.svg';
-  static const homeDecoVector4 = '$_homeBeginner/deco_vector_4.svg';
-  static const homeNode3Overlay = '$_homeBeginner/node_3_overlay.svg';
-  static const homeNode3Flag = '$_homeBeginner/node_3_flag.svg';
   static const homeNode1 = '$_homeBeginner/node_1.png';
   static const homeNode3 = '$_homeBeginner/node_3.png';
   static const homeBeginnerMegaphone = '$_homeBeginner/megaphone.svg';
