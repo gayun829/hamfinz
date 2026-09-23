@@ -559,9 +559,10 @@ List<Widget> _buildFigmaHomeLayers({
     FigmaBox(
       figma: figma,
       left: 45.607177734375,
-      top: 125.04296875,
-      width: 14.255,
-      height: 13.679,
+      // 배너(top 115, height 33.693) 세로 중앙.
+      top: 124.18,
+      width: 16.0,
+      height: 15.35,
       child: const FigmaSvg(
         FigmaAssets.homeBeginnerMegaphone,
         fit: BoxFit.fill,
@@ -570,9 +571,10 @@ List<Widget> _buildFigmaHomeLayers({
     FigmaBox(
       figma: figma,
       left: 71.525390625,
-      top: 126.6640625,
-      width: 258,
-      height: 16,
+      // 글씨를 키운 만큼 세로 중앙을 다시 맞추고, 배너 오른쪽 끝까지 폭을 넓힌다.
+      top: 122.85,
+      width: 272,
+      height: 18,
       child: ClipRect(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 450),
@@ -604,8 +606,10 @@ List<Widget> _buildFigmaHomeLayers({
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: FigmaHomeFonts.inter,
-                fontSize: s(8.747),
-                fontWeight: FontWeight.w400,
+                // Figma 값은 8.747인데 393 프레임에서 그대로 쓰면 배너 안에서
+                // 글씨만 혼자 3배 작다(바로 아래 '오늘의 학습'이 26).
+                fontSize: s(13),
+                fontWeight: FontWeight.w500,
                 height: 1.1,
                 color: Colors.black,
               ),

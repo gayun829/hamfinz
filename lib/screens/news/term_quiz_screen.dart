@@ -49,6 +49,12 @@ class TermQuizScreen extends StatefulWidget {
   State<TermQuizScreen> createState() => _TermQuizScreenState();
 }
 
+/// Figma `뉴스_퀴즈창` 바탕. 순백이 아니라 아주 옅은 회색이다.
+const _quizBg = Color(0xFFFAFAFA);
+
+/// 보기·상자 공통 모서리.
+const _radius = 12.0;
+
 enum _Stage { learn, question, graded, explain }
 
 class _TermQuizScreenState extends State<TermQuizScreen> {
@@ -93,7 +99,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _quizBg,
       body: Column(
         children: [
           Expanded(
@@ -116,19 +122,23 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                       _QuestionHeader(
                         reward: NewsQuizRepository.seedsPerCorrect,
                         showReward: _showReward,
+                        // 해설 장면에서는 Q도 정답 보기와 같은 노랑이 된다.
+                        color: _stage == _Stage.explain
+                            ? _OptionStyle.answer.border
+                            : _OptionStyle.accent,
                       ),
                       const SizedBox(height: 10),
                       Text(
                         _quiz.question,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 17,
                           height: 1.45,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           color: Colors.black,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 34),
                     // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
                     Expanded(
                       child: SingleChildScrollView(
@@ -188,7 +198,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
     return Column(
       children: [
         for (var i = 0; i < options.length; i++) ...[
-          if (i > 0) const SizedBox(height: 10),
+          if (i > 0) const SizedBox(height: 12),
           _OptionBox(
             label: options[i],
             style: _styleFor(i),
@@ -230,10 +240,12 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
         const SizedBox(height: 10),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          // Figma 해설 상자는 내용이 짧아도 높이를 유지한다.
+          constraints: const BoxConstraints(minHeight: 132),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(_radius),
             border: Border.all(color: _OptionStyle.idle.border),
           ),
           child: Column(
@@ -388,10 +400,10 @@ class _LearnBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_radius),
         border: Border.all(color: _OptionStyle.idle.border),
       ),
       child: Column(
@@ -422,21 +434,26 @@ class _LearnBox extends StatelessWidget {
 
 /// `Q` 마크 + 씨앗 `+3` 배지.
 class _QuestionHeader extends StatelessWidget {
-  const _QuestionHeader({required this.reward, required this.showReward});
+  const _QuestionHeader({
+    required this.reward,
+    required this.showReward,
+    this.color = _OptionStyle.accent,
+  });
 
   final int reward;
   final bool showReward;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Text(
+        Text(
           'Q',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 26,
             fontWeight: FontWeight.w800,
-            color: _OptionStyle.accent,
+            color: color,
             height: 1,
           ),
         ),
@@ -517,26 +534,26 @@ class _OptionBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(_radius),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        constraints: const BoxConstraints(minHeight: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: style.background,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(_radius),
           border: Border.all(
             color: style.border,
-            width: style == _OptionStyle.idle ? 1 : 1.5,
+            width: style == _OptionStyle.idle ? 1 : 1.6,
           ),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontSize: 13,
-            height: 1.3,
+            fontSize: 14,
+            height: 1.35,
             fontWeight: FontWeight.w500,
             color: Colors.black,
           ),
@@ -555,7 +572,7 @@ class _PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 46,
+      height: 52,
       width: double.infinity,
       child: FilledButton(
         onPressed: onPressed,
@@ -566,12 +583,12 @@ class _PrimaryButton extends StatelessWidget {
           disabledForegroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(26),
           ),
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
     );
