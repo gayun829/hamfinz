@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
@@ -203,55 +202,6 @@ class FigmaCroppedAsset extends StatelessWidget {
               height: figma.s(height),
               fit: BoxFit.fitHeight,
               alignment: Alignment.centerLeft,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Figma `inset-[-5.09%]` + Gaussian blur glow. flutter_svg는 filter 미지원.
-class FigmaAuthHeroGlow extends StatelessWidget {
-  const FigmaAuthHeroGlow({
-    super.key,
-    required this.figma,
-    required this.left,
-    required this.top,
-    required this.size,
-  });
-
-  final FigmaScale figma;
-  final double left;
-  final double top;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final insetScale = 1.0509;
-    final circleSize = figma.s(size * 0.91 * insetScale);
-    final blur = figma.s(11.8);
-
-    return FigmaBox(
-      figma: figma,
-      left: left,
-      top: top,
-      width: size,
-      height: size,
-      child: OverflowBox(
-        maxWidth: circleSize,
-        maxHeight: circleSize,
-        child: Transform.flip(
-          flipY: true,
-          child: ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: Container(
-              width: circleSize,
-              height: circleSize,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x6167D3FA),
-              ),
             ),
           ),
         ),

@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: FigmaAuthTokens.link,
                   ),
                 ),
-              const FigmaHamsterHero(useSignupAsset: false),
+              const FigmaHamsterHero(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: fieldPad),
                 child: Column(
