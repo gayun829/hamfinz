@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(12.02 18.0)"><g id="Group 597">
+<path id="Union" d="M28.409 3.71373C30.3274 -0.932499 37.033 -1.33955 39.4842 3.17565C41.2539 6.43661 39.0664 10.3867 35.3289 10.7616C35.9401 12.06 36.3725 13.4619 36.5867 14.9403L37.0701 18.2713C37.8174 23.4132 33.7737 28.0165 28.5125 28.0165H11.2996C6.03855 28.0163 1.99819 23.4131 2.74294 18.2713L3.22536 14.9403C3.44135 13.4488 3.8793 12.0352 4.4988 10.7274C0.933291 10.1886 -1.10139 6.35433 0.623799 3.17565C3.05384 -1.30067 9.66525 -0.939197 11.6482 3.59459C13.4836 2.72265 15.5195 2.20348 17.6629 2.12779L19.0701 2.07897C19.626 2.05911 20.1845 2.0591 20.7429 2.07897L22.1492 2.12779C24.3883 2.20682 26.5105 2.76957 28.409 3.71373Z" fill="url(#t_grad_0_10)"/>
+</g></g>
+<rect x="27" y="38" width="9" height="4" rx="2" fill="white"/>
+<rect x="29" y="33" width="9" height="4" rx="2" fill="white"/>
+<rect x="26" y="28" width="9" height="4" rx="2" fill="white"/>
+<defs>
+<linearGradient id="t_grad_0_10" x1="20.054" y1="1.93188e-08" x2="20.054" y2="28.0164" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFCA54"/>
+<stop offset="1" stop-color="#FFB741"/>
+</linearGradient>
+<linearGradient id="yg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFCA54"/><stop offset="1" stop-color="#FFB741"/></linearGradient></defs>
+</svg>

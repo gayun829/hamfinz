@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../data/interest_categories.dart';
 import '../services/auth_service.dart';
@@ -14,6 +15,7 @@ Future<void> showCategorySwitcherSheet({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: const Color(0x8C3C3C3C),
     builder: (_) => CategorySwitcherSheet(
       initialSelectedIds: interestCategoryIds,
       onCategoriesChanged: onCategoriesChanged,
@@ -37,7 +39,8 @@ class CategorySwitcherSheet extends StatefulWidget {
 
 class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
   late String _selectedId;
-  bool _saving = false;
+  /// 저장 중인 카테고리 id — 저장이 끝날 때까지 다른 탭을 막는다.
+  String? _savingId;
 
   @override
   void initState() {
@@ -47,14 +50,14 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
   }
 
   Future<void> _selectCategory(String id) async {
-    if (_saving || _selectedId == id) return;
+    if (_savingId != null || _selectedId == id) return;
 
-    setState(() => _saving = true);
+    setState(() => _savingId = id);
     final error = await AuthService.instance.saveInterestCategories([id]);
 
     if (!mounted) return;
     if (error != null) {
-      setState(() => _saving = false);
+      setState(() => _savingId = null);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
       );
@@ -62,76 +65,94 @@ class _CategorySwitcherSheetState extends State<CategorySwitcherSheet> {
     }
     setState(() {
       _selectedId = id;
-      _saving = false;
+      _savingId = null;
     });
     widget.onCategoriesChanged([id]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(2),
+    // Figma: 학습 카테고리창 v01 (576:1258)
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(44, 15.6, 44, 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 53,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD9D9D9),
+                    borderRadius: BorderRadius.circular(31),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '학습 카테고리',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '6개 중 1개만 선택할 수 있어요. 선택한 카테고리 문제가 출제됩니다.',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final category in kInterestCategories)
-                  _CategoryIconButton(
-                    category: category,
-                    selected: _selectedId == category.id,
-                    onTap: _saving ? null : () => _selectCategory(category.id),
-                  ),
-              ],
-            ),
-            if (_saving)
+              const SizedBox(height: 35),
               const Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                padding: EdgeInsets.only(left: 2),
+                child: Text(
+                  '학습 카테고리',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
                   ),
                 ),
               ),
-          ],
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.only(left: 2),
+                child: Text(
+                  '6개 중 1개만 선택할 수 있어요.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFA7A6A6),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Padding(
+                padding: EdgeInsets.only(left: 2),
+                child: Text(
+                  '선택한 카테고리의 문제가 출제됩니다.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFC8C8C8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              for (var row = 0; row < kInterestCategories.length; row += 3) ...[
+                if (row > 0) const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    for (final category
+                        in kInterestCategories.skip(row).take(3))
+                      _CategoryIconButton(
+                        category: category,
+                        selected: _selectedId == category.id,
+                        saving: _savingId == category.id,
+                        onTap: _savingId != null
+                            ? null
+                            : () => _selectCategory(category.id),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -142,19 +163,24 @@ class _CategoryIconButton extends StatelessWidget {
   const _CategoryIconButton({
     required this.category,
     required this.selected,
+    required this.saving,
     required this.onTap,
   });
 
+  static const _tileColor = Color(0xFFF4F4F4);
+
   final InterestCategory category;
   final bool selected;
+  final bool saving;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Opacity(
-        opacity: onTap == null ? 0.6 : 1,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 68,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -163,34 +189,47 @@ class _CategoryIconButton extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: selected
-                    ? AppTheme.primaryGreen.withValues(alpha: 0.12)
-                    : AppTheme.card,
+                color: _tileColor,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: selected
-                      ? AppTheme.primaryGreen
-                      : const Color(0xFFE5E7EB),
+                  color: selected ? AppTheme.figmaYellow : _tileColor,
                   width: 2,
                 ),
               ),
-              alignment: Alignment.center,
-              child: Text(category.emoji, style: const TextStyle(fontSize: 28)),
+              child: saving
+                  ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.figmaYellow,
+                        ),
+                      ),
+                    )
+                  // 테두리(2px) 안쪽에서도 Figma 좌표 그대로 보이도록 64x64로 그린다.
+                  : OverflowBox(
+                      maxWidth: 64,
+                      maxHeight: 64,
+                      child: SvgPicture.asset(
+                        'assets/figma/category/${category.id}.svg',
+                        width: 64,
+                        height: 64,
+                      ),
+                    ),
             ),
             const SizedBox(height: 6),
-            SizedBox(
-              width: 68,
-              child: Text(
-                category.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color:
-                      selected ? AppTheme.primaryGreen : AppTheme.textSecondary,
-                ),
+            Text(
+              // Figma 표기는 '용돈/지출관리'처럼 슬래시를 쓴다.
+              category.name.replaceAll('&', '/'),
+              maxLines: 1,
+              overflow: TextOverflow.visible,
+              softWrap: false,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: Colors.black,
               ),
             ),
           ],
