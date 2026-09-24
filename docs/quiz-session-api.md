@@ -42,9 +42,21 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 1. Auth uid + energy >= 50
 2. users/{uid}/incorrectQuestions에서 활성 카테고리 문서만 조회 후 최대 10문항 선정
    (categoryId가 없는 예전 문서는 allowance로 보므로, allowance만 전체를 읽어 거른다)
-3. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`, `categoryId`)
-4. QuizQuestionLearning 반환 (correctIndex 없음)
+3. 삭제·비활성화(isActive=false)되었거나 카테고리가 바뀐 문제는 건너뜀
+   (규칙상 비활성 문제는 읽기가 거절되므로 거절도 "복습 불가"로 본다)
+4. 복습 불가 문제를 만났거나 저장된 오답 수 ≠ 오답 문서 수면 오답 정리
+   - 배포: Callable `reconcileIncorrectQuestions({ categoryId })`
+   - 개발: 클라이언트 트랜잭션
+   - 복습 불가 문서를 지우고 그 카테고리 오답 수를 남은 문서 수로 다시 센다
+   - 정리가 실패해도 복습 시작은 계속한다 (다음 복습에서 다시 시도)
+5. 복습할 문제가 하나도 없으면 일반 학습 세션(`startSession`)을 연다
+   → 사용자가 복습 홈에 갇히지 않는다
+6. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`, `categoryId`)
+7. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
+
+이미 오답 목록에 있는 문제를 다시 제출하면 오답 문서에 기록된 카테고리로 센다.
+문제의 카테고리가 나중에 바뀌어도 오답 수와 오답 문서가 어긋나지 않게 하기 위해서다.
 
 ---
 

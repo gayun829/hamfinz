@@ -86,6 +86,56 @@ void main() {
     expect(aggregateIncorrectQuestionCounts(const []), isEmpty);
   });
 
+  test('삭제·비활성화되었거나 카테고리가 바뀐 문제는 복습에 내지 않는다', () {
+    expect(
+      isReviewableQuestion(const {
+        'isActive': true,
+        'categoryId': 'saving',
+      }, 'saving'),
+      isTrue,
+    );
+    expect(
+      isReviewableQuestion(const {
+        'isActive': false,
+        'categoryId': 'saving',
+      }, 'saving'),
+      isFalse,
+    );
+    expect(isReviewableQuestion(null, 'saving'), isFalse);
+    expect(
+      isReviewableQuestion(const {
+        'isActive': true,
+        'categoryId': 'stock',
+      }, 'saving'),
+      isFalse,
+    );
+  });
+
+  test('정리 후 복습 기준 아래로 내려가면 복습 홈이 풀린다', () {
+    final profile = UserProfile(
+      email: 'review@test.dev',
+      nickname: '복습',
+      interestCategories: const ['saving'],
+      incorrectQuestionCounts: const {'saving': 11, 'stock': 2},
+      incorrectQuestionCount: 13,
+    );
+    expect(activeCategoryNeedsReview(profile), isTrue);
+
+    // 11개 중 1개가 비활성화돼 복습할 수 없으면 10개로 다시 센다.
+    profile.incorrectQuestionCounts = withCategoryIncorrectCount(
+      profile.incorrectQuestionCounts,
+      'saving',
+      10,
+    );
+    expect(profile.incorrectQuestionCounts, {'saving': 10, 'stock': 2});
+    expect(activeCategoryNeedsReview(profile), isFalse);
+
+    expect(
+      withCategoryIncorrectCount(const {'saving': 3}, 'saving', 0),
+      isEmpty,
+    );
+  });
+
   test('복습 홈은 지금 고른 카테고리의 오답 수로만 열린다', () {
     final profile = UserProfile(
       email: 'review@test.dev',

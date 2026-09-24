@@ -73,6 +73,29 @@ Map<String, int> aggregateIncorrectQuestionCounts(
   return counts;
 }
 
+/// 복습에 낼 수 있는 문제인지. 삭제·비활성화되었거나 카테고리가 바뀐 문제는
+/// 복습에 나오지 않으므로 오답 수에도 남기면 안 된다 (복습 홈에 갇힘).
+/// [question]이 null이면 없는 문제(또는 규칙상 읽을 수 없는 비활성 문제)다.
+bool isReviewableQuestion(Map<String, dynamic>? question, String categoryId) {
+  if (question == null || question['isActive'] != true) return false;
+  return incorrectQuestionCategoryId(question) == categoryId;
+}
+
+/// [categoryId] 오답 수를 [available]로 맞춘 맵. 0이면 키를 지운다.
+Map<String, int> withCategoryIncorrectCount(
+  Map<String, int> counts,
+  String categoryId,
+  int available,
+) {
+  final next = Map<String, int>.from(counts);
+  if (available > 0) {
+    next[categoryId] = available;
+  } else {
+    next.remove(categoryId);
+  }
+  return next;
+}
+
 bool sameIncorrectQuestionCounts(Map<String, int> a, Map<String, int> b) {
   if (a.length != b.length) return false;
   for (final entry in a.entries) {

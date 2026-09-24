@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 
+import '../config/quiz_backend_config.dart';
 import '../data/interest_categories.dart';
 import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
@@ -15,6 +17,7 @@ import '../utils/energy_reset.dart';
 import '../utils/incorrect_questions.dart';
 import '../utils/learning_dates.dart';
 import '../utils/quiz_text_helper.dart';
+import 'quiz_functions_repository.dart';
 
 /// Firestore `quizQuestions` + `mastered` — 출제 · 제출 · 세션 완료.
 /// 개발: 클라이언트 트랜잭션. 배포: `functions/index.js` Callable로 전환 예정.
@@ -101,6 +104,10 @@ class QuizSessionRepository {
   }
 
   /// 활성 카테고리의 오답에서 최대 10문항을 다시 출제한다.
+  ///
+  /// 삭제·비활성화되었거나 카테고리가 바뀐 문제는 건너뛰고 오답 목록에서 정리한다.
+  /// 복습할 문제가 하나도 없으면 일반 학습 세션을 연다 — 정리가 실패해도 사용자가
+  /// 복습 홈에 갇히지 않게 한다.
   Future<QuizSession> startReviewSession({required UserProfile profile}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
@@ -121,28 +128,35 @@ class QuizSessionRepository {
     );
     incorrectIds.shuffle(_random);
 
-    if (incorrectIds.isEmpty) {
-      throw QuizSessionException('이 카테고리에서 복습할 오답이 없어요.');
-    }
-
     final selected = <_QuestionDoc>[];
+    var foundUnreviewable = false;
     for (var i = 0; i < incorrectIds.length; i += 10) {
       if (selected.length >= QuizData.dailyQuestionCount) break;
       final chunk = incorrectIds.skip(i).take(10);
-      final docs = await Future.wait(
-        chunk.map((id) => _firestore.collection('quizQuestions').doc(id).get()),
-      );
+      final docs = await Future.wait(chunk.map(_readQuestionIfReadable));
       for (final doc in docs) {
         if (selected.length >= QuizData.dailyQuestionCount) break;
-        if (doc.data()?['isActive'] != true) continue;
+        if (doc == null || !isReviewableQuestion(doc.data(), categoryId)) {
+          foundUnreviewable = true;
+          continue;
+        }
         final parsed = _parseQuestionDoc(doc);
-        if (parsed == null || parsed.category.name != categoryId) continue;
-        selected.add(parsed);
+        if (parsed != null) selected.add(parsed);
       }
     }
 
+    // 복습할 수 없는 오답이 있거나 저장된 오답 수가 실제 문서 수와 다르면
+    // 오답 수를 다시 맞춘다. 그래야 복습 홈 기준(10 초과)이 풀릴 수 있다.
+    final storedCount = profile.incorrectQuestionCounts[categoryId] ?? 0;
+    if (foundUnreviewable || incorrectIds.length != storedCount) {
+      await _reconcileIncorrectQuestions(
+        userRef: userRef,
+        categoryId: categoryId,
+      );
+    }
+
     if (selected.isEmpty) {
-      throw QuizSessionException('복습할 문제를 불러오지 못했어요.');
+      return startSession(profile: profile);
     }
 
     final sessionRef = userRef.collection('sessions').doc();
@@ -261,11 +275,15 @@ class QuizSessionRepository {
           QuizData.maxEnergy,
         );
 
-        final categoryId = q['categoryId'] as String? ?? 'allowance';
+        // 이미 오답 목록에 있는 문제는 기록된 카테고리로 센다. 문제의 카테고리가
+        // 나중에 바뀌어도 오답 수와 오답 문서가 같은 카테고리에 남아야 한다.
+        final countCategoryId = incorrectSnap.exists
+            ? incorrectQuestionCategoryId(incorrectSnap.data()!)
+            : q['categoryId'] as String? ?? 'allowance';
         final counts = readIncorrectQuestionCounts(user);
         final nextCounts = nextIncorrectQuestionCounts(
           counts: counts,
-          categoryId: categoryId,
+          categoryId: countCategoryId,
           isCorrect: isCorrect,
           alreadyTracked: incorrectSnap.exists,
         );
@@ -305,7 +323,7 @@ class QuizSessionRepository {
               (incorrectSnap.data()?['wrongCount'] as num?)?.toInt() ?? 0;
           final incorrectUpdate = <String, dynamic>{
             'questionId': questionId,
-            'categoryId': q['categoryId'] ?? 'allowance',
+            'categoryId': countCategoryId,
             'difficulty': (q['difficulty'] as num?)?.toInt() ?? 1,
             'wrongCount': previousWrongCount + 1,
             'lastSelectedIndex': selectedIndex,
@@ -660,6 +678,89 @@ class QuizSessionRepository {
         .where((doc) => incorrectQuestionCategoryId(doc.data()) == categoryId)
         .map((doc) => doc.id)
         .toList();
+  }
+
+  /// 문제 문서. 없거나 규칙상 읽을 수 없으면(비활성 문제) null.
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _readQuestionIfReadable(
+    String id,
+  ) async {
+    try {
+      final doc = await _firestore.collection('quizQuestions').doc(id).get();
+      return doc.exists ? doc : null;
+    } on FirebaseException catch (e) {
+      // quizQuestions 규칙은 isActive가 아닌(또는 없는) 문서 읽기를 막는다.
+      if (e.code == 'permission-denied' || e.code == 'not-found') return null;
+      rethrow;
+    }
+  }
+
+  /// 활성 카테고리의 오답을 실제 출제 가능한 문제와 맞춘다.
+  /// 실패해도 복습 시작은 막지 않는다 — 다음 복습에서 다시 시도한다.
+  Future<void> _reconcileIncorrectQuestions({
+    required DocumentReference<Map<String, dynamic>> userRef,
+    required String categoryId,
+  }) async {
+    try {
+      if (QuizBackendConfig.usesCloudFunctions) {
+        await QuizFunctionsRepository.instance.reconcileIncorrectQuestions(
+          categoryId: categoryId,
+        );
+        return;
+      }
+
+      // 개발: 모바일 SDK 트랜잭션은 쿼리를 못 하므로 문서 목록은 먼저 읽고,
+      // 트랜잭션에서는 각 문서가 아직 있는지만 다시 확인한다.
+      final ids = await _fetchIncorrectQuestionIds(
+        userRef: userRef,
+        categoryId: categoryId,
+      );
+      final questions = await Future.wait(ids.map(_readQuestionIfReadable));
+      final removeIds = <String>[];
+      final keepIds = <String>[];
+      for (var i = 0; i < ids.length; i++) {
+        if (isReviewableQuestion(questions[i]?.data(), categoryId)) {
+          keepIds.add(ids[i]);
+        } else {
+          removeIds.add(ids[i]);
+        }
+      }
+
+      final incorrect = userRef.collection('incorrectQuestions');
+      await _firestore.runTransaction<Map<String, dynamic>?>((tx) async {
+        final user = (await tx.get(userRef)).data();
+        if (user == null) return null;
+        final removeSnaps = <DocumentSnapshot<Map<String, dynamic>>>[];
+        for (final id in removeIds) {
+          removeSnaps.add(await tx.get(incorrect.doc(id)));
+        }
+        var available = 0;
+        for (final id in keepIds) {
+          if ((await tx.get(incorrect.doc(id))).exists) available++;
+        }
+
+        for (final snap in removeSnaps) {
+          if (snap.exists) tx.delete(snap.reference);
+        }
+        // 맵이 없는 예전 계정은 문서만 지운다. 맵은 백필이 남은 문서로 센다.
+        if (user['incorrectQuestionCounts'] is Map) {
+          final counts = readIncorrectQuestionCounts(user);
+          final next = withCategoryIncorrectCount(
+            counts,
+            categoryId,
+            available,
+          );
+          if (!sameIncorrectQuestionCounts(counts, next)) {
+            tx.update(userRef, {
+              'incorrectQuestionCounts': next,
+              'incorrectQuestionCount': totalIncorrectQuestionCount(next),
+            });
+          }
+        }
+        return {};
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('Incorrect question reconcile failed: $e');
+    }
   }
 
   Future<Set<String>> _fetchMasteredIds(String uid) async {

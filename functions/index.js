@@ -3,9 +3,12 @@ const { completionEnergyReward } = require('./quiz_energy');
 const {
   hasIncorrectQuestionCounts,
   planIncorrectQuestionCounts,
+  readIncorrectQuestionCounts,
+  reconcileCategoryIncorrectQuestions,
 } = require('./incorrect_questions');
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
+ *   reconcileIncorrectQuestions (복습할 수 없는 오답 정리)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
  * News — fetchNewsFeed (웹 빌드용 구글뉴스 RSS 프록시)
  *
@@ -194,11 +197,18 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
         (doc) => doc.data(),
       );
 
+    // 이미 오답 목록에 있는 문제는 기록된 카테고리로 센다. 문제의 카테고리가
+    // 나중에 바뀌어도 오답 수와 오답 문서가 같은 카테고리에 남아야 한다.
+    const questionCategoryId = q.categoryId || 'allowance';
+    const countCategoryId = incorrectSnap.exists
+      ? incorrectSnap.data().categoryId || 'allowance'
+      : questionCategoryId;
+
     const userUpdate = { energy, lastEnergyResetDate };
     const incorrectCounts = planIncorrectQuestionCounts({
       user,
       incorrectDocs,
-      categoryId: q.categoryId || 'allowance',
+      categoryId: countCategoryId,
       isCorrect,
       alreadyTracked: incorrectSnap.exists,
     });
@@ -229,7 +239,7 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
       const previousWrongCount = Number(incorrectSnap.data()?.wrongCount ?? 0);
       const incorrectUpdate = {
         questionId,
-        categoryId: q.categoryId || 'allowance',
+        categoryId: countCategoryId,
         difficulty: Number(q.difficulty ?? 1),
         wrongCount: previousWrongCount + 1,
         lastSelectedIndex: selected,
@@ -251,6 +261,70 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     tx.update(sessionRef, sessionUpdate);
 
     return { isCorrect, correctIndex, energyRemaining: energy };
+  });
+});
+
+/**
+ * 한 카테고리의 오답을 실제 출제 가능한 문제와 맞춘다.
+ * 삭제·비활성화되었거나 카테고리가 바뀐 문제는 복습에 나올 수 없으므로 오답 목록에서
+ * 빼고, 오답 수를 남은 문서 수로 다시 센다. 그러지 않으면 복습 홈에서 나갈 수 없다.
+ */
+exports.reconcileIncorrectQuestions = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', '로그인이 필요해요.');
+  }
+
+  const { categoryId } = request.data ?? {};
+  if (typeof categoryId !== 'string' || !CATEGORY_LABELS[categoryId]) {
+    throw new HttpsError('invalid-argument', 'categoryId가 올바르지 않아요.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const incorrectCol = userRef.collection('incorrectQuestions');
+  // categoryId가 없는 예전 문서는 allowance로 보므로 그 카테고리만 전체를 읽는다.
+  const incorrectQuery =
+    categoryId === 'allowance'
+      ? incorrectCol
+      : incorrectCol.where('categoryId', '==', categoryId);
+
+  return db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists) {
+      throw new HttpsError('not-found', '유저 프로필을 찾을 수 없어요.');
+    }
+
+    const incorrectSnap = await tx.get(incorrectQuery);
+    const incorrectDocs = incorrectSnap.docs.map((doc) => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
+    const questionSnaps = incorrectDocs.length
+      ? await tx.getAll(
+        ...incorrectDocs.map((doc) => db.collection('quizQuestions').doc(doc.id)),
+      )
+      : [];
+    const questionsById = {};
+    for (const snap of questionSnaps) {
+      questionsById[snap.id] = snap.exists ? snap.data() : null;
+    }
+
+    const user = userSnap.data();
+    const plan = reconcileCategoryIncorrectQuestions({
+      counts: readIncorrectQuestionCounts(user),
+      categoryId,
+      incorrectDocs,
+      questionsById,
+    });
+    for (const id of plan.removeIds) tx.delete(incorrectCol.doc(id));
+    // 맵이 없는 예전 계정은 문서만 지운다. 맵은 다음 제출의 백필이 남은 문서로 센다.
+    if (plan.changed && hasIncorrectQuestionCounts(user)) {
+      tx.update(userRef, {
+        incorrectQuestionCounts: plan.counts,
+        incorrectQuestionCount: plan.total,
+      });
+    }
+    return { removed: plan.removeIds.length };
   });
 });
 

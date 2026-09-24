@@ -39,6 +39,14 @@ class QuizFunctionsRepository {
     }
   }
 
+  /// 복습할 수 없는 오답(삭제·비활성·카테고리 변경)을 정리하고 오답 수를 다시 센다.
+  /// 오류는 그대로 던진다 — 호출하는 쪽이 복습 시작을 막지 않도록 처리한다.
+  Future<void> reconcileIncorrectQuestions({required String categoryId}) async {
+    await _functions.httpsCallable('reconcileIncorrectQuestions').call({
+      'categoryId': categoryId,
+    });
+  }
+
   Future<QuizSessionResult> completeSession({required String sessionId}) async {
     try {
       final callable = _functions.httpsCallable('completeSession');

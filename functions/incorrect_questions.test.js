@@ -88,3 +88,63 @@ test('a repeated wrong answer leaves a consistent map untouched', () => {
   });
   assert.equal(plan.write, false);
 });
+
+const {
+  isReviewableQuestion,
+  reconcileCategoryIncorrectQuestions,
+} = require('./incorrect_questions');
+
+test('inactive, deleted or moved questions are not reviewable', () => {
+  assert.equal(isReviewableQuestion({ isActive: true, categoryId: 'saving' }, 'saving'), true);
+  assert.equal(isReviewableQuestion({ isActive: false, categoryId: 'saving' }, 'saving'), false);
+  assert.equal(isReviewableQuestion(null, 'saving'), false);
+  assert.equal(isReviewableQuestion({ isActive: true, categoryId: 'stock' }, 'saving'), false);
+  assert.equal(isReviewableQuestion({ isActive: true }, 'allowance'), true);
+});
+
+test('reconcile drops unreviewable wrong answers so review can end', () => {
+  // 11개 중 2개가 비활성화·삭제 → 9개만 남아 복습 기준(10 초과) 아래로 내려간다.
+  const incorrectDocs = Array.from({ length: 11 }, (_, i) => ({
+    id: `q${i}`,
+    data: { categoryId: 'saving' },
+  }));
+  const questionsById = {};
+  for (const doc of incorrectDocs) {
+    questionsById[doc.id] = { isActive: true, categoryId: 'saving' };
+  }
+  questionsById.q3 = { isActive: false, categoryId: 'saving' };
+  questionsById.q7 = null;
+
+  const plan = reconcileCategoryIncorrectQuestions({
+    counts: { saving: 11, stock: 2 },
+    categoryId: 'saving',
+    incorrectDocs,
+    questionsById,
+  });
+  assert.deepEqual(plan.removeIds, ['q3', 'q7']);
+  assert.deepEqual(plan.counts, { saving: 9, stock: 2 });
+  assert.equal(plan.total, 11);
+  assert.equal(plan.changed, true);
+});
+
+test('reconcile resets a count that has no wrong-answer docs behind it', () => {
+  const plan = reconcileCategoryIncorrectQuestions({
+    counts: { saving: 12 },
+    categoryId: 'saving',
+    incorrectDocs: [],
+    questionsById: {},
+  });
+  assert.deepEqual(plan.counts, {});
+  assert.equal(plan.changed, true);
+});
+
+test('reconcile leaves a consistent category alone', () => {
+  const plan = reconcileCategoryIncorrectQuestions({
+    counts: { allowance: 1 },
+    categoryId: 'allowance',
+    incorrectDocs: [{ id: 'a1', data: {} }],
+    questionsById: { a1: { isActive: true } },
+  });
+  assert.equal(plan.changed, false);
+  assert.deepEqual(plan.removeIds, []);
+});

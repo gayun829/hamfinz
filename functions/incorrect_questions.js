@@ -94,7 +94,47 @@ function planIncorrectQuestionCounts({
   };
 }
 
+// 복습에 낼 수 있는 문제인지. 삭제·비활성화되었거나 카테고리가 바뀐 문제는
+// 복습에서 나오지 않으므로 오답 수에도 남겨 두면 안 된다 (복습 홈에 갇힘).
+function isReviewableQuestion(question, categoryId) {
+  if (!question || question.isActive !== true) return false;
+  return (question.categoryId || 'allowance') === categoryId;
+}
+
+// 한 카테고리의 오답 문서를 실제 출제 가능한 문제와 맞춘다.
+// incorrectDocs: [{ id, data }] — 이 카테고리 오답 문서
+// questionsById: { [id]: 문제 데이터 | null(없음) }
+function reconcileCategoryIncorrectQuestions({
+  counts,
+  categoryId,
+  incorrectDocs,
+  questionsById,
+}) {
+  const removeIds = [];
+  let available = 0;
+  for (const doc of incorrectDocs) {
+    if ((doc.data?.categoryId || 'allowance') !== categoryId) continue;
+    if (isReviewableQuestion(questionsById[doc.id], categoryId)) {
+      available += 1;
+    } else {
+      removeIds.push(doc.id);
+    }
+  }
+  const next = { ...(counts || {}) };
+  if (available > 0) next[categoryId] = available;
+  else delete next[categoryId];
+  return {
+    removeIds,
+    counts: next,
+    total: totalIncorrectQuestionCount(next),
+    changed:
+      removeIds.length > 0 || !sameIncorrectQuestionCounts(counts || {}, next),
+  };
+}
+
 module.exports = {
+  isReviewableQuestion,
+  reconcileCategoryIncorrectQuestions,
   nextIncorrectQuestionCount,
   readIncorrectQuestionCounts,
   nextIncorrectQuestionCounts,
