@@ -1,0 +1,11 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="13" y="35.09" width="10.047" height="13.815" rx="3.672" fill="url(#yg)"/>
+<rect x="25.56" y="21.28" width="11.303" height="27.629" rx="3.672" fill="url(#yg)"/>
+<rect x="39.37" y="27.56" width="10.047" height="21.35" rx="3.672" fill="url(#yg)"/>
+<g transform="translate(38.12 15)"><g id="Group 597">
+<path id="Vector" d="M3.85348 1.53968L4.71261 4.39843L1.60387 4.12135C0.357391 4.01071 -0.380897 2.47684 0.203441 1.21437C1.02035 -0.550246 3.28653 -0.348818 3.85431 1.53968H3.85348Z" fill="#FBB03B"/>
+<path id="Vector_2" d="M9.02905 1.53968L8.16992 4.39843L11.2787 4.12135C12.5251 4.01071 13.2634 2.47684 12.6791 1.21437C11.8622 -0.550246 9.596 -0.348818 9.02822 1.53968H9.02905Z" fill="#FBB03B"/>
+<rect id="Rectangle 100" x="0.938226" y="0.620578" width="10.9961" height="10.6819" rx="5.34095" fill="#FBB03B"/>
+</g></g>
+<defs><linearGradient id="yg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFCA54"/><stop offset="1" stop-color="#FFB741"/></linearGradient></defs>
+</svg>
