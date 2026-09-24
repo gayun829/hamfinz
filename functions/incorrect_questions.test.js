@@ -5,7 +5,7 @@ const {
   nextIncorrectQuestionCounts,
   aggregateIncorrectQuestionCounts,
   totalIncorrectQuestionCount,
-  planIncorrectQuestionCounts,
+  planSessionIncorrectQuestions,
 } = require('./incorrect_questions');
 
 test('wrong answers increment only that category', () => {
@@ -39,54 +39,78 @@ test('existing incorrect docs are counted per category', () => {
   assert.deepEqual(counts, { saving: 2, stock: 1, allowance: 1 });
 });
 
-test('an account without the map is backfilled in the same submit', () => {
-  const plan = planIncorrectQuestionCounts({
+test('an account without the map is backfilled when the session completes', () => {
+  const plan = planSessionIncorrectQuestions({
     user: { incorrectQuestionCount: 3 },
     incorrectDocs: [{ categoryId: 'saving' }, { categoryId: 'saving' }, {}],
-    categoryId: 'stock',
-    isCorrect: false,
-    alreadyTracked: false,
+    answers: [{ questionId: 's9', isCorrect: false, categoryId: 'stock' }],
+    trackedById: {},
   });
   assert.deepEqual(plan.counts, { saving: 2, allowance: 1, stock: 1 });
   assert.equal(plan.total, 4);
-  assert.equal(plan.write, true);
+  assert.equal(plan.writeCounts, true);
 });
 
 test('backfill writes an empty map when there are no incorrect docs', () => {
-  const plan = planIncorrectQuestionCounts({
+  const plan = planSessionIncorrectQuestions({
     user: {},
     incorrectDocs: [],
-    categoryId: 'saving',
-    isCorrect: true,
-    alreadyTracked: false,
+    answers: [{ questionId: 's1', isCorrect: true, categoryId: 'saving' }],
+    trackedById: {},
   });
   assert.deepEqual(plan.counts, {});
-  assert.equal(plan.total, 0);
-  assert.equal(plan.write, true);
+  assert.equal(plan.writeCounts, true);
+  assert.deepEqual(plan.masteredIds, ['s1']);
 });
 
 test('a map change is saved even when the stored total already matches', () => {
   // 예전 앱이 합계만 올려서 합계가 맵보다 1 큰 계정.
-  const plan = planIncorrectQuestionCounts({
+  const plan = planSessionIncorrectQuestions({
     user: { incorrectQuestionCounts: { saving: 3 }, incorrectQuestionCount: 4 },
     incorrectDocs: null,
-    categoryId: 'saving',
-    isCorrect: false,
-    alreadyTracked: false,
+    answers: [{ questionId: 's1', isCorrect: false, categoryId: 'saving' }],
+    trackedById: {},
   });
   assert.deepEqual(plan.counts, { saving: 4 });
-  assert.equal(plan.write, true);
+  assert.equal(plan.writeCounts, true);
 });
 
-test('a repeated wrong answer leaves a consistent map untouched', () => {
-  const plan = planIncorrectQuestionCounts({
-    user: { incorrectQuestionCounts: { saving: 3 }, incorrectQuestionCount: 3 },
+test('a session sorts answers into mastered, cleared and wrong', () => {
+  const plan = planSessionIncorrectQuestions({
+    user: { incorrectQuestionCounts: { saving: 10 }, incorrectQuestionCount: 10 },
     incorrectDocs: null,
-    categoryId: 'saving',
-    isCorrect: false,
-    alreadyTracked: true,
+    answers: [
+      { questionId: 'new-right', isCorrect: true, categoryId: 'saving' },
+      { questionId: 'old-right', isCorrect: true, categoryId: 'saving' },
+      { questionId: 'new-wrong', isCorrect: false, categoryId: 'saving' },
+      { questionId: 'old-wrong', isCorrect: false, categoryId: 'saving' },
+    ],
+    trackedById: {
+      'old-right': { categoryId: 'saving', wrongCount: 1 },
+      'old-wrong': { categoryId: 'saving', wrongCount: 2 },
+    },
   });
-  assert.equal(plan.write, false);
+  assert.deepEqual(plan.masteredIds, ['new-right', 'old-right']);
+  assert.deepEqual(plan.removeIds, ['old-right']);
+  assert.deepEqual(
+    plan.wrong.map((w) => [w.answer.questionId, w.isNew, w.previousWrongCount]),
+    [['new-wrong', true, 0], ['old-wrong', false, 2]],
+  );
+  // old-right -1, new-wrong +1, old-wrong 그대로.
+  assert.deepEqual(plan.counts, { saving: 10 });
+  assert.equal(plan.writeCounts, false);
+});
+
+test('a tracked wrong answer stays in the category it was recorded under', () => {
+  // 문제가 saving → stock으로 옮겨졌어도 오답 문서와 오답 수는 saving에 남는다.
+  const plan = planSessionIncorrectQuestions({
+    user: { incorrectQuestionCounts: { saving: 1 }, incorrectQuestionCount: 1 },
+    incorrectDocs: null,
+    answers: [{ questionId: 'moved', isCorrect: true, categoryId: 'stock' }],
+    trackedById: { moved: { categoryId: 'saving', wrongCount: 1 } },
+  });
+  assert.deepEqual(plan.counts, {});
+  assert.deepEqual(plan.removeIds, ['moved']);
 });
 
 const {

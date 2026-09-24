@@ -11,6 +11,7 @@ import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/news_service.dart';
+import '../../services/quiz_service.dart';
 import '../../utils/incorrect_questions.dart';
 import '../../theme/home_tier_theme.dart';
 import '../../theme/figma_home_fonts.dart';
@@ -122,6 +123,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final profile = _profile;
     if (profile == null) return;
+
+    // 앱이 종료돼 닫지 못한 세션이 있으면 닫고 에너지를 돌려받는다.
+    // 에너지 확인 전에 해야 돌려받은 에너지로 바로 시작할 수 있다.
+    await QuizService.instance.abandonOpenSessions(profile: profile);
+    if (!mounted) return;
 
     final isReview = activeCategoryNeedsReview(profile);
 

@@ -36,7 +36,7 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 5. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
 
-활성 카테고리의 고유 오답(`users.incorrectQuestionCounts[categoryId]`)이 10개를 넘으면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
+활성 카테고리의 고유 오답(`users.incorrectQuestionCounts[categoryId]`)이 **10개 이상**이면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
 
 ```
 1. Auth uid + energy >= 50
@@ -80,19 +80,11 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 1. 세션 `inProgress` · questionId ∈ `questionIds` · 미제출 확인
 2. `quizQuestions/{id}.correctIndex` 와 **서버 비교**
 3. `users.energy -= 5`
-4. `sessions/.../answers/{questionId}` 저장 (`isCorrect`, `categoryId`, …)
-5. 정답 시 `users/.../mastered/{questionId}` upsert
-   - 오답 목록에 있던 문제면 `incorrectQuestions/{questionId}` 삭제
-   - 그 문제 카테고리의 `users.incorrectQuestionCounts` 값을 1 감소 (0이 되면 키 삭제)
-6. 오답 시 `users/.../incorrectQuestions/{questionId}` upsert
-   - 최초 오답인 문제만 그 카테고리 값을 1 증가
-   - 반복 오답은 `wrongCount`와 최근 오답 정보만 갱신
-7. `users.incorrectQuestionCount`는 맵의 합으로 함께 저장한다 (파생 값)
+4. `sessions/.../answers/{questionId}` 저장 (`isCorrect`, `categoryId`, `difficulty`, …)
+5. `sessions/{id}.energySpent += 5`
 
-`incorrectQuestionCounts`가 없는 예전 계정은 제출 때 `incorrectQuestions`를 세어 채운다.
-Functions는 맵이 없을 때만 같은 트랜잭션에서 컬렉션을 읽는다(Admin SDK는 트랜잭션 쿼리 지원).
-클라이언트 트랜잭션은 쿼리를 못 하므로 제출 전에 한 번 채우고, 이 세션에서 맵을 확인한 계정은
-다시 읽지 않는다.
+**정답(`mastered`)·오답(`incorrectQuestions`)은 여기서 쓰지 않는다.** 세션을 끝까지
+풀어야 `completeSession`이 반영한다. 중간에 나가면 푼 문제도 안 푼 문제로 남는다.
 
 ### 응답
 
@@ -121,7 +113,17 @@ Functions는 맵이 없을 때만 같은 트랜잭션에서 컬렉션을 읽는�
 
 ### 서버 처리
 
-1. `answers` subcollection 전부 존재 확인 (10문항)
+1. `answers` subcollection 전부 존재 확인 (세션의 모든 문항)
+1-1. 답을 문제 상태에 반영 — 문제는 **안 푼 문제 / 정답 / 오답** 셋 중 하나다
+   - 정답: `users/.../mastered/{questionId}` upsert. 오답 목록에 있던 문제면
+     `incorrectQuestions/{questionId}` 삭제 + 그 카테고리 `incorrectQuestionCounts` −1
+     (0이 되면 키 삭제)
+   - 오답: `users/.../incorrectQuestions/{questionId}` upsert. 처음 틀린 문제만 그
+     카테고리 값 +1, 반복 오답은 `wrongCount`와 최근 오답 정보만 갱신
+   - 이미 오답 목록에 있던 문제는 오답 문서에 기록된 카테고리로 센다
+   - `users.incorrectQuestionCount`는 맵의 합으로 함께 저장한다 (파생 값)
+   - 맵이 없는 예전 계정은 `incorrectQuestions`를 세어 채운다. Functions는 맵이 없을 때만
+     같은 트랜잭션에서 컬렉션을 읽고, 클라이언트는 트랜잭션 전에 한 번 채운다.
 2. 씨앗 (정답 × 5) · `categoryStats` (한글 label 키, 에너지 세션이면 `completedSessions + 1`)
 3. streak · `learningDates` 갱신
 3-1. 실제 소모량 이내에서 에너지 최대 `+20` (최대 100까지)
@@ -135,6 +137,25 @@ Functions는 맵이 없을 때만 같은 트랜잭션에서 컬렉션을 읽는�
 채워진 양이다 (퀴즈_결과보기창 오른쪽 수치).
 
 앱은 `AuthService.getCurrentUser()`로 프로필 재동기화.
+
+---
+
+## 4. abandonSession (중도 종료)
+
+**구현:** `QuizSessionRepository.abandonSession` — Firestore 트랜잭션  
+(배포 시 Cloud Function `abandonSession`)
+
+퀴즈 화면의 뒤로가기(화면 버튼·시스템 뒤로가기)로 세션을 끝까지 풀지 않고 나갈 때.
+
+1. 세션이 `inProgress`가 아니면 아무것도 하지 않는다 (이미 완료·종료)
+2. `sessions/{id}.energySpent`만큼 에너지를 돌려준다 (최대 100)
+3. `sessions/{id}` → `status: abandoned`, `energyRefunded`, `abandonedAt`
+4. 그 세션의 `answers`는 정답·오답 목록에 반영하지 않는다 → 안 푼 문제로 남는다
+   (씨앗·streak·`categoryStats`도 주지 않는다)
+
+앱이 종료돼 뒤로가기 처리를 못 한 세션은 다음에 **오늘의 학습**을 누를 때
+(`QuizService.abandonOpenSessions`) 닫고 에너지를 돌려준다. 에너지 확인 전에 하므로
+돌려받은 에너지로 바로 시작할 수 있다. 다른 기기에서 진행 중인 세션도 이때 닫힌다.
 
 ---
 
@@ -168,6 +189,7 @@ startSession (로딩)
   → [정답 제출] → submitAnswer (Firestore 트랜잭션)
   → 정·오답 UI (채점 결과 correctIndex)
   → [다음] × 9
+  → (도중에 뒤로가기 → abandonSession → 홈, 푼 문제는 안 푼 문제로)
   → 마지막 문제 → completeSession
   → QuizCompleteScreen (터치)
   → QuizStreakScreen (다음으로)

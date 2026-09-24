@@ -62,35 +62,68 @@ function sameIncorrectQuestionCounts(a, b) {
   return aKeys.every((key) => a[key] === b[key]);
 }
 
-// 답 하나를 반영한 오답 수와 저장 여부. 맵이 없는 예전 계정이면
-// incorrectDocs(그 사용자의 incorrectQuestions 문서 데이터)로 먼저 채운다.
-function planIncorrectQuestionCounts({
+// 끝까지 푼 세션의 답을 정답(mastered)·오답(incorrectQuestions)에 반영할 계획.
+// 세션을 완료할 때만 부른다 — 중간에 나간 세션의 답은 반영하지 않으므로 그
+// 문제들은 안 푼 문제로 남는다.
+//
+// answers: [{ questionId, isCorrect, categoryId, ... }]
+// trackedById: { [questionId]: 이미 있는 오답 문서 데이터 } — 없는 문제는 키가 없다
+// incorrectDocs: 맵이 없는 예전 계정일 때만 — 그 사용자의 오답 문서 데이터 전부
+function planSessionIncorrectQuestions({
   user,
   incorrectDocs,
-  categoryId,
-  isCorrect,
-  alreadyTracked,
+  answers,
+  trackedById,
 }) {
   const backfilled = !hasIncorrectQuestionCounts(user);
   const counts = backfilled
     ? aggregateIncorrectQuestionCounts(incorrectDocs || [])
     : readIncorrectQuestionCounts(user);
-  const nextCounts = nextIncorrectQuestionCounts({
-    counts,
-    categoryId,
-    isCorrect,
-    alreadyTracked,
-  });
+
+  let nextCounts = counts;
+  const masteredIds = [];
+  const removeIds = [];
+  const wrong = [];
+  for (const answer of answers) {
+    const tracked = trackedById[answer.questionId];
+    const isCorrect = answer.isCorrect === true;
+    // 이미 오답 목록에 있는 문제는 기록된 카테고리로 센다. 문제의 카테고리가
+    // 나중에 바뀌어도 오답 수와 오답 문서가 같은 카테고리에 남아야 한다.
+    const categoryId = tracked
+      ? tracked.categoryId || 'allowance'
+      : answer.categoryId || 'allowance';
+    nextCounts = nextIncorrectQuestionCounts({
+      counts: nextCounts,
+      categoryId,
+      isCorrect,
+      alreadyTracked: Boolean(tracked),
+    });
+    if (isCorrect) {
+      masteredIds.push(answer.questionId);
+      if (tracked) removeIds.push(answer.questionId);
+    } else {
+      wrong.push({
+        answer,
+        categoryId,
+        isNew: !tracked,
+        previousWrongCount: Number(tracked?.wrongCount ?? 0),
+      });
+    }
+  }
+
   const nextTotal = totalIncorrectQuestionCount(nextCounts);
   const currentTotal = Number(user?.incorrectQuestionCount ?? 0);
   return {
     counts: nextCounts,
     total: nextTotal,
     // 합계가 같아도 맵이 바뀌었으면 저장한다 (합계가 맵과 어긋난 계정).
-    write:
+    writeCounts:
       backfilled ||
       nextTotal !== currentTotal ||
       !sameIncorrectQuestionCounts(counts, nextCounts),
+    masteredIds,
+    removeIds,
+    wrong,
   };
 }
 
@@ -142,5 +175,5 @@ module.exports = {
   aggregateIncorrectQuestionCounts,
   hasIncorrectQuestionCounts,
   sameIncorrectQuestionCounts,
-  planIncorrectQuestionCounts,
+  planSessionIncorrectQuestions,
 };

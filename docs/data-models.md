@@ -39,7 +39,7 @@
 | `categoryStats` | 카테고리 label → `CategoryStat` |
 | `interestCategories` | 관심 카테고리 id 목록 |
 | `learningStage` | 현재 학습과정(초급·중급·고급) |
-| `incorrectQuestionCounts` | 카테고리 id → `incorrectQuestions`의 고유 문제 수. **활성 카테고리** 값이 10 초과면 복습 홈 |
+| `incorrectQuestionCounts` | 카테고리 id → `incorrectQuestions`의 고유 문제 수. **활성 카테고리** 값이 10 이상이면 복습 홈 |
 | `incorrectQuestionCount` | `incorrectQuestionCounts`의 합(파생 값). 복습 판단에는 쓰지 않는다 |
 | `seeds` | 상점 해바라기씨 잔액 |
 | `ownedShopItemIds` | 구매한 상점 아이템 id |

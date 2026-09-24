@@ -2,7 +2,7 @@ const { learningDatesFromUser } = require('./learning_dates');
 const { completionEnergyReward } = require('./quiz_energy');
 const {
   hasIncorrectQuestionCounts,
-  planIncorrectQuestionCounts,
+  planSessionIncorrectQuestions,
   readIncorrectQuestionCounts,
   reconcileCategoryIncorrectQuestions,
 } = require('./incorrect_questions');
@@ -133,15 +133,13 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
   const sessionRef = userRef.collection('sessions').doc(sessionId);
   const answerRef = sessionRef.collection('answers').doc(questionId);
   const questionRef = db.collection('quizQuestions').doc(questionId);
-  const incorrectRef = userRef.collection('incorrectQuestions').doc(questionId);
 
   return db.runTransaction(async (tx) => {
-    const [userSnap, sessionSnap, answerSnap, questionSnap, incorrectSnap] = await Promise.all([
+    const [userSnap, sessionSnap, answerSnap, questionSnap] = await Promise.all([
       tx.get(userRef),
       tx.get(sessionRef),
       tx.get(answerRef),
       tx.get(questionRef),
-      tx.get(incorrectRef),
     ]);
 
     if (!userSnap.exists) {
@@ -189,68 +187,18 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     const isCorrect = selected === correctIndex;
     energy = Math.max(0, energy - ENERGY_PER_QUESTION);
 
-    // 카테고리별 맵이 없는 예전 계정만 같은 트랜잭션에서 오답 문서를 센다.
-    // Admin SDK 트랜잭션은 쿼리를 읽을 수 있어서, 맵이 있는 계정은 추가 읽기가 없다.
-    const incorrectDocs = hasIncorrectQuestionCounts(user)
-      ? null
-      : (await tx.get(userRef.collection('incorrectQuestions'))).docs.map(
-        (doc) => doc.data(),
-      );
+    tx.update(userRef, { energy, lastEnergyResetDate });
 
-    // 이미 오답 목록에 있는 문제는 기록된 카테고리로 센다. 문제의 카테고리가
-    // 나중에 바뀌어도 오답 수와 오답 문서가 같은 카테고리에 남아야 한다.
-    const questionCategoryId = q.categoryId || 'allowance';
-    const countCategoryId = incorrectSnap.exists
-      ? incorrectSnap.data().categoryId || 'allowance'
-      : questionCategoryId;
-
-    const userUpdate = { energy, lastEnergyResetDate };
-    const incorrectCounts = planIncorrectQuestionCounts({
-      user,
-      incorrectDocs,
-      categoryId: countCategoryId,
-      isCorrect,
-      alreadyTracked: incorrectSnap.exists,
-    });
-    if (incorrectCounts.write) {
-      userUpdate.incorrectQuestionCounts = incorrectCounts.counts;
-      userUpdate.incorrectQuestionCount = incorrectCounts.total;
-    }
-    tx.update(userRef, userUpdate);
-
+    // 정답(mastered)·오답(incorrectQuestions)은 여기서 쓰지 않는다. 세션을 끝까지
+    // 풀어야 completeSession이 반영한다 — 중간에 나가면 안 푼 문제로 남는다.
     tx.set(answerRef, {
       selectedIndex: selected,
       isCorrect,
       categoryId: q.categoryId || 'allowance',
+      difficulty: Number(q.difficulty ?? 1),
       energySpent: ENERGY_PER_QUESTION,
       answeredAt: FieldValue.serverTimestamp(),
     });
-
-    if (isCorrect) {
-      tx.set(
-        userRef.collection('mastered').doc(questionId),
-        { answeredAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      );
-      if (incorrectSnap.exists) {
-        tx.delete(incorrectRef);
-      }
-    } else {
-      const previousWrongCount = Number(incorrectSnap.data()?.wrongCount ?? 0);
-      const incorrectUpdate = {
-        questionId,
-        categoryId: countCategoryId,
-        difficulty: Number(q.difficulty ?? 1),
-        wrongCount: previousWrongCount + 1,
-        lastSelectedIndex: selected,
-        lastSessionId: sessionId,
-        lastWrongAt: FieldValue.serverTimestamp(),
-      };
-      if (!incorrectSnap.exists) {
-        incorrectUpdate.firstWrongAt = FieldValue.serverTimestamp();
-      }
-      tx.set(incorrectRef, incorrectUpdate, { merge: true });
-    }
 
     const sessionUpdate = {
       energySpent: (session.energySpent ?? 0) + ENERGY_PER_QUESTION,
@@ -374,6 +322,26 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
 
     const user = userSnap.data();
 
+    // 끝까지 푼 세션의 답만 정답·오답 목록에 반영한다.
+    const incorrectCol = userRef.collection('incorrectQuestions');
+    const trackedSnaps = answers.length
+      ? await tx.getAll(...answers.map((a) => incorrectCol.doc(a.questionId)))
+      : [];
+    const trackedById = {};
+    for (const snap of trackedSnaps) {
+      if (snap.exists) trackedById[snap.id] = snap.data();
+    }
+    // 카테고리별 맵이 없는 예전 계정만 같은 트랜잭션에서 오답 문서를 센다.
+    const incorrectDocs = hasIncorrectQuestionCounts(user)
+      ? null
+      : (await tx.get(incorrectCol)).docs.map((doc) => doc.data());
+    const incorrectPlan = planSessionIncorrectQuestions({
+      user,
+      incorrectDocs,
+      answers,
+      trackedById,
+    });
+
     let correctCount = 0;
     const categoryStats = { ...(user.categoryStats || {}) };
 
@@ -456,7 +424,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     );
     const energyEarned = energyRemaining - energyBefore;
 
-    tx.update(userRef, {
+    const userUpdate = {
       energy: energyRemaining,
       lastEnergyResetDate,
       seeds: (user.seeds ?? 0) + seedsEarned,
@@ -466,7 +434,36 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       studyGuardCount,
       categoryStats,
       learningDates,
-    });
+    };
+    if (incorrectPlan.writeCounts) {
+      userUpdate.incorrectQuestionCounts = incorrectPlan.counts;
+      userUpdate.incorrectQuestionCount = incorrectPlan.total;
+    }
+    tx.update(userRef, userUpdate);
+
+    for (const questionId of incorrectPlan.masteredIds) {
+      tx.set(
+        userRef.collection('mastered').doc(questionId),
+        { answeredAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+    }
+    for (const questionId of incorrectPlan.removeIds) {
+      tx.delete(incorrectCol.doc(questionId));
+    }
+    for (const { answer, categoryId, isNew, previousWrongCount } of incorrectPlan.wrong) {
+      const incorrectUpdate = {
+        questionId: answer.questionId,
+        categoryId,
+        difficulty: Number(answer.difficulty ?? 1),
+        wrongCount: previousWrongCount + 1,
+        lastSelectedIndex: answer.selectedIndex,
+        lastSessionId: sessionId,
+        lastWrongAt: FieldValue.serverTimestamp(),
+      };
+      if (isNew) incorrectUpdate.firstWrongAt = FieldValue.serverTimestamp();
+      tx.set(incorrectCol.doc(answer.questionId), incorrectUpdate, { merge: true });
+    }
 
     tx.update(sessionRef, {
       status: 'completed',
@@ -485,6 +482,53 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       energyRemaining,
       energyEarned,
     };
+  });
+});
+
+/**
+ * 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션에서 푼 문제는 정답·오답 목록에
+ * 반영되지 않은 채(안 푼 문제) 남고, 쓴 에너지는 돌려준다.
+ * 이미 닫힌 세션이면 아무것도 하지 않는다.
+ */
+exports.abandonSession = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', '로그인이 필요해요.');
+  }
+
+  const { sessionId } = request.data ?? {};
+  if (!sessionId) {
+    throw new HttpsError('invalid-argument', 'sessionId가 필요해요.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const sessionRef = userRef.collection('sessions').doc(sessionId);
+
+  return db.runTransaction(async (tx) => {
+    const [sessionSnap, userSnap] = await Promise.all([
+      tx.get(sessionRef),
+      tx.get(userRef),
+    ]);
+    if (!sessionSnap.exists || !userSnap.exists) {
+      return { energyRefunded: 0, energyRemaining: null };
+    }
+    const session = sessionSnap.data();
+    const { energy, lastEnergyResetDate } = resolveEnergy(userSnap.data(), todayKey());
+    if (session.status !== 'inProgress') {
+      return { energyRefunded: 0, energyRemaining: energy };
+    }
+
+    const spent = Number(session.energySpent ?? 0);
+    const energyRemaining = Math.min(MAX_ENERGY, energy + spent);
+    const energyRefunded = energyRemaining - energy;
+
+    tx.update(userRef, { energy: energyRemaining, lastEnergyResetDate });
+    tx.update(sessionRef, {
+      status: 'abandoned',
+      energyRefunded,
+      abandonedAt: FieldValue.serverTimestamp(),
+    });
+    return { energyRefunded, energyRemaining };
   });
 });
 

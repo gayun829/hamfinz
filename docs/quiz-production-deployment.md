@@ -16,6 +16,7 @@ API 상세: [quiz-session-api.md](./quiz-session-api.md)
 | submitAnswer | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `submitAnswer` |
 | completeSession | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `completeSession` |
 | 복습 불가 오답 정리 | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `reconcileIncorrectQuestions` |
+| 중도 종료 (에너지 환불) | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `abandonSession` |
 | mastered / answers write | 클라이언트 허용 | **Functions Admin SDK만** |
 | sessions update (completed) | 클라이언트 (`inProgress`일 때) | **Functions만** |
 | startSession | 클라이언트 (변경 없음) | 클라이언트 (변경 없음) |
@@ -38,7 +39,7 @@ cd ..
 firebase deploy --only functions
 ```
 
-- [ ] `submitAnswer`, `completeSession`, `reconcileIncorrectQuestions` 배포 확인 (region: `asia-northeast3`)
+- [ ] `submitAnswer`, `completeSession`, `abandonSession`, `reconcileIncorrectQuestions` 배포 확인 (region: `asia-northeast3`)
 - [ ] Firebase Console → Functions → 로그에서 cold start / 오류 없음 확인
 
 참고 구현: `functions/index.js` (Dart `QuizSessionRepository`와 동일 로직)
@@ -74,7 +75,8 @@ static const submitBackend = QuizSubmitBackend.cloudFunctions;
 - [ ] 답안 제출 → 정·오답 UI · energy 차감
 - [ ] 세션 완료 → 씨앗 · streak · 에너지 보상 · 결과 화면
 - [ ] Firestore Console: `users/{uid}/sessions/.../answers` 생성 확인
-- [ ] 정답 시 `users/{uid}/mastered/{questionId}` 생성 확인
+- [ ] 세션 완료 후 정답은 `users/{uid}/mastered/{questionId}`, 오답은 `incorrectQuestions` 생성 확인
+- [ ] 3문제 풀고 뒤로가기 → 세션 `abandoned`, 에너지 환불, `mastered`·`incorrectQuestions` 변화 없음
 - [ ] 클라이언트에서 `mastered` 직접 write 시도 → permission-denied (Rules 검증)
 
 ### 6. (선택) Emulator 로컬 테스트

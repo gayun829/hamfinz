@@ -63,9 +63,9 @@ void main() {
     }
 
     await pumpHome(
-      key: 'saving-10',
+      key: 'saving-9',
       categoryId: 'saving',
-      incorrectQuestionCounts: const {'saving': 10},
+      incorrectQuestionCounts: const {'saving': 9},
     );
     expect(
       find.byKey(const ValueKey('home-review-house-beginner')),
@@ -73,9 +73,9 @@ void main() {
     );
 
     await pumpHome(
-      key: 'saving-11',
+      key: 'saving-10',
       categoryId: 'saving',
-      incorrectQuestionCounts: const {'saving': 11},
+      incorrectQuestionCounts: const {'saving': 10},
     );
     expect(
       find.byKey(const ValueKey('home-review-house-beginner')),

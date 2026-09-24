@@ -189,17 +189,10 @@ class QuizSessionRepository {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw QuizSessionException('로그인이 필요해요.');
 
-    // 모바일 SDK 트랜잭션은 컬렉션을 조회할 수 없어서 맵은 그 전에 맞춘다.
-    // 이 세션에서 맵을 확인한 계정은 추가로 읽지 않는다.
-    await AuthService.instance.ensureIncorrectQuestionCounts(uid);
-
     final userRef = _firestore.collection('users').doc(uid);
     final sessionRef = userRef.collection('sessions').doc(sessionId);
     final answerRef = sessionRef.collection('answers').doc(questionId);
     final questionRef = _firestore.collection('quizQuestions').doc(questionId);
-    final incorrectRef = userRef
-        .collection('incorrectQuestions')
-        .doc(questionId);
 
     // 웹: runTransaction 콜백 안에서 throw/reject 하면 Firestore JS SDK가
     // HTTP BodyStream을 abort → AbortError · 무한 대기. 검증은 null 반환 후 처리.
@@ -214,7 +207,6 @@ class QuizSessionRepository {
         final sessionSnap = await tx.get(sessionRef);
         final answerSnap = await tx.get(answerRef);
         final questionSnap = await tx.get(questionRef);
-        final incorrectSnap = await tx.get(incorrectRef);
 
         if (!userSnap.exists) {
           txError.add('유저 프로필을 찾을 수 없어요.');
@@ -275,66 +267,21 @@ class QuizSessionRepository {
           QuizData.maxEnergy,
         );
 
-        // 이미 오답 목록에 있는 문제는 기록된 카테고리로 센다. 문제의 카테고리가
-        // 나중에 바뀌어도 오답 수와 오답 문서가 같은 카테고리에 남아야 한다.
-        final countCategoryId = incorrectSnap.exists
-            ? incorrectQuestionCategoryId(incorrectSnap.data()!)
-            : q['categoryId'] as String? ?? 'allowance';
-        final counts = readIncorrectQuestionCounts(user);
-        final nextCounts = nextIncorrectQuestionCounts(
-          counts: counts,
-          categoryId: countCategoryId,
-          isCorrect: isCorrect,
-          alreadyTracked: incorrectSnap.exists,
-        );
-        final nextTotal = totalIncorrectQuestionCount(nextCounts);
-        final currentTotal =
-            (user['incorrectQuestionCount'] as num?)?.toInt() ?? 0;
-        final userUpdate = <String, dynamic>{
+        tx.update(userRef, {
           'energy': energy,
           'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
-        };
-        if (nextTotal != currentTotal ||
-            !sameIncorrectQuestionCounts(counts, nextCounts)) {
-          userUpdate['incorrectQuestionCounts'] = nextCounts;
-          userUpdate['incorrectQuestionCount'] = nextTotal;
-        }
-        tx.update(userRef, userUpdate);
+        });
 
+        // 정답(mastered)·오답(incorrectQuestions)은 여기서 쓰지 않는다. 세션을 끝까지
+        // 풀어야 completeSession이 반영한다 — 중간에 나가면 안 푼 문제로 남는다.
         tx.set(answerRef, {
           'selectedIndex': selectedIndex,
           'isCorrect': isCorrect,
           'categoryId': q['categoryId'] ?? 'allowance',
+          'difficulty': (q['difficulty'] as num?)?.toInt() ?? 1,
           'energySpent': QuizData.energyCostPerQuestion,
           'answeredAt': FieldValue.serverTimestamp(),
         });
-
-        if (isCorrect) {
-          tx.set(
-            userRef.collection('mastered').doc(questionId),
-            {'answeredAt': FieldValue.serverTimestamp()},
-            SetOptions(merge: true),
-          );
-          if (incorrectSnap.exists) {
-            tx.delete(incorrectRef);
-          }
-        } else {
-          final previousWrongCount =
-              (incorrectSnap.data()?['wrongCount'] as num?)?.toInt() ?? 0;
-          final incorrectUpdate = <String, dynamic>{
-            'questionId': questionId,
-            'categoryId': countCategoryId,
-            'difficulty': (q['difficulty'] as num?)?.toInt() ?? 1,
-            'wrongCount': previousWrongCount + 1,
-            'lastSelectedIndex': selectedIndex,
-            'lastSessionId': sessionId,
-            'lastWrongAt': FieldValue.serverTimestamp(),
-          };
-          if (!incorrectSnap.exists) {
-            incorrectUpdate['firstWrongAt'] = FieldValue.serverTimestamp();
-          }
-          tx.set(incorrectRef, incorrectUpdate, SetOptions(merge: true));
-        }
 
         final sessionUpdate = <String, dynamic>{
           'energySpent':
@@ -369,6 +316,66 @@ class QuizSessionRepository {
     }
   }
 
+  /// 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션의 답은 정답·오답 목록에
+  /// 반영하지 않아 안 푼 문제로 남고, 쓴 에너지는 돌려준다.
+  /// 이미 닫힌 세션이면 그대로 둔다. 돌려준 뒤의 에너지를 반환한다.
+  Future<int?> abandonSession({required String sessionId}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw QuizSessionException('로그인이 필요해요.');
+
+    final userRef = _firestore.collection('users').doc(uid);
+    final sessionRef = userRef.collection('sessions').doc(sessionId);
+
+    try {
+      // 웹: 트랜잭션 안에서 throw 하지 않고 Map만 반환한다.
+      final result = await _firestore.runTransaction<Map<String, dynamic>?>((
+        tx,
+      ) async {
+        final sessionSnap = await tx.get(sessionRef);
+        final user = (await tx.get(userRef)).data();
+        if (!sessionSnap.exists || user == null) return null;
+
+        final resolved = _userEnergy(user);
+        if (sessionSnap.data()!['status'] != 'inProgress') {
+          return {'energyRemaining': resolved.energy};
+        }
+
+        final spent =
+            (sessionSnap.data()!['energySpent'] as num?)?.toInt() ?? 0;
+        final energyRemaining = (resolved.energy + spent).clamp(
+          0,
+          QuizData.maxEnergy,
+        );
+        tx.update(userRef, {
+          'energy': energyRemaining,
+          'lastEnergyResetDate': resolved.lastEnergyResetDate,
+        });
+        tx.update(sessionRef, {
+          'status': 'abandoned',
+          'energyRefunded': energyRemaining - resolved.energy,
+          'abandonedAt': FieldValue.serverTimestamp(),
+        });
+        return {'energyRemaining': energyRemaining};
+      });
+      return (result?['energyRemaining'] as num?)?.toInt();
+    } on FirebaseException catch (e) {
+      throw QuizSessionException(_firebaseTxMessage(e, '학습 종료 처리에 실패했어요.'));
+    }
+  }
+
+  /// 아직 닫히지 않은 세션 id. 앱이 종료돼 뒤로가기 처리를 못 한 세션이 남는다.
+  Future<List<String>> openSessionIds() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const [];
+    final snap = await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('sessions')
+        .where('status', isEqualTo: 'inProgress')
+        .get();
+    return snap.docs.map((doc) => doc.id).toList();
+  }
+
   /// answers 집계 · 씨앗 · streak · categoryStats · 세션 completed.
   Future<QuizSessionResult> completeSession({required String sessionId}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -376,6 +383,11 @@ class QuizSessionRepository {
 
     final userRef = _firestore.collection('users').doc(uid);
     final sessionRef = userRef.collection('sessions').doc(sessionId);
+    final incorrectCol = userRef.collection('incorrectQuestions');
+
+    // 모바일 SDK 트랜잭션은 컬렉션을 조회할 수 없어서 오답 수 맵은 그 전에 맞춘다.
+    // 이 세션에서 맵을 확인한 계정은 추가로 읽지 않는다.
+    await AuthService.instance.ensureIncorrectQuestionCounts(uid);
 
     final txError = <String>[];
 
@@ -432,6 +444,27 @@ class QuizSessionRepository {
         final answers = answerDocs;
 
         final user = userSnap.data()!;
+
+        // 끝까지 푼 세션의 답만 정답·오답 목록에 반영한다.
+        final trackedById = <String, Map<String, dynamic>>{};
+        for (final doc in answers) {
+          final tracked = await tx.get(incorrectCol.doc(doc.id));
+          if (tracked.exists) trackedById[doc.id] = tracked.data()!;
+        }
+        final counts = readIncorrectQuestionCounts(user);
+        final incorrectPlan = planSessionIncorrectQuestions(
+          counts: counts,
+          answers: [
+            for (final doc in answers)
+              (
+                questionId: doc.id,
+                isCorrect: doc.data()!['isCorrect'] == true,
+                categoryId: doc.data()!['categoryId'] as String? ?? 'allowance',
+              ),
+          ],
+          trackedById: trackedById,
+        );
+        final answerById = {for (final doc in answers) doc.id: doc.data()!};
 
         var correctCount = 0;
         final categoryStats = _copyCategoryStats(user['categoryStats']);
@@ -521,7 +554,7 @@ class QuizSessionRepository {
         );
         final energyEarned = energyRemaining - energyBefore;
 
-        tx.update(userRef, {
+        final userUpdate = <String, dynamic>{
           'energy': energyRemaining,
           'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
           'seeds': ((user['seeds'] as num?)?.toInt() ?? 0) + seedsEarned,
@@ -533,7 +566,43 @@ class QuizSessionRepository {
             (key, value) => MapEntry(key, value.toJson()),
           ),
           'learningDates': learningDates,
-        });
+        };
+        final nextTotal = totalIncorrectQuestionCount(incorrectPlan.counts);
+        final currentTotal =
+            (user['incorrectQuestionCount'] as num?)?.toInt() ?? 0;
+        // 합계가 같아도 맵이 바뀌었으면 저장한다 (합계가 맵과 어긋난 계정).
+        // 맵이 없으면(백필 저장이 거절됨) 일부만 쓰지 않는다 — 백필이 문서로 센다.
+        if (user['incorrectQuestionCounts'] is Map &&
+            (nextTotal != currentTotal ||
+                !sameIncorrectQuestionCounts(counts, incorrectPlan.counts))) {
+          userUpdate['incorrectQuestionCounts'] = incorrectPlan.counts;
+          userUpdate['incorrectQuestionCount'] = nextTotal;
+        }
+        tx.update(userRef, userUpdate);
+
+        for (final questionId in incorrectPlan.masteredIds) {
+          tx.set(
+            userRef.collection('mastered').doc(questionId),
+            {'answeredAt': FieldValue.serverTimestamp()},
+            SetOptions(merge: true),
+          );
+        }
+        for (final questionId in incorrectPlan.removeIds) {
+          tx.delete(incorrectCol.doc(questionId));
+        }
+        for (final wrong in incorrectPlan.wrong) {
+          final answer = answerById[wrong.questionId]!;
+          tx.set(incorrectCol.doc(wrong.questionId), {
+            'questionId': wrong.questionId,
+            'categoryId': wrong.categoryId,
+            'difficulty': (answer['difficulty'] as num?)?.toInt() ?? 1,
+            'wrongCount': wrong.previousWrongCount + 1,
+            'lastSelectedIndex': answer['selectedIndex'],
+            'lastSessionId': sessionId,
+            'lastWrongAt': FieldValue.serverTimestamp(),
+            if (wrong.isNew) 'firstWrongAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
 
         tx.update(sessionRef, {
           'status': 'completed',
