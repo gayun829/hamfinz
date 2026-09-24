@@ -2,7 +2,7 @@
 
 ## 기본 상품
 
-앱에 포함된 스킨 7개와 장식 7개는 `assets/figma/shop/skins/`,
+앱에 포함된 스킨 19개와 장식 7개는 `assets/figma/shop/skins/`,
 `assets/figma/shop/accessories/`에서 읽는다. 기본 햄핀은 기본 제공이며 나머지는
 579씨앗이다. 기본 제공은 DB의 소유 목록에 없어도 착용 가능하다.
 로컬 상품 가격은 `ShopData.items`와 Functions의 `SHOP_CATALOG`를 같이 변경한다.
@@ -39,3 +39,7 @@ PNG를 Firebase Storage 등에 업로드하고 Firestore `shopItems/{고유상�
 
 현재 개발 구매는 Firestore 클라이언트 트랜잭션을 사용한다. 출시용 Functions
 구매로 전환할 때는 수정된 `functions/index.js`도 배포해야 한다.
+
+## 정렬 SVG 적용
+
+정렬 SVG 18개를 스킨 asset에 연결했다. 기존 스킨 6개의 ID와 가격은 유지하고 이미지만 SVG로 교체했다. 새 스킨 12개는 각각 579씨앗이다. 원시인(수염 없음)은 새 SVG가 없어 기존 PNG를 유지한다. 장식이 포함된 SVG는 완성형 스킨이며 기존 별도 장식 상품도 유지한다.

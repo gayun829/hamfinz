@@ -45,10 +45,62 @@ void main() {
       );
       await tester.pump();
       expect(find.text('기본 햄핀'), findsOneWidget);
-      expect(find.text('기본 제공'), findsOneWidget);
+      expect(find.text('착용 중'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'closet stages owned items without changing profile and detects revert',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(393, 852));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final profile = UserProfile(
+        email: 'a@b.c',
+        nickname: '테스트',
+        ownedShopItemIds: ['skin_bee'],
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: ClosetScreen(profile: profile)),
+      );
+      await tester.pump();
+      expect(find.byType(ShopItemCard), findsNWidgets(2));
+      expect(find.text('저장'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('shop-item-skin_bee')));
+      await tester.pump();
+      expect(find.text('저장'), findsOneWidget);
+      expect(profile.equippedSkinId, isNull);
+      final preview = tester
+          .widgetList<ShopAvatar>(find.byType(ShopAvatar))
+          .first;
+      expect(preview.skinId, 'skin_bee');
+      await tester.tap(find.byKey(const ValueKey('shop-item-skin_default')));
+      await tester.pump();
+      expect(find.text('저장'), findsNothing);
+      expect(profile.equippedSkinId, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('clothing shop places unowned skins ahead of owned skins', (
+    tester,
+  ) async {
+    final profile = UserProfile(
+      email: 'a@b.c',
+      nickname: '테스트',
+      ownedShopItemIds: ['skin_bearded_cream'],
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: ClosetScreen(profile: profile, showCatalog: true)),
+    );
+    await tester.pump();
+    final firstCard = tester
+        .widgetList<ShopItemCard>(find.byType(ShopItemCard))
+        .first;
+    expect(firstCard.item.id, 'skin_bearded_gray');
+    expect(firstCard.owned, isFalse);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('failed equip stays on preview', (tester) async {
     final item = ShopData.items.first;

@@ -32,6 +32,18 @@ const ENERGY_PACK_AMOUNT = 20;
 // Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
 // 앱에 포함된 상품은 이 가격을 사용하고, 추가 상품은 Firestore에서 읽는다.
 const SHOP_CATALOG = {
+  skin_black: { price: 579, kind: 'cosmetic' },
+  skin_dinosaur: { price: 579, kind: 'cosmetic' },
+  skin_ninja: { price: 579, kind: 'cosmetic' },
+  skin_pirate: { price: 579, kind: 'cosmetic' },
+  skin_genie_blue: { price: 579, kind: 'cosmetic' },
+  skin_genie_tail: { price: 579, kind: 'cosmetic' },
+  skin_crewcut: { price: 579, kind: 'cosmetic' },
+  skin_grandma: { price: 579, kind: 'cosmetic' },
+  skin_kindergarten: { price: 579, kind: 'cosmetic' },
+  skin_perm: { price: 579, kind: 'cosmetic' },
+  skin_genie: { price: 579, kind: 'cosmetic' },
+  skin_business: { price: 579, kind: 'cosmetic' },
   skin_bee: { price: 579, kind: 'cosmetic' },
   skin_bee_duckbill: { price: 579, kind: 'cosmetic' },
   skin_default: { price: 0, kind: 'cosmetic' },
