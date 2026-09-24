@@ -153,16 +153,8 @@ class HomeTierTheme {
 
   String get pathMap => _asset('path_map.svg');
   String get hamsterMap => _asset('hamster_map.svg');
-  String get ellipse100 => _asset('ellipse_100.svg');
   String get ellipse154 => _asset('ellipse_154.svg');
   String get ellipse155 => _asset('ellipse_155.svg');
-  String get node1Overlay => _asset('node_1_overlay.svg');
-  String get decoVector1 => _asset('deco_vector_1.svg');
-  String get decoVector2 => _asset('deco_vector_2.svg');
-  String get decoVector3 => _asset('deco_vector_3.svg');
-  String get decoVector4 => _asset('deco_vector_4.svg');
-  String get node3Overlay => _asset('node_3_overlay.svg');
-  String get node3Flag => _asset('node_3_flag.svg');
   String get learningQ => _asset('learning_q.svg');
   String get chevronLearning => _asset('chevron_learning.svg');
   String get reviewHouseBody => _asset('review_house_body.svg');
@@ -172,8 +164,4 @@ class HomeTierTheme {
   String get reviewHouseComposite => _asset('review_house_composite.svg');
 
   bool get hasCompositeReviewHouse => tier == HomeTier.advanced;
-
-  /// Figma PNG export — drop-shadow·3D 두께 포함 (flutter_svg filter 미지원).
-  String get node1Pentagon => _asset('node_1_pentagon.png');
-  String get node3Pentagon => _asset('node_3_pentagon.png');
 }

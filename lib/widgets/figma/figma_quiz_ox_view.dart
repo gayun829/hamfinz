@@ -49,30 +49,40 @@ class FigmaQuizOxView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final questionHeight = QuizQuestionLayout.textHeight(
-      text: question,
-      width: FigmaQuizOxTokens.questionWidth,
-      fontSize: FigmaQuizOxTokens.questionFontSize,
-      lineHeight: FigmaQuizOxTokens.questionLineHeight,
-      minimumHeight: FigmaQuizOxTokens.questionHeight,
-      fontFamily: FigmaQuizFonts.pretendard,
-      textScaler: MediaQuery.textScalerOf(context),
-    );
-    final contentShift = questionHeight - FigmaQuizOxTokens.questionHeight;
-
     return Scaffold(
       backgroundColor: FigmaQuizOxTokens.background,
-      body: FigmaCanvas(
-        designWidth: FigmaScale.quizDesignWidth,
-        designHeight: FigmaScale.quizDesignHeight + contentShift,
-        backgroundColor: FigmaQuizOxTokens.background,
-        fit: FigmaCanvasFit.widthScroll,
-        scrollable: true,
-        builder: (context, figma) => _layers(
-          figma,
-          questionHeight: questionHeight,
-          contentShift: contentShift,
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final scale = FigmaScale.ofWidth(
+            constraints.maxWidth,
+            designWidth: FigmaScale.quizDesignWidth,
+          ).scale;
+          final questionHeight = QuizQuestionLayout.textHeight(
+            text: question,
+            width: FigmaQuizOxTokens.questionWidth,
+            fontSize: FigmaQuizOxTokens.questionFontSize,
+            lineHeight: FigmaQuizOxTokens.questionLineHeight,
+            minimumHeight: FigmaQuizOxTokens.questionHeight,
+            fontFamily: FigmaQuizFonts.pretendard,
+            textScaler: MediaQuery.textScalerOf(context),
+            scale: scale,
+          );
+          final contentShift =
+              questionHeight - FigmaQuizOxTokens.questionHeight;
+
+          return FigmaCanvas(
+            designWidth: FigmaScale.quizDesignWidth,
+            designHeight: FigmaScale.quizDesignHeight + contentShift,
+            backgroundColor: FigmaQuizOxTokens.background,
+            fit: FigmaCanvasFit.widthScroll,
+            scrollable: true,
+            builder: (context, figma) => _layers(
+              figma,
+              questionHeight: questionHeight,
+              contentShift: contentShift,
+            ),
+          );
+        },
       ),
     );
   }
