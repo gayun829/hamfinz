@@ -48,8 +48,12 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
   /// 지금 말풍선이 떠 있는 용어. null이면 아무것도 안 떠 있다.
   FinanceTerm? _tipTerm;
 
-  /// 말풍선이 가리킬 칩의 화면상 위치. 칩을 누를 때 재 둔다.
+  /// 말풍선이 가리킬 칩의 위치. 칩을 누를 때 재 두고, 말풍선 층([_stackKey])의
+  /// 좌표로 바꿔 둔다.
   Rect? _tipAnchor;
+
+  /// 말풍선 층의 좌표계. SafeArea 안쪽 Stack이라 화면 좌표와 위쪽 여백만큼 다르다.
+  final _stackKey = GlobalKey();
 
   @override
   void initState() {
@@ -79,7 +83,11 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
 
   void _refreshIfStale() {
     if (!mounted || !NewsService.isStale) return;
-    setState(() => _future = NewsService.topFinance());
+    // 화살표 함수로 쓰면 Future를 반환해서 setState가 디버그에서 assert를 던진다.
+    final future = NewsService.topFinance();
+    setState(() {
+      _future = future;
+    });
   }
 
   /// 당겨서 새로고침 — 주기와 상관없이 바로 받아온다.
@@ -105,7 +113,13 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
   Future<void> _openMore() =>
       ArticleScreen.open(context, NewsService.morePageUri, '금융 뉴스');
 
-  void _toggleTip(FinanceTerm term, Rect anchor) {
+  void _toggleTip(FinanceTerm term, Rect globalAnchor) {
+    // 칩은 화면 좌표(localToGlobal)로 알려 준다. 말풍선은 SafeArea 안쪽 Stack에
+    // 그려서, 그대로 쓰면 상태바 여백만큼 아래로 밀린다.
+    final stack = _stackKey.currentContext?.findRenderObject() as RenderBox?;
+    final anchor = stack == null
+        ? globalAnchor
+        : stack.globalToLocal(globalAnchor.topLeft) & globalAnchor.size;
     setState(() {
       final same = _tipTerm?.term == term.term;
       _tipTerm = same ? null : term;
@@ -114,9 +128,13 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
   }
 
   void _closeTip() {
-    if (_tipTerm == null) return;
+    if (!mounted || _tipTerm == null) return;
     setState(() => _tipTerm = null);
   }
+
+  /// 회전·키보드로 화면 크기가 바뀌면 재 둔 칩 위치가 맞지 않는다.
+  @override
+  void didChangeMetrics() => _closeTip();
 
   @override
   Widget build(BuildContext context) {
@@ -128,25 +146,36 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
       child: SafeArea(
         bottom: false,
         child: Stack(
+          key: _stackKey,
           children: [
             Column(
               children: [
                 const _NewsHeader(),
                 Expanded(
-                  child: FutureBuilder<List<NewsItem>>(
-                    future: _future,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState != ConnectionState.done) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      return RefreshIndicator(
-                        onRefresh: _refresh,
-                        child: _buildList(
-                          snapshot.data ?? const <NewsItem>[],
-                          snapshot.hasError,
-                        ),
-                      );
+                  // 재 둔 위치에 떠 있는 말풍선은 스크롤하면 칩과 어긋난다.
+                  // 세로 목록이든 가로 칩 줄이든 밀기 시작하면 닫는다.
+                  child: NotificationListener<ScrollStartNotification>(
+                    onNotification: (_) {
+                      _closeTip();
+                      return false;
                     },
+                    child: FutureBuilder<List<NewsItem>>(
+                      future: _future,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        return RefreshIndicator(
+                          onRefresh: _refresh,
+                          child: _buildList(
+                            snapshot.data ?? const <NewsItem>[],
+                            snapshot.hasError,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -297,8 +326,10 @@ class _TermChips extends StatelessWidget {
     ];
     if (terms.isEmpty) return const SizedBox.shrink();
 
+    // 칩 안 글씨가 커지면 칩도 커진다. 높이를 32로 못 박으면 위아래가 잘린다.
+    final textScale = MediaQuery.textScalerOf(context).scale(13) / 13;
     return SizedBox(
-      height: 32,
+      height: 32 * (textScale < 1 ? 1.0 : textScale),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: _pagePad),
@@ -408,68 +439,77 @@ class _TermTooltipLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screen = MediaQuery.sizeOf(context).width;
+    return Positioned.fill(
+      // [anchor]와 같은 좌표계(이 층)의 폭을 쓴다. 화면 폭과 다를 수 있다.
+      child: LayoutBuilder(
+        builder: (context, constraints) => _bubble(constraints.maxWidth),
+      ),
+    );
+  }
+
+  Widget _bubble(double screen) {
     // 칩 왼쪽에 맞춰 열되, 오른쪽이 화면 밖으로 나가면 끌어당긴다.
     final width = (screen - _pagePad * 2).clamp(0.0, 300.0);
     final maxLeft = screen - _pagePad - width;
-    final left = (anchor.left - 8).clamp(_pagePad, maxLeft < _pagePad ? _pagePad : maxLeft);
+    final left = (anchor.left - 8).clamp(
+      _pagePad,
+      maxLeft < _pagePad ? _pagePad : maxLeft,
+    );
     final tailCenter = (anchor.center.dx - left).clamp(
       _tailWidth,
       width - _tailWidth,
     );
 
-    return Positioned.fill(
-      child: Stack(
-        children: [
-          // 바깥 아무 데나 누르면 닫힌다. 목록 스크롤을 막지 않게 탭만 잡는다.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: onDismiss,
-            ),
+    return Stack(
+      children: [
+        // 바깥 아무 데나 누르면 닫힌다. 목록 스크롤을 막지 않게 탭만 잡는다.
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: onDismiss,
           ),
-          Positioned(
-            left: left,
-            top: anchor.bottom + 6,
-            width: width,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(left: tailCenter - _tailWidth / 2),
-                  child: CustomPaint(
-                    size: const Size(_tailWidth, _tailHeight),
-                    painter: _TailPainter(),
-                  ),
+        ),
+        Positioned(
+          left: left,
+          top: anchor.bottom + 6,
+          width: width,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(left: tailCenter - _tailWidth / 2),
+                child: CustomPaint(
+                  size: const Size(_tailWidth, _tailHeight),
+                  painter: _TailPainter(),
                 ),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E2E2)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1A000000),
-                        blurRadius: 16,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    term.summary,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: AppTheme.textPrimary,
+              ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E2E2)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1A000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
                     ),
+                  ],
+                ),
+                child: Text(
+                  term.summary,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
