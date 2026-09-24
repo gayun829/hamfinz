@@ -11,6 +11,7 @@ import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/news_service.dart';
+import '../../utils/incorrect_questions.dart';
 import '../../theme/home_tier_theme.dart';
 import '../../theme/figma_home_fonts.dart';
 import '../../theme/app_theme.dart';
@@ -122,8 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final profile = _profile;
     if (profile == null) return;
 
-    final isReview =
-        profile.incorrectQuestionCount > QuizData.reviewQuestionThreshold;
+    final isReview = activeCategoryNeedsReview(profile);
 
     if (profile.energy < QuizData.sessionEnergyCost) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -259,8 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final homeTier =
         widget.tierOverride ?? HomeTierTheme.forStage(profile.learningStage);
     final showReviewStage =
-        widget.showReviewStage ??
-        profile.incorrectQuestionCount > QuizData.reviewQuestionThreshold;
+        widget.showReviewStage ?? activeCategoryNeedsReview(profile);
 
     return LayoutBuilder(
       builder: (context, constraints) {

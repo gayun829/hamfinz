@@ -90,6 +90,9 @@ class QuizService {
     target.selectedHamsterId = source.selectedHamsterId;
     target.learningDates = List<String>.from(source.learningDates);
     target.categoryStats = Map<String, CategoryStat>.from(source.categoryStats);
+    target.incorrectQuestionCounts = Map<String, int>.from(
+      source.incorrectQuestionCounts,
+    );
     target.incorrectQuestionCount = source.incorrectQuestionCount;
     target.seeds = source.seeds;
   }

@@ -13,6 +13,7 @@ class UserProfile {
     this.categoryStats = const {},
     this.interestCategories = const [],
     this.learningStage = 1,
+    this.incorrectQuestionCounts = const {},
     this.incorrectQuestionCount = 0,
     this.seeds = 0,
     this.ownedShopItemIds = const [],
@@ -48,7 +49,10 @@ class UserProfile {
   /// 학습과정 1~10 — `quizQuestions.difficulty`와 동일.
   int learningStage;
 
-  /// `users/{uid}/incorrectQuestions`에 저장된 고유 오답 문제 수.
+  /// 카테고리 id별 고유 오답 수. 활성 카테고리가 기준을 넘으면 복습 홈.
+  Map<String, int> incorrectQuestionCounts;
+
+  /// [incorrectQuestionCounts]의 합. 복습 여부는 활성 카테고리 개수로 판단한다.
   int incorrectQuestionCount;
 
   /// 상점 해바라기씨 잔액.

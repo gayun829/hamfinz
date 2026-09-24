@@ -100,7 +100,7 @@ class QuizSessionRepository {
     return _learningSession(sessionId: sessionRef.id, selected: selected);
   }
 
-  /// 오답 목록에서 최대 10문항을 다시 출제한다.
+  /// 활성 카테고리의 오답에서 최대 10문항을 다시 출제한다.
   Future<QuizSession> startReviewSession({required UserProfile profile}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
@@ -113,13 +113,20 @@ class QuizSessionRepository {
       );
     }
 
+    final categoryId = _targetCategories(profile).first;
     final userRef = _firestore.collection('users').doc(uid);
     final incorrectSnap = await userRef.collection('incorrectQuestions').get();
-    final incorrectIds = incorrectSnap.docs.map((doc) => doc.id).toList()
+    final incorrectIds = incorrectSnap.docs
+        .where((doc) {
+          final stored = doc.data()['categoryId'] as String? ?? 'allowance';
+          return stored == categoryId;
+        })
+        .map((doc) => doc.id)
+        .toList()
       ..shuffle(_random);
 
     if (incorrectIds.isEmpty) {
-      throw QuizSessionException('복습할 오답이 없어요.');
+      throw QuizSessionException('이 카테고리에서 복습할 오답이 없어요.');
     }
 
     final selected = <_QuestionDoc>[];
@@ -133,7 +140,8 @@ class QuizSessionRepository {
         if (selected.length >= QuizData.dailyQuestionCount) break;
         if (doc.data()?['isActive'] != true) continue;
         final parsed = _parseQuestionDoc(doc);
-        if (parsed != null) selected.add(parsed);
+        if (parsed == null || parsed.category.name != categoryId) continue;
+        selected.add(parsed);
       }
     }
 
@@ -144,6 +152,7 @@ class QuizSessionRepository {
     final sessionRef = userRef.collection('sessions').doc();
     await sessionRef.set({
       'source': QuizSession.reviewSessionSource,
+      'categoryId': categoryId,
       'questionIds': selected.map((q) => q.id).toList(),
       'questionCount': selected.length,
       'correctCount': 0,
@@ -169,6 +178,8 @@ class QuizSessionRepository {
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw QuizSessionException('로그인이 필요해요.');
+
+    await AuthService.instance.ensureIncorrectQuestionCounts(uid);
 
     final userRef = _firestore.collection('users').doc(uid);
     final sessionRef = userRef.collection('sessions').doc(sessionId);
@@ -252,19 +263,25 @@ class QuizSessionRepository {
           QuizData.maxEnergy,
         );
 
-        final currentCount =
-            (user['incorrectQuestionCount'] as num?)?.toInt() ?? 0;
-        final nextCount = nextIncorrectQuestionCount(
-          currentCount: currentCount,
+        final categoryId = q['categoryId'] as String? ?? 'allowance';
+        final counts = readIncorrectQuestionCounts(user);
+        final nextCounts = nextIncorrectQuestionCounts(
+          counts: counts,
+          categoryId: categoryId,
           isCorrect: isCorrect,
           alreadyTracked: incorrectSnap.exists,
         );
+        final nextTotal = totalIncorrectQuestionCount(nextCounts);
+        final currentTotal =
+            (user['incorrectQuestionCount'] as num?)?.toInt() ?? 0;
         final userUpdate = <String, dynamic>{
           'energy': energy,
           'lastEnergyResetDate': resolvedEnergy.lastEnergyResetDate,
         };
-        if (nextCount != currentCount) {
-          userUpdate['incorrectQuestionCount'] = nextCount;
+        if (nextTotal != currentTotal ||
+            !sameIncorrectQuestionCounts(counts, nextCounts)) {
+          userUpdate['incorrectQuestionCounts'] = nextCounts;
+          userUpdate['incorrectQuestionCount'] = nextTotal;
         }
         tx.update(userRef, userUpdate);
 

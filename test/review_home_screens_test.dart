@@ -38,31 +38,58 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(393, 852));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    Future<void> pumpHome(int incorrectQuestionCount) {
+    Future<void> pumpHome({
+      required String key,
+      required String categoryId,
+      required Map<String, int> incorrectQuestionCounts,
+    }) {
       return tester.pumpWidget(
         MaterialApp(
           home: HomeScreen(
-            key: ValueKey(incorrectQuestionCount),
+            key: ValueKey(key),
             profile: UserProfile(
               email: 'threshold@test.dev',
               nickname: '기준',
-              incorrectQuestionCount: incorrectQuestionCount,
+              interestCategories: [categoryId],
+              incorrectQuestionCounts: incorrectQuestionCounts,
+              incorrectQuestionCount: incorrectQuestionCounts.values.fold(
+                0,
+                (sum, value) => sum + value,
+              ),
             ),
           ),
         ),
       );
     }
 
-    await pumpHome(10);
+    await pumpHome(
+      key: 'saving-10',
+      categoryId: 'saving',
+      incorrectQuestionCounts: const {'saving': 10},
+    );
     expect(
       find.byKey(const ValueKey('home-review-house-beginner')),
       findsNothing,
     );
 
-    await pumpHome(11);
+    await pumpHome(
+      key: 'saving-11',
+      categoryId: 'saving',
+      incorrectQuestionCounts: const {'saving': 11},
+    );
     expect(
       find.byKey(const ValueKey('home-review-house-beginner')),
       findsOneWidget,
+    );
+
+    await pumpHome(
+      key: 'stock-after-saving-review',
+      categoryId: 'stock',
+      incorrectQuestionCounts: const {'saving': 11, 'stock': 2},
+    );
+    expect(
+      find.byKey(const ValueKey('home-review-house-beginner')),
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
 
