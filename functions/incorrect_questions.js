@@ -51,10 +51,56 @@ function aggregateIncorrectQuestionCounts(docs) {
   return counts;
 }
 
+function hasIncorrectQuestionCounts(user) {
+  const raw = user?.incorrectQuestionCounts;
+  return Boolean(raw) && typeof raw === 'object';
+}
+
+function sameIncorrectQuestionCounts(a, b) {
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) return false;
+  return aKeys.every((key) => a[key] === b[key]);
+}
+
+// 답 하나를 반영한 오답 수와 저장 여부. 맵이 없는 예전 계정이면
+// incorrectDocs(그 사용자의 incorrectQuestions 문서 데이터)로 먼저 채운다.
+function planIncorrectQuestionCounts({
+  user,
+  incorrectDocs,
+  categoryId,
+  isCorrect,
+  alreadyTracked,
+}) {
+  const backfilled = !hasIncorrectQuestionCounts(user);
+  const counts = backfilled
+    ? aggregateIncorrectQuestionCounts(incorrectDocs || [])
+    : readIncorrectQuestionCounts(user);
+  const nextCounts = nextIncorrectQuestionCounts({
+    counts,
+    categoryId,
+    isCorrect,
+    alreadyTracked,
+  });
+  const nextTotal = totalIncorrectQuestionCount(nextCounts);
+  const currentTotal = Number(user?.incorrectQuestionCount ?? 0);
+  return {
+    counts: nextCounts,
+    total: nextTotal,
+    // 합계가 같아도 맵이 바뀌었으면 저장한다 (합계가 맵과 어긋난 계정).
+    write:
+      backfilled ||
+      nextTotal !== currentTotal ||
+      !sameIncorrectQuestionCounts(counts, nextCounts),
+  };
+}
+
 module.exports = {
   nextIncorrectQuestionCount,
   readIncorrectQuestionCounts,
   nextIncorrectQuestionCounts,
   totalIncorrectQuestionCount,
   aggregateIncorrectQuestionCounts,
+  hasIncorrectQuestionCounts,
+  sameIncorrectQuestionCounts,
+  planIncorrectQuestionCounts,
 };

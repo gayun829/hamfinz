@@ -55,6 +55,24 @@ Map<String, int> nextIncorrectQuestionCounts({
 int totalIncorrectQuestionCount(Map<String, int> counts) =>
     counts.values.fold(0, (sum, value) => sum + value);
 
+/// 예전 오답 문서에는 `categoryId`가 없을 수 있다. 그때는 용돈 관리로 본다.
+const legacyIncorrectQuestionCategoryId = 'allowance';
+
+String incorrectQuestionCategoryId(Map<String, dynamic> data) =>
+    data['categoryId'] as String? ?? legacyIncorrectQuestionCategoryId;
+
+/// `incorrectQuestions` 문서들을 카테고리별로 센다 (예전 계정 백필용).
+Map<String, int> aggregateIncorrectQuestionCounts(
+  Iterable<Map<String, dynamic>> docs,
+) {
+  final counts = <String, int>{};
+  for (final data in docs) {
+    final categoryId = incorrectQuestionCategoryId(data);
+    counts[categoryId] = (counts[categoryId] ?? 0) + 1;
+  }
+  return counts;
+}
+
 bool sameIncorrectQuestionCounts(Map<String, int> a, Map<String, int> b) {
   if (a.length != b.length) return false;
   for (final entry in a.entries) {

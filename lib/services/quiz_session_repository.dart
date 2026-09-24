@@ -115,15 +115,11 @@ class QuizSessionRepository {
 
     final categoryId = _targetCategories(profile).first;
     final userRef = _firestore.collection('users').doc(uid);
-    final incorrectSnap = await userRef.collection('incorrectQuestions').get();
-    final incorrectIds = incorrectSnap.docs
-        .where((doc) {
-          final stored = doc.data()['categoryId'] as String? ?? 'allowance';
-          return stored == categoryId;
-        })
-        .map((doc) => doc.id)
-        .toList()
-      ..shuffle(_random);
+    final incorrectIds = await _fetchIncorrectQuestionIds(
+      userRef: userRef,
+      categoryId: categoryId,
+    );
+    incorrectIds.shuffle(_random);
 
     if (incorrectIds.isEmpty) {
       throw QuizSessionException('이 카테고리에서 복습할 오답이 없어요.');
@@ -179,6 +175,8 @@ class QuizSessionRepository {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw QuizSessionException('로그인이 필요해요.');
 
+    // 모바일 SDK 트랜잭션은 컬렉션을 조회할 수 없어서 맵은 그 전에 맞춘다.
+    // 이 세션에서 맵을 확인한 계정은 추가로 읽지 않는다.
     await AuthService.instance.ensureIncorrectQuestionCounts(uid);
 
     final userRef = _firestore.collection('users').doc(uid);
@@ -646,6 +644,22 @@ class QuizSessionRepository {
       throw QuizSessionException('학습 카테고리를 선택해 주세요.');
     }
     return [activeId];
+  }
+
+  /// 활성 카테고리의 오답 id. `categoryId`가 없는 예전 문서는 용돈 관리로
+  /// 보므로, 그 카테고리만 컬렉션 전체를 읽어 거른다.
+  Future<List<String>> _fetchIncorrectQuestionIds({
+    required DocumentReference<Map<String, dynamic>> userRef,
+    required String categoryId,
+  }) async {
+    final collection = userRef.collection('incorrectQuestions');
+    final snap = categoryId == legacyIncorrectQuestionCategoryId
+        ? await collection.get()
+        : await collection.where('categoryId', isEqualTo: categoryId).get();
+    return snap.docs
+        .where((doc) => incorrectQuestionCategoryId(doc.data()) == categoryId)
+        .map((doc) => doc.id)
+        .toList();
   }
 
   Future<Set<String>> _fetchMasteredIds(String uid) async {

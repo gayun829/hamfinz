@@ -1,10 +1,8 @@
 const { learningDatesFromUser } = require('./learning_dates');
 const { completionEnergyReward } = require('./quiz_energy');
 const {
-  aggregateIncorrectQuestionCounts,
-  nextIncorrectQuestionCounts,
-  readIncorrectQuestionCounts,
-  totalIncorrectQuestionCount,
+  hasIncorrectQuestionCounts,
+  planIncorrectQuestionCounts,
 } = require('./incorrect_questions');
 /**
  * Quiz session — submitAnswer · completeSession (서버 채점 · 기록)
@@ -112,30 +110,6 @@ function resolveEnergy(user, today) {
   return { energy, lastEnergyResetDate };
 }
 
-// 카테고리별 오답 수가 없는 예전 계정은 incorrectQuestions를 세어 채운다.
-// 제출 트랜잭션은 컬렉션 조회를 할 수 없어서, 그 전에 한 번 맞춘다.
-async function ensureIncorrectQuestionCounts(userRef) {
-  const userSnap = await userRef.get();
-  if (!userSnap.exists) return;
-  const existing = userSnap.data().incorrectQuestionCounts;
-  if (existing && typeof existing === 'object') return;
-
-  const incorrectSnap = await userRef.collection('incorrectQuestions').get();
-  const counts = aggregateIncorrectQuestionCounts(
-    incorrectSnap.docs.map((doc) => doc.data()),
-  );
-  await db.runTransaction(async (tx) => {
-    const fresh = await tx.get(userRef);
-    if (!fresh.exists) return;
-    const already = fresh.data().incorrectQuestionCounts;
-    if (already && typeof already === 'object') return;
-    tx.update(userRef, {
-      incorrectQuestionCounts: counts,
-      incorrectQuestionCount: totalIncorrectQuestionCount(counts),
-    });
-  });
-}
-
 exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
@@ -153,7 +127,6 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
   }
 
   const userRef = db.collection('users').doc(uid);
-  await ensureIncorrectQuestionCounts(userRef);
   const sessionRef = userRef.collection('sessions').doc(sessionId);
   const answerRef = sessionRef.collection('answers').doc(questionId);
   const questionRef = db.collection('quizQuestions').doc(questionId);
@@ -213,20 +186,25 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
     const isCorrect = selected === correctIndex;
     energy = Math.max(0, energy - ENERGY_PER_QUESTION);
 
+    // 카테고리별 맵이 없는 예전 계정만 같은 트랜잭션에서 오답 문서를 센다.
+    // Admin SDK 트랜잭션은 쿼리를 읽을 수 있어서, 맵이 있는 계정은 추가 읽기가 없다.
+    const incorrectDocs = hasIncorrectQuestionCounts(user)
+      ? null
+      : (await tx.get(userRef.collection('incorrectQuestions'))).docs.map(
+        (doc) => doc.data(),
+      );
+
     const userUpdate = { energy, lastEnergyResetDate };
-    const categoryId = q.categoryId || 'allowance';
-    const counts = readIncorrectQuestionCounts(user);
-    const nextCounts = nextIncorrectQuestionCounts({
-      counts,
-      categoryId,
+    const incorrectCounts = planIncorrectQuestionCounts({
+      user,
+      incorrectDocs,
+      categoryId: q.categoryId || 'allowance',
       isCorrect,
       alreadyTracked: incorrectSnap.exists,
     });
-    const nextTotal = totalIncorrectQuestionCount(nextCounts);
-    const currentTotal = Number(user.incorrectQuestionCount ?? 0);
-    if (nextTotal !== currentTotal) {
-      userUpdate.incorrectQuestionCounts = nextCounts;
-      userUpdate.incorrectQuestionCount = nextTotal;
+    if (incorrectCounts.write) {
+      userUpdate.incorrectQuestionCounts = incorrectCounts.counts;
+      userUpdate.incorrectQuestionCount = incorrectCounts.total;
     }
     tx.update(userRef, userUpdate);
 

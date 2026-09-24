@@ -36,12 +36,13 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 5. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
 
-고유 오답이 10개를 넘으면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
+활성 카테고리의 고유 오답(`users.incorrectQuestionCounts[categoryId]`)이 10개를 넘으면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
 
 ```
 1. Auth uid + energy >= 50
-2. users/{uid}/incorrectQuestions 조회 후 최대 10문항 선정
-3. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`)
+2. users/{uid}/incorrectQuestions에서 활성 카테고리 문서만 조회 후 최대 10문항 선정
+   (categoryId가 없는 예전 문서는 allowance로 보므로, allowance만 전체를 읽어 거른다)
+3. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`, `categoryId`)
 4. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
 
@@ -70,10 +71,16 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 4. `sessions/.../answers/{questionId}` 저장 (`isCorrect`, `categoryId`, …)
 5. 정답 시 `users/.../mastered/{questionId}` upsert
    - 오답 목록에 있던 문제면 `incorrectQuestions/{questionId}` 삭제
-   - `users.incorrectQuestionCount`를 1 감소 (0 미만으로 내려가지 않음)
+   - 그 문제 카테고리의 `users.incorrectQuestionCounts` 값을 1 감소 (0이 되면 키 삭제)
 6. 오답 시 `users/.../incorrectQuestions/{questionId}` upsert
-   - 최초 오답인 문제만 `users.incorrectQuestionCount`를 1 증가
+   - 최초 오답인 문제만 그 카테고리 값을 1 증가
    - 반복 오답은 `wrongCount`와 최근 오답 정보만 갱신
+7. `users.incorrectQuestionCount`는 맵의 합으로 함께 저장한다 (파생 값)
+
+`incorrectQuestionCounts`가 없는 예전 계정은 제출 때 `incorrectQuestions`를 세어 채운다.
+Functions는 맵이 없을 때만 같은 트랜잭션에서 컬렉션을 읽는다(Admin SDK는 트랜잭션 쿼리 지원).
+클라이언트 트랜잭션은 쿼리를 못 하므로 제출 전에 한 번 채우고, 이 세션에서 맵을 확인한 계정은
+다시 읽지 않는다.
 
 ### 응답
 

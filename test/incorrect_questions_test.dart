@@ -73,6 +73,19 @@ void main() {
     expect(next.containsKey('stock'), isFalse);
   });
 
+  test('복습 출제는 categoryId가 없는 예전 오답을 용돈 관리로 본다', () {
+    expect(incorrectQuestionCategoryId(const {'categoryId': 'stock'}), 'stock');
+    expect(incorrectQuestionCategoryId(const {}), 'allowance');
+    expect(
+      aggregateIncorrectQuestionCounts(const [
+        {'categoryId': 'stock'},
+        {},
+      ]),
+      {'stock': 1, 'allowance': 1},
+    );
+    expect(aggregateIncorrectQuestionCounts(const []), isEmpty);
+  });
+
   test('복습 홈은 지금 고른 카테고리의 오답 수로만 열린다', () {
     final profile = UserProfile(
       email: 'review@test.dev',

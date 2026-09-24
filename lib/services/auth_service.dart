@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../config/quiz_backend_config.dart';
 import '../data/interest_categories.dart';
 import '../data/legal_documents.dart';
 import '../data/learning_stages.dart';
@@ -10,6 +11,7 @@ import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
 import '../utils/incorrect_questions.dart';
 import '../utils/learning_dates.dart';
+import 'incorrect_question_counts_backfill.dart';
 
 class AuthService {
   AuthService._();
@@ -29,44 +31,62 @@ class AuthService {
     final doc = await _users.doc(user.uid).get();
     if (!doc.exists || doc.data() == null) return null;
     final data = Map<String, dynamic>.from(doc.data()!);
-    if (data['incorrectQuestionCounts'] is! Map) {
-      final counts = await ensureIncorrectQuestionCounts(user.uid);
+    if (data['incorrectQuestionCounts'] is Map) {
+      _incorrectCountsBackfill.markStored(user.uid);
+    } else {
+      final counts = await _incorrectCountsBackfill.run(user.uid);
       data['incorrectQuestionCounts'] = counts;
       data['incorrectQuestionCount'] = totalIncorrectQuestionCount(counts);
     }
     return _profileFromJson(user.email ?? '', data);
   }
 
-  /// 예전 계정은 오답 수가 전체 합계만 있다.
-  /// 카테고리별 맵이 없으면 `incorrectQuestions`를 세어 채운다.
-  ///
-  /// 프로덕션 규칙은 이 필드를 클라이언트 쓰기에서 막으므로, 저장이 거절되면
-  /// 집계 결과만 돌려준다. 다음 제출의 Functions가 문서를 저장한다.
-  Future<Map<String, int>> ensureIncorrectQuestionCounts(String uid) async {
+  /// 예전 계정은 오답 수가 전체 합계만 있다. 클라이언트 트랜잭션으로 제출하기
+  /// 전에 카테고리별 맵을 채운다. 이 세션에서 맵을 확인한 계정은 읽지 않는다.
+  Future<void> ensureIncorrectQuestionCounts(String uid) async {
+    if (_incorrectCountsBackfill.isStored(uid)) return;
+    final doc = await _users.doc(uid).get();
+    if (doc.data()?['incorrectQuestionCounts'] is Map) {
+      _incorrectCountsBackfill.markStored(uid);
+      return;
+    }
+    await _incorrectCountsBackfill.run(uid);
+  }
+
+  late final _incorrectCountsBackfill = IncorrectQuestionCountsBackfill(
+    loadIncorrectDocs: (uid) async {
+      final snap = await _users.doc(uid).collection('incorrectQuestions').get();
+      return snap.docs.map((doc) => doc.data()).toList();
+    },
+    storeIfMissing: _storeIncorrectQuestionCountsIfMissing,
+    // 프로덕션 규칙은 이 필드의 클라이언트 쓰기를 막는다.
+    canWrite: () => QuizBackendConfig.usesClientTransaction,
+  );
+
+  /// 컬렉션을 읽은 뒤 다른 제출이 맵을 먼저 만들었으면 오래된 집계로
+  /// 덮어쓰지 않도록 트랜잭션에서 다시 확인한다.
+  Future<Map<String, int>> _storeIncorrectQuestionCountsIfMissing(
+    String uid,
+    Map<String, int> counts,
+  ) async {
     final userRef = _users.doc(uid);
-    final doc = await userRef.get();
-    final data = doc.data();
-    if (data != null && data['incorrectQuestionCounts'] is Map) {
-      return readIncorrectQuestionCounts(data);
-    }
-
-    final snap = await userRef.collection('incorrectQuestions').get();
-    final counts = <String, int>{};
-    for (final item in snap.docs) {
-      final categoryId =
-          item.data()['categoryId'] as String? ?? 'allowance';
-      counts[categoryId] = (counts[categoryId] ?? 0) + 1;
-    }
-
-    try {
-      await userRef.update({
-        'incorrectQuestionCounts': counts,
-        'incorrectQuestionCount': totalIncorrectQuestionCount(counts),
-      });
-    } on FirebaseException {
-      // permission-denied: 프로덕션에서는 Functions가 저장한다.
-    }
-    return counts;
+    // 웹: 트랜잭션 반환값은 Map만 안전하다 (quiz_session_repository 참고).
+    final stored = await FirebaseFirestore.instance
+        .runTransaction<Map<String, dynamic>>((tx) async {
+          final fresh = await tx.get(userRef);
+          final data = fresh.data();
+          if (data != null && data['incorrectQuestionCounts'] is Map) {
+            return data;
+          }
+          if (data != null) {
+            tx.update(userRef, {
+              'incorrectQuestionCounts': counts,
+              'incorrectQuestionCount': totalIncorrectQuestionCount(counts),
+            });
+          }
+          return {'incorrectQuestionCounts': counts};
+        });
+    return readIncorrectQuestionCounts(stored);
   }
 
   /// 회원가입 1단계: 계정을 만들고 인증 메일을 보낸다.

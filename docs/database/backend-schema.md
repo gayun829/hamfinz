@@ -197,7 +197,8 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
     "saving": { "correct": 3, "total": 5, "completedSessions": 2 },
     "credit": { "correct": 1, "total": 2, "completedSessions": 0 }
   },
-  "incorrectQuestionCount": 11,
+  "incorrectQuestionCounts": { "saving": 11, "credit": 2 },
+  "incorrectQuestionCount": 13,
   "consents": {
     "termsVersion": "draft-1",
     "privacyVersion": "draft-1",
@@ -218,7 +219,8 @@ Auth `uid` = 문서 id. 로컬 `profile` + 닉네임 + 동의 요약을 한 문�
 | `todayQuizCompleted`       | **저장 안 함**                  | `lastQuizCompletedOn == today`로 계산   |
 | `interestCategoryIds`      | 배열 (1~6, 최소 1)              |                                         |
 | `categoryStats`            | map                             | `correct`/`total`/`completedSessions`. 홈 맵 step(1~200)은 활성 카테고리의 `completedSessions + 1` |
-| `incorrectQuestionCount`   | number                          | 고유 오답 문서 수. 11개부터 복습 홈     |
+| `incorrectQuestionCounts`  | map (카테고리 id → number)      | 카테고리별 고유 오답 문서 수. 활성 카테고리가 11개부터 복습 홈. 프로덕션은 Functions만 쓴다 |
+| `incorrectQuestionCount`   | number                          | `incorrectQuestionCounts`의 합(파생 값). 복습 판단에 쓰지 않음 |
 | `consents`                 | 약관 체크                       | 버전 바뀌면 재동의 필드 추가 가능       |
 | `providers`                | 예정 소셜                       | `password`, `google`, `apple`, `kakao`  |
 
@@ -284,7 +286,7 @@ Firestore에서는 세션과 문항별 답을 함께 남긴다.
 ### `users/{uid}/incorrectQuestions/{questionId}`
 
 오답이 제출되는 즉시 생성하거나 갱신한다. 문서 id가 문제 id이므로 같은 문제를
-여러 번 틀려도 `incorrectQuestionCount`는 한 번만 증가한다.
+여러 번 틀려도 그 카테고리의 `incorrectQuestionCounts` 값은 한 번만 증가한다.
 
 ```json
 {
@@ -299,9 +301,16 @@ Firestore에서는 세션과 문항별 답을 함께 남긴다.
 }
 ```
 
-- `incorrectQuestionCount > 10`이면 해당 티어의 복습 집 홈을 표시한다.
-- 복습 세션(`source: reviewSession`)에서 정답을 맞추면 해당 문서를 삭제하고
-  `incorrectQuestionCount`를 1 줄인다. 개수가 10 이하가 되면 일반 홈으로 돌아간다.
+- 활성 카테고리의 `incorrectQuestionCounts[categoryId] > 10`이면 해당 티어의
+  복습 집 홈을 표시한다. 다른 카테고리의 오답은 영향을 주지 않는다.
+- 복습 세션(`source: reviewSession`, `categoryId` 기록)은 활성 카테고리의 오답만
+  출제한다. 정답을 맞추면 해당 문서를 삭제하고 그 카테고리 값을 1 줄인다
+  (0이 되면 키를 지운다). 10 이하가 되면 일반 홈으로 돌아간다.
+- `categoryId`가 없는 예전 오답 문서는 `allowance`로 센다.
+- **지연 백필:** 맵이 없는 예전 계정은 `incorrectQuestions`를 세어 채운다.
+  Functions `submitAnswer`는 맵이 없을 때만 같은 트랜잭션에서 컬렉션을 읽는다.
+  클라이언트(개발 모드)는 트랜잭션으로 맵이 아직 없을 때만 저장한다. 프로덕션
+  규칙은 클라이언트 쓰기를 막으므로 앱은 집계값을 세션 동안 메모리에만 둔다.
 
 **쓰기 권장 경로 (Cloud Function)**
 
