@@ -196,7 +196,7 @@ class _SocialProfileSetupScreenState extends State<SocialProfileSetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const FigmaHamsterHero(useSignupAsset: true),
+                const FigmaHamsterHero(compact: true),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: fieldPad),
                   child: Column(

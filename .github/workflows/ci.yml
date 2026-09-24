@@ -12,7 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.6
+          # .fvmrc와 같은 버전으로 맞춘다 — 로컬이 푼 pubspec.lock을 CI가 그대로 쓴다.
+          flutter-version: 3.47.5
           cache: true
       - run: flutter pub get
       - run: flutter analyze

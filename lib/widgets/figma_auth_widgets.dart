@@ -285,10 +285,15 @@ class FigmaAuthFooterLink extends StatelessWidget {
   }
 }
 
+/// 로그인·소셜 가입 화면 상단의 햄핀이 + 하늘색 글로우.
+///
+/// 햄핀이는 온보딩과 같은 납작한 SVG(`onboardingHamsterIntro`) 하나를 쓴다.
+/// [compact]는 그림이 아니라 히어로 영역 크기만 바꾼다 — 입력칸이 더 많은
+/// 화면에서 위쪽을 덜 차지하도록 낮은 쪽 좌표계를 쓴다.
 class FigmaHamsterHero extends StatelessWidget {
-  const FigmaHamsterHero({super.key, this.useSignupAsset = false});
+  const FigmaHamsterHero({super.key, this.compact = false});
 
-  final bool useSignupAsset;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -299,22 +304,22 @@ class FigmaHamsterHero extends StatelessWidget {
     final s = figma.s;
 
     final heroHeight = s(
-      useSignupAsset
+      compact
           ? FigmaAuthTokens.signupHeroHeight
           : FigmaAuthTokens.loginHeroHeight,
     );
     final hamsterTop = s(
-      useSignupAsset
+      compact
           ? FigmaAuthTokens.signupHamsterTop
           : FigmaAuthTokens.loginHamsterTop,
     );
     final hamsterWidth = s(
-      useSignupAsset
+      compact
           ? FigmaAuthTokens.signupHamsterWidth
           : FigmaAuthTokens.loginHamsterWidth,
     );
     final hamsterHeight = s(
-      useSignupAsset
+      compact
           ? FigmaAuthTokens.signupHamsterHeight
           : FigmaAuthTokens.loginHamsterHeight,
     );
@@ -358,19 +363,18 @@ class FigmaHamsterHero extends StatelessWidget {
             left: 0,
             right: 0,
             child: Center(
-              child: Transform.translate(
-                offset: Offset(
-                  useSignupAsset ? 0 : s(FigmaAuthTokens.loginHamsterCenterOffsetX),
-                  0,
-                ),
-                child: FigmaPng(
-                  useSignupAsset
-                      ? FigmaAssets.hamsterSignup
-                      : FigmaAssets.hamsterLogin,
-                  width: hamsterWidth,
-                  height: hamsterHeight,
-                  fit: BoxFit.contain,
-                  clip: true,
+              // 납작한 햄핀이는 예전 3D 그림보다 가로로 넓다. 폭을 디자인 상자에
+              // 맞추고 높이는 원본 비율대로 두되, 아래를 상자 바닥에 붙여
+              // 발밑 위치(= 히어로 하단)를 그대로 유지한다.
+              child: SizedBox(
+                width: hamsterWidth,
+                height: hamsterHeight,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: FigmaSvg(
+                    FigmaAssets.onboardingHamsterIntro,
+                    width: hamsterWidth,
+                  ),
                 ),
               ),
             ),

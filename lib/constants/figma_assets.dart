@@ -64,8 +64,6 @@ class FigmaAssets {
   // Auth — 벡터 SVG는 assets/icons/, PNG는 assets/figma/auth/
   static const authDividerLine = '$_iconsAuth/divider_line.svg';
   static const authDividerLineSignup = '$_iconsAuth/divider_line_signup.svg';
-  static const hamsterLogin = '$_auth/hamster_login.png';
-  static const hamsterSignup = '$_auth/hamster_signup.png';
   static const googleLogin = '$_auth/google.png';
   static const appleLogin = '$_auth/apple.png';
   static const kakaoLogin = '$_auth/kakao.png';
