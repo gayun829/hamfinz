@@ -978,8 +978,6 @@ class _HomeLearningCta extends StatelessWidget {
 }
 
 /// Figma 홈 오각형 — CSS `rotate(100.57deg)` + 단색 box-shadow 3D.
-///
-/// flutter_svg는 SVG filter drop-shadow를 그리지 않아 Canvas로 경로·그림자를 직접 칠한다.
 class _HomeStagePentagon extends StatelessWidget {
   const _HomeStagePentagon({
     required this.figma,
@@ -1042,17 +1040,14 @@ class _HomeStagePentagon extends StatelessWidget {
         children: [
           Transform.rotate(
             angle: _rotation,
-            child: CustomPaint(
-              painter: _FigmaStagePentagonPainter(
-                fill: fill,
-                extrusion: extrusion,
-                extrusionOffset: Offset(
-                  s(extrusionOffset.dx),
-                  s(extrusionOffset.dy),
-                ),
-                isLarge: isLarge,
+            child: _StagePentagonShape(
+              fill: fill,
+              extrusion: extrusion,
+              extrusionOffset: Offset(
+                s(extrusionOffset.dx),
+                s(extrusionOffset.dy),
               ),
-              child: const SizedBox.expand(),
+              isLarge: isLarge,
             ),
           ),
           Text(
@@ -1080,9 +1075,13 @@ class _HomeStagePentagon extends StatelessWidget {
   }
 }
 
-/// 홈 단계 오각형. 회전 전 벡터를 Canvas로 채운다.
-class _FigmaStagePentagonPainter extends CustomPainter {
-  const _FigmaStagePentagonPainter({
+/// 홈 단계 오각형. 원본 SVG를 그림자 색·채움 색으로 두 번 그린다.
+///
+/// flutter_svg는 SVG의 drop-shadow filter를 그리지 않아서, 그림자는 같은 모양을
+/// [extrusionOffset]만큼 옮겨 아래에 깐다. 티어마다 모양이 같고 색만 달라 SVG는
+/// 한 벌이고 색은 [HomeTierTheme]에서 받는다.
+class _StagePentagonShape extends StatelessWidget {
+  const _StagePentagonShape({
     required this.fill,
     required this.extrusion,
     required this.extrusionOffset,
@@ -1094,139 +1093,53 @@ class _FigmaStagePentagonPainter extends CustomPainter {
   final Offset extrusionOffset;
   final bool isLarge;
 
-  static const _smallSource = Size(36.3894, 35.423754);
-  static const _largeSource = Size(69.34858, 66.53081);
+  // 박스는 경로가 차지하는 영역(Figma bounds)에 맞춘다. SVG viewBox는 그림자 필터
+  // 여백까지 포함해 더 크므로, 경로 영역이 박스에 딱 맞도록 SVG를 옮겨 늘린다.
+  static const _smallViewBox = Size(37.7288, 36.895);
+  static const _smallShapeOrigin = Offset(-0.534659, -0.404554);
+  static const _smallShapeSize = Size(36.3894, 35.423754);
+  static const _largeViewBox = Size(70.2428, 70.8561);
+  static const _largeShapeOrigin = Offset(1.90162, -0.75981);
+  static const _largeShapeSize = Size(69.34858, 66.53081);
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final source = isLarge ? _largeSource : _smallSource;
-    final path = isLarge ? _largePath() : _smallPath();
-    final scaled = path.transform(
-      Matrix4.diagonal3Values(
-        size.width / source.width,
-        size.height / source.height,
-        1,
-      ).storage,
-    );
+  Widget build(BuildContext context) {
+    final asset = isLarge
+        ? FigmaAssets.homeStagePentagonLarge
+        : FigmaAssets.homeStagePentagonSmall;
+    final viewBox = isLarge ? _largeViewBox : _smallViewBox;
+    final shapeOrigin = isLarge ? _largeShapeOrigin : _smallShapeOrigin;
+    final shapeSize = isLarge ? _largeShapeSize : _smallShapeSize;
 
-    canvas.drawPath(scaled.shift(extrusionOffset), Paint()..color = extrusion);
-    canvas.drawPath(scaled, Paint()..color = fill);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final sx = constraints.maxWidth / shapeSize.width;
+        final sy = constraints.maxHeight / shapeSize.height;
+
+        Widget layer(Color color, Offset shift) => Positioned(
+          left: -shapeOrigin.dx * sx + shift.dx,
+          top: -shapeOrigin.dy * sy + shift.dy,
+          width: viewBox.width * sx,
+          height: viewBox.height * sy,
+          child: FigmaSvg(
+            asset,
+            fit: BoxFit.fill,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          ),
+        );
+
+        return SizedBox.expand(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              layer(extrusion, extrusionOffset),
+              layer(fill, Offset.zero),
+            ],
+          ),
+        );
+      },
+    );
   }
-
-  /// 작은 단계 오각형 경로를 (minX, minY) 원점으로 옮긴 값.
-  static Path _smallPath() {
-    const ox = 0.534659;
-    const oy = 0.404554;
-    final path = Path();
-    path.moveTo(14.2239 + ox, 1.21366 + oy);
-    path.cubicTo(
-      16.4312 + ox,
-      -0.404554 + oy,
-      19.4235 + ox,
-      -0.404554 + oy,
-      21.6309 + ox,
-      1.21366 + oy,
-    );
-    path.lineTo(33.2554 + ox, 9.73338 + oy);
-    path.cubicTo(
-      35.4627 + ox,
-      11.3516 + oy,
-      36.3894 + ox,
-      14.2215 + oy,
-      35.5428 + ox,
-      16.8399 + oy,
-    );
-    path.lineTo(31.1035 + ox, 30.6273 + oy);
-    path.cubicTo(
-      30.26 + ox,
-      33.2457 + oy,
-      27.8403 + ox,
-      35.0192 + oy,
-      25.1096 + ox,
-      35.0192 + oy,
-    );
-    path.lineTo(10.742 + ox, 35.0192 + oy);
-    path.cubicTo(
-      8.01138 + ox,
-      35.0192 + oy,
-      5.59164 + ox,
-      33.2457 + oy,
-      4.74812 + ox,
-      30.6273 + oy,
-    );
-    path.lineTo(0.308862 + ox, 16.8399 + oy);
-    path.cubicTo(
-      -0.534659 + ox,
-      14.2215 + oy,
-      0.388904 + ox,
-      11.3516 + oy,
-      2.5993 + ox,
-      9.73338 + oy,
-    );
-    path.close();
-    return path;
-  }
-
-  /// 큰 단계 오각형 경로를 (minX, minY) 원점으로 옮긴 값.
-  static Path _largePath() {
-    const ox = -1.90162;
-    const oy = 0.75981;
-    final path = Path();
-    path.moveTo(29.6202 + ox, 2.27943 + oy);
-    path.cubicTo(
-      33.7659 + ox,
-      -0.75981 + oy,
-      39.3859 + ox,
-      -0.75981 + oy,
-      43.5316 + ox,
-      2.27943 + oy,
-    );
-    path.lineTo(65.3642 + ox, 18.2807 + oy);
-    path.cubicTo(
-      69.5098 + ox,
-      21.3199 + oy,
-      71.2502 + ox,
-      26.71 + oy,
-      69.6602 + ox,
-      31.6277 + oy,
-    );
-    path.lineTo(61.3226 + ox, 57.5225 + oy);
-    path.cubicTo(
-      59.7384 + ox,
-      62.4401 + oy,
-      55.1938 + ox,
-      65.771 + oy,
-      50.0652 + ox,
-      65.771 + oy,
-    );
-    path.lineTo(23.0809 + ox, 65.771 + oy);
-    path.cubicTo(
-      17.9523 + ox,
-      65.771 + oy,
-      13.4077 + ox,
-      62.4401 + oy,
-      11.8234 + ox,
-      57.5225 + oy,
-    );
-    path.lineTo(3.48587 + ox, 31.6277 + oy);
-    path.cubicTo(
-      1.90162 + ox,
-      26.71 + oy,
-      3.6362 + ox,
-      21.3199 + oy,
-      7.78764 + ox,
-      18.2807 + oy,
-    );
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldRepaint(covariant _FigmaStagePentagonPainter oldDelegate) =>
-      oldDelegate.fill != fill ||
-      oldDelegate.extrusion != extrusion ||
-      oldDelegate.extrusionOffset != extrusionOffset ||
-      oldDelegate.isLarge != isLarge;
 }
 
 class _BeginnerMenuButton extends StatelessWidget {
