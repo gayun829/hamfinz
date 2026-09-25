@@ -736,6 +736,7 @@ class AuthService {
       incorrectQuestionCounts: readIncorrectQuestionCounts(data),
       incorrectQuestionCount:
           (data['incorrectQuestionCount'] as num?)?.toInt() ?? 0,
+      reviewArrivals: readReviewArrivals(data),
       seeds: data['seeds'] as int? ?? 0,
       ownedShopItemIds: List<String>.from(
         data['ownedShopItemIds'] as List? ?? [],

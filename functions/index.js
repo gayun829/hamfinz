@@ -404,7 +404,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     );
     const energyEarned = energyRemaining - energyBefore;
 
-    tx.update(userRef, {
+    const userUpdate = {
       energy: energyRemaining,
       lastEnergyResetDate,
       seeds: (user.seeds ?? 0) + seedsEarned,
@@ -414,7 +414,13 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       studyGuardCount,
       categoryStats,
       learningDates,
-    });
+    };
+    if (sessionSource === 'reviewSession' && session.categoryId) {
+      const reviewLabel = CATEGORY_LABELS[session.categoryId] || session.categoryId;
+      userUpdate[`reviewArrivals.${session.categoryId}`] =
+        categoryStats[reviewLabel]?.completedSessions ?? 0;
+    }
+    tx.update(userRef, userUpdate);
 
     tx.update(sessionRef, {
       status: 'completed',

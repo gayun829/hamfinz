@@ -1,4 +1,5 @@
 import '../data/interest_categories.dart';
+import '../data/learning_steps.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 
@@ -19,8 +20,13 @@ int nextIncorrectQuestionCount({
   return currentCount + 1;
 }
 
-Map<String, int> readIncorrectQuestionCounts(Map<String, dynamic>? data) {
-  final raw = data?['incorrectQuestionCounts'];
+Map<String, int> readIncorrectQuestionCounts(Map<String, dynamic>? data) =>
+    _readIntMap(data?['incorrectQuestionCounts']);
+
+Map<String, int> readReviewArrivals(Map<String, dynamic>? data) =>
+    _readIntMap(data?['reviewArrivals']);
+
+Map<String, int> _readIntMap(Object? raw) {
   if (raw is! Map) return {};
   final counts = <String, int>{};
   for (final entry in raw.entries) {
@@ -69,4 +75,14 @@ bool activeCategoryNeedsReview(UserProfile profile) {
   if (categoryId == null) return false;
   final count = profile.incorrectQuestionCounts[categoryId] ?? 0;
   return count > QuizData.reviewQuestionThreshold;
+}
+
+/// 복습을 마친 뒤 다음 학습을 끝내기 전까지는 햄핀이가 복습 집에 도착한 홈을 연다.
+bool activeCategoryReviewArrived(UserProfile profile) {
+  final categoryId = resolveActiveInterestCategoryId(
+    profile.interestCategories,
+  );
+  if (categoryId == null || activeCategoryNeedsReview(profile)) return false;
+  return profile.reviewArrivals[categoryId] ==
+      completedSessionsFor(profile, categoryId);
 }

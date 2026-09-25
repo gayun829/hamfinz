@@ -94,6 +94,7 @@ class QuizService {
       source.incorrectQuestionCounts,
     );
     target.incorrectQuestionCount = source.incorrectQuestionCount;
+    target.reviewArrivals = Map<String, int>.from(source.reviewArrivals);
     target.seeds = source.seeds;
   }
 }
