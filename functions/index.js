@@ -439,6 +439,11 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       userUpdate.incorrectQuestionCounts = incorrectPlan.counts;
       userUpdate.incorrectQuestionCount = incorrectPlan.total;
     }
+    if (sessionSource === 'reviewSession' && session.categoryId) {
+      const reviewLabel = CATEGORY_LABELS[session.categoryId] || session.categoryId;
+      userUpdate[`reviewArrivals.${session.categoryId}`] =
+        categoryStats[reviewLabel]?.completedSessions ?? 0;
+    }
     tx.update(userRef, userUpdate);
 
     for (const questionId of incorrectPlan.masteredIds) {
