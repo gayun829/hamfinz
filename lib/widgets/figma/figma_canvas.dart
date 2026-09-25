@@ -28,6 +28,7 @@ class FigmaCanvas extends StatelessWidget {
     this.fillWidth = false,
     this.clipContent = true,
     this.extraBottomPaddingDesign = 0,
+    this.alignment,
   });
 
   final double designWidth;
@@ -44,6 +45,9 @@ class FigmaCanvas extends StatelessWidget {
 
   /// 스크롤 콘텐츠 하단 여백(Figma px). 고정 오버레이 CTA 등에 맞춘다.
   final double extraBottomPaddingDesign;
+
+  /// 프레임이 viewport 안에 들어갈 때의 정렬. 없으면 fit별 기본값을 쓴다.
+  final Alignment? alignment;
   final List<Widget> Function(BuildContext context, FigmaScale figma) builder;
 
   @override
@@ -104,7 +108,9 @@ class FigmaCanvas extends StatelessWidget {
             : Alignment.topCenter;
 
         final alignedFrame = Align(
-          alignment: fitsInViewport ? alignWhenFits : Alignment.topCenter,
+          alignment: fitsInViewport
+              ? alignment ?? alignWhenFits
+              : Alignment.topCenter,
           child: paddedFrame,
         );
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +8,6 @@ import 'package:testapp/theme/figma_quiz_ox_tokens.dart';
 import 'package:testapp/theme/figma_quiz_question_tokens.dart';
 import 'package:testapp/widgets/figma/figma_quiz_ox_view.dart';
 import 'package:testapp/widgets/figma/figma_quiz_question_view.dart';
-import 'package:testapp/widgets/figma/figma_scale.dart';
 import 'package:testapp/widgets/figma/quiz_question_layout.dart';
 
 /// 큰 글자일수록 배율이 커진다. Android 비선형 글꼴 확대와 같은 형태다.
@@ -64,12 +65,8 @@ void main() {
   const widths = [360.0, 393.0, 786.0];
 
   for (final width in widths) {
-    testWidgets('OX 짧은 질문은 폭 $width에서 기존 CTA 칸을 유지한다', (tester) async {
-      await _pumpQuiz(
-        tester,
-        width: width,
-        child: _oxView('금리는 돈의 가격이다.'),
-      );
+    testWidgets('OX 짧은 질문은 폭 $width에서 CTA를 카드 바로 아래에 둔다', (tester) async {
+      await _pumpQuiz(tester, width: width, child: _oxView('금리는 돈의 가격이다.'));
 
       _expectQuestionNotClipped(tester, '금리는 돈의 가격이다.');
       _expectCtaInDesignSlot(
@@ -77,6 +74,7 @@ void main() {
         width: width,
         ctaTop: FigmaQuizOxTokens.ctaTop,
         ctaHeight: FigmaQuizOxTokens.ctaHeight,
+        contentHeight: FigmaQuizOxTokens.contentHeight,
       );
       expect(tester.takeException(), isNull);
     });
@@ -88,16 +86,16 @@ void main() {
       await _pumpQuiz(tester, width: width, child: _oxView(longQuestion));
 
       _expectQuestionNotClipped(tester, longQuestion);
-      expect(tester.getTopLeft(find.text('다음으로')).dy, greaterThan(shortTop + 1));
+      expect(
+        tester.getTopLeft(find.text('다음으로')).dy,
+        greaterThan(shortTop + 1),
+      );
+      _expectFitsWithoutScroll(tester);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('객관식 짧은 질문은 폭 $width에서 기존 CTA 칸을 유지한다', (tester) async {
-      await _pumpQuiz(
-        tester,
-        width: width,
-        child: _choiceView('금리는 돈의 가격이다.'),
-      );
+    testWidgets('객관식 짧은 질문은 폭 $width에서 CTA를 보기 바로 아래에 둔다', (tester) async {
+      await _pumpQuiz(tester, width: width, child: _choiceView('금리는 돈의 가격이다.'));
 
       _expectQuestionNotClipped(tester, '금리는 돈의 가격이다.');
       _expectCtaInDesignSlot(
@@ -105,28 +103,27 @@ void main() {
         width: width,
         ctaTop: FigmaQuizQuestionTokens.ctaTop,
         ctaHeight: FigmaQuizQuestionTokens.ctaHeight,
+        contentHeight: FigmaQuizQuestionTokens.contentHeight,
       );
       expect(tester.takeException(), isNull);
     });
 
     testWidgets('객관식 긴 질문은 폭 $width에서 잘리지 않고 CTA가 내려간다', (tester) async {
-      await _pumpQuiz(
-        tester,
-        width: width,
-        child: _choiceView('금리는 돈의 가격이다.'),
-      );
+      await _pumpQuiz(tester, width: width, child: _choiceView('금리는 돈의 가격이다.'));
       final shortTop = tester.getTopLeft(find.text('다음으로')).dy;
 
       await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
 
       _expectQuestionNotClipped(tester, longQuestion);
-      expect(tester.getTopLeft(find.text('다음으로')).dy, greaterThan(shortTop + 1));
+      expect(
+        tester.getTopLeft(find.text('다음으로')).dy,
+        greaterThan(shortTop + 1),
+      );
+      _expectFitsWithoutScroll(tester);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('비선형 글자 확대에서 OX 질문이 폭 $width에서 잘리지 않는다', (
-      tester,
-    ) async {
+    testWidgets('비선형 글자 확대에서 OX 질문이 폭 $width에서 잘리지 않는다', (tester) async {
       await _pumpQuiz(
         tester,
         width: width,
@@ -135,12 +132,11 @@ void main() {
       );
 
       _expectQuestionNotClipped(tester, longQuestion);
+      _expectFitsWithoutScroll(tester);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('비선형 글자 확대에서 객관식 질문이 폭 $width에서 잘리지 않는다', (
-      tester,
-    ) async {
+    testWidgets('비선형 글자 확대에서 객관식 질문이 폭 $width에서 잘리지 않는다', (tester) async {
       await _pumpQuiz(
         tester,
         width: width,
@@ -149,6 +145,7 @@ void main() {
       );
 
       _expectQuestionNotClipped(tester, longQuestion);
+      _expectFitsWithoutScroll(tester);
       expect(tester.takeException(), isNull);
     });
   }
@@ -160,7 +157,7 @@ Future<void> _pumpQuiz(
   required Widget child,
   TextScaler scaler = TextScaler.noScaling,
 }) async {
-  await tester.binding.setSurfaceSize(Size(width, 852));
+  await tester.binding.setSurfaceSize(Size(width, _viewportHeight));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
@@ -187,18 +184,25 @@ void _expectCtaInDesignSlot(
   required double width,
   required double ctaTop,
   required double ctaHeight,
+  required double contentHeight,
 }) {
-  final scale = width / 393;
-  const viewportHeight = 852.0;
-  final contentHeight = FigmaScale.quizDesignHeight * scale;
-  final topInset = contentHeight <= viewportHeight + 0.5
-      ? viewportHeight - contentHeight
-      : 0.0;
+  final scale = math.min(width / 393, _viewportHeight / contentHeight);
   final dy = tester.getTopLeft(find.text('다음으로')).dy;
-  final slotTop = topInset + ctaTop * scale;
+  final slotTop = ctaTop * scale;
   expect(dy, greaterThanOrEqualTo(slotTop - 1));
   expect(dy, lessThan(slotTop + ctaHeight * scale));
 }
+
+/// 퀴즈는 스크롤 없이 한 화면에 들어가고, 다음으로 버튼이 화면 안에 있어야 한다.
+void _expectFitsWithoutScroll(WidgetTester tester) {
+  expect(find.byType(Scrollable), findsNothing);
+  expect(
+    tester.getBottomLeft(find.text('다음으로')).dy,
+    lessThanOrEqualTo(_viewportHeight),
+  );
+}
+
+const _viewportHeight = 852.0;
 
 Widget _oxView(String question) {
   return FigmaQuizOxView(
