@@ -95,4 +95,49 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('finished review shows the hamster arrived at the review house', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(393, 852));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    Future<void> pumpHome(String key, int completedSessions) {
+      return tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(
+            key: ValueKey(key),
+            profile: UserProfile(
+              email: 'arrive@test.dev',
+              nickname: '도착',
+              interestCategories: const ['saving'],
+              categoryStats: {
+                '저축': CategoryStat(completedSessions: completedSessions),
+              },
+              reviewArrivals: const {'saving': 4},
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpHome('arrived', 4);
+    expect(
+      find.byKey(const ValueKey('home-review-arrival-beginner')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('home-review-house-beginner')),
+      findsNothing,
+    );
+
+    await pumpHome('next-session-done', 5);
+    expect(
+      find.byKey(const ValueKey('home-review-arrival-beginner')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

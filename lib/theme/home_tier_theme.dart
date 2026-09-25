@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/learning_stages.dart';
 
-/// Figma 홈 화면 티어 — `482:8451` 초급 / `482:7291` 중급 / `482:7487` 고급.
+/// Figma 홈 화면 티어 — `526:2699` 초급 / `526:1740` 중급 / `526:1936` 고급.
 enum HomeTier {
   beginner,
   intermediate,
@@ -26,7 +26,8 @@ class HomeTierTheme {
     required this.tier,
     required this.assetFolder,
     required this.learningCtaColor,
-    required this.reviewHouseShadowColor,
+    required this.reviewAheadShadowColor,
+    required this.reviewArrivalShadowColor,
     required this.learningCtaLeft,
     required this.learningCtaTop,
     required this.hasLearningCtaShadow,
@@ -41,13 +42,20 @@ class HomeTierTheme {
     required this.starMid,
     required this.starTiny,
     required this.sparkle,
+    required this.node1LabelShadow,
     required this.node3LabelShadow,
+    required this.backgroundBottom,
   });
 
   final HomeTier tier;
   final String assetFolder;
   final Color learningCtaColor;
-  final Color reviewHouseShadowColor;
+
+  /// 복습 집(Ellipse 218/219) 아래 multiply 그림자.
+  final Color reviewAheadShadowColor;
+
+  /// 복습 집에 도착한 햄핀이(Ellipse 217) 아래 그림자.
+  final Color reviewArrivalShadowColor;
   final double learningCtaLeft;
   final double learningCtaTop;
   final bool hasLearningCtaShadow;
@@ -70,13 +78,18 @@ class HomeTierTheme {
   final Color starMid;
   final Color starTiny;
   final Color sparkle;
+  final Color node1LabelShadow;
   final Color node3LabelShadow;
+
+  /// 홈 배경 그라데이션(#FBFBFB 27.758% → 이 색 115.61%)의 끝색.
+  final Color backgroundBottom;
 
   static const beginner = HomeTierTheme._(
     tier: HomeTier.beginner,
     assetFolder: 'beginner',
     learningCtaColor: Color(0xFF3CC6FF),
-    reviewHouseShadowColor: Color(0xFFF2EFDF),
+    reviewAheadShadowColor: Color(0xFFF7F4D9),
+    reviewArrivalShadowColor: Color(0xFFF2EFDF),
     learningCtaLeft: 34,
     learningCtaTop: 666,
     hasLearningCtaShadow: false,
@@ -91,14 +104,17 @@ class HomeTierTheme {
     starMid: Color(0xFFFDD47C),
     starTiny: Color(0xFFF9E08D),
     sparkle: Color.fromRGBO(249, 224, 141, 0.72),
+    node1LabelShadow: Color.fromRGBO(205, 85, 0, 0.25),
     node3LabelShadow: Color.fromRGBO(205, 85, 0, 0.25),
+    backgroundBottom: Color(0xFFFFFCC7),
   );
 
   static const intermediate = HomeTierTheme._(
     tier: HomeTier.intermediate,
     assetFolder: 'intermediate',
     learningCtaColor: Color(0xFFB3EA70),
-    reviewHouseShadowColor: Color(0xFFE5EFE2),
+    reviewAheadShadowColor: Color(0xFFF7F4D9),
+    reviewArrivalShadowColor: Color(0xFFE3EDE1),
     learningCtaLeft: 32,
     learningCtaTop: 665,
     hasLearningCtaShadow: true,
@@ -113,14 +129,17 @@ class HomeTierTheme {
     starMid: Color(0xFFAFE66D),
     starTiny: Color(0xFFC7EE97),
     sparkle: Color.fromRGBO(199, 238, 151, 0.72),
+    node1LabelShadow: Color(0xFFB1D883),
     node3LabelShadow: Color(0xFF9BC964),
+    backgroundBottom: Color(0xFFDEFFC4),
   );
 
   static const advanced = HomeTierTheme._(
     tier: HomeTier.advanced,
     assetFolder: 'advanced',
     learningCtaColor: Color(0xFFFD9068),
-    reviewHouseShadowColor: Color(0xFFF8E5E5),
+    reviewAheadShadowColor: Color(0xFFFFF2ED),
+    reviewArrivalShadowColor: Color(0xFFF4E1E1),
     learningCtaLeft: 32,
     learningCtaTop: 665,
     hasLearningCtaShadow: true,
@@ -135,7 +154,9 @@ class HomeTierTheme {
     starMid: Color(0xFFFDB094),
     starTiny: Color(0xFFFFC1AA),
     sparkle: Color.fromRGBO(255, 193, 170, 0.71),
-    node3LabelShadow: Color.fromRGBO(205, 85, 0, 0.25),
+    node1LabelShadow: Color(0xFFFD9068),
+    node3LabelShadow: Color(0xFFF5835A),
+    backgroundBottom: Color(0xFFFFDBC4),
   );
 
   static HomeTierTheme forStage(int stage) {
@@ -158,10 +179,11 @@ class HomeTierTheme {
   String get learningQ => _asset('learning_q.svg');
   String get chevronLearning => _asset('chevron_learning.svg');
   String get reviewHouseBody => _asset('review_house_body.svg');
-  String get reviewHouseIcon => _asset('review_house_icon.svg');
   String get reviewHouseDot => _asset('review_house_dot.svg');
   String get reviewHouseRoof => _asset('review_house_roof.svg');
-  String get reviewHouseComposite => _asset('review_house_composite.svg');
+  String get reviewArrivalHat => _asset('review_arrival_hat.svg');
+  String get reviewArrivalHouse => _asset('review_arrival_house.svg');
 
-  bool get hasCompositeReviewHouse => tier == HomeTier.advanced;
+  /// 초급·중급은 구멍에서 고개를 내민 햄스터, 고급은 몸통이 보이는 [hamsterMap].
+  bool get usesPeekHamster => tier != HomeTier.advanced;
 }

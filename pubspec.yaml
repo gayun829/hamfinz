@@ -70,6 +70,7 @@ flutter:
     - assets/figma/home/beginner/
     - assets/figma/home/intermediate/
     - assets/figma/home/advanced/
+    - assets/figma/home/review_arrival/
     - assets/figma/auth/
     - assets/figma/onboarding/
     - assets/figma/category/

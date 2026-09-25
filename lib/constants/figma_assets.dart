@@ -45,6 +45,20 @@ class FigmaAssets {
   static const homeStagePentagonSmall = '$_home/stage_pentagon_small.svg';
   static const homeStagePentagonLarge = '$_home/stage_pentagon_large.svg';
 
+  // 초급·중급 홈 햄스터 (Figma `541:2666` / `541:2676`) — 구멍 밖으로 고개를 내민 모습.
+  static const homeHamsterPeekBody = '$_home/hamster_peek_body.svg';
+  static const homeHamsterPeekBelly = '$_home/hamster_peek_belly.svg';
+  static const homeHamsterPeekBottom = '$_home/hamster_peek_bottom.svg';
+  static const homeHamsterPeekPawLeft = '$_home/hamster_peek_paw_left.svg';
+  static const homeHamsterPeekPawRight = '$_home/hamster_peek_paw_right.svg';
+
+  // 복습 집 햄스터 아이콘 — 티어 공통.
+  static const homeReviewHouseIcon = '$_home/review_house_icon.svg';
+
+  /// 복습 집에 도착한 햄핀이 레이어 (Figma `526:2236`~`526:2269`, 티어 공통분).
+  static String homeReviewArrivalLayer(int index) =>
+      '$_home/review_arrival/layer_${index.toString().padLeft(2, '0')}.svg';
+
   // Home beginner (131:5278)
   static const homePathMap = '$_homeBeginner/path_map.svg';
   static const homeHamsterMap = '$_homeBeginner/hamster_map.svg';
