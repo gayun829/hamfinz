@@ -145,10 +145,16 @@ abstract final class FigmaQuizOxTokens {
 
   // CTA `137:5895` + 라벨 `137:5896`.
   static const ctaLeft = 24.0;
-  static const ctaTop = 748.0;
+  // Figma(748)는 카드와 버튼 사이가 비어 스크롤이 생겨서, 카드 바로 아래에 붙인다.
+  static const ctaGap = 20.0;
+  static const ctaTop = cardTop + cardHeight + ctaGap;
   static const ctaWidth = 345.0;
   static const ctaHeight = 50.0;
   static const ctaRadius = 13.0;
   static const ctaFontSize = 18.0;
   static const cta = Color(0xFF3CC6FF);
+
+  /// 질문이 기본 높이일 때의 캔버스 높이 — 버튼 아래 홈 인디케이터 여백까지.
+  static const bottomMargin = 34.0;
+  static const contentHeight = ctaTop + ctaHeight + bottomMargin;
 }

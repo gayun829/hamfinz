@@ -55,31 +55,35 @@ class FigmaQuizQuestionView extends StatelessWidget {
       backgroundColor: FigmaQuizQuestionTokens.background,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final scale = FigmaScale.ofWidth(
-            constraints.maxWidth,
-            designWidth: FigmaScale.quizDesignWidth,
-          ).scale;
           final questionHeight = showExplanation
               ? FigmaQuizQuestionTokens.questionHeight
-              : QuizQuestionLayout.textHeight(
-                  text: question,
-                  width: FigmaQuizQuestionTokens.questionWidth,
-                  fontSize: FigmaQuizQuestionTokens.questionFontSize,
-                  lineHeight: FigmaQuizQuestionTokens.questionLineHeight,
+              : QuizQuestionLayout.fittedTextHeight(
+                  constraints: constraints,
+                  designWidth: FigmaScale.quizDesignWidth,
+                  baseCanvasHeight: FigmaQuizQuestionTokens.contentHeight,
                   minimumHeight: FigmaQuizQuestionTokens.questionHeight,
-                  fontFamily: FigmaQuizFonts.pretendard,
-                  textScaler: MediaQuery.textScalerOf(context),
-                  scale: scale,
+                  measure: (scale) => QuizQuestionLayout.textHeight(
+                    text: question,
+                    width: FigmaQuizQuestionTokens.questionWidth,
+                    fontSize: FigmaQuizQuestionTokens.questionFontSize,
+                    lineHeight: FigmaQuizQuestionTokens.questionLineHeight,
+                    minimumHeight: FigmaQuizQuestionTokens.questionHeight,
+                    fontFamily: FigmaQuizFonts.pretendard,
+                    textScaler: MediaQuery.textScalerOf(context),
+                    scale: scale,
+                  ),
                 );
           final contentShift =
               questionHeight - FigmaQuizQuestionTokens.questionHeight;
 
           return FigmaCanvas(
             designWidth: FigmaScale.quizDesignWidth,
-            designHeight: FigmaScale.quizDesignHeight + contentShift,
+            designHeight: FigmaQuizQuestionTokens.contentHeight + contentShift,
             backgroundColor: FigmaQuizQuestionTokens.background,
-            fit: FigmaCanvasFit.widthScroll,
-            scrollable: true,
+            // 퀴즈는 한 화면에 다 보여야 해서 스크롤 대신 세로에도 맞춰 줄인다.
+            fit: FigmaCanvasFit.viewport,
+            scrollable: false,
+            alignment: Alignment.topCenter,
             builder: (context, figma) => _layers(
               figma,
               questionHeight: questionHeight,
