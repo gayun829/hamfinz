@@ -420,18 +420,19 @@ class QuizSessionRepository {
         final expectedCount =
             (session['questionCount'] as num?)?.toInt() ?? questionIds.length;
 
-        final answerDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
-        for (final qid in questionIds) {
-          final answerSnap = await tx.get(
-            sessionRef.collection('answers').doc(qid),
+        // 트랜잭션 안의 읽기는 한 번에 보내 왕복을 문제 수만큼 늘리지 않는다.
+        final answerSnaps = await Future.wait([
+          for (final qid in questionIds)
+            tx.get(sessionRef.collection('answers').doc(qid)),
+        ]);
+        final answerDocs = answerSnaps
+            .takeWhile((snap) => snap.exists)
+            .toList();
+        if (answerDocs.length < answerSnaps.length) {
+          txError.add(
+            '아직 풀지 않은 문제가 있어요. (${answerDocs.length}/$expectedCount)',
           );
-          if (!answerSnap.exists) {
-            txError.add(
-              '아직 풀지 않은 문제가 있어요. (${answerDocs.length}/$expectedCount)',
-            );
-            return null;
-          }
-          answerDocs.add(answerSnap);
+          return null;
         }
 
         if (answerDocs.length < expectedCount) {
@@ -446,11 +447,13 @@ class QuizSessionRepository {
         final user = userSnap.data()!;
 
         // 끝까지 푼 세션의 답만 정답·오답 목록에 반영한다.
-        final trackedById = <String, Map<String, dynamic>>{};
-        for (final doc in answers) {
-          final tracked = await tx.get(incorrectCol.doc(doc.id));
-          if (tracked.exists) trackedById[doc.id] = tracked.data()!;
-        }
+        final trackedSnaps = await Future.wait([
+          for (final doc in answers) tx.get(incorrectCol.doc(doc.id)),
+        ]);
+        final trackedById = {
+          for (final tracked in trackedSnaps)
+            if (tracked.exists) tracked.id: tracked.data()!,
+        };
         final counts = readIncorrectQuestionCounts(user);
         final incorrectPlan = planSessionIncorrectQuestions(
           counts: counts,
@@ -808,14 +811,11 @@ class QuizSessionRepository {
       await _firestore.runTransaction<Map<String, dynamic>?>((tx) async {
         final user = (await tx.get(userRef)).data();
         if (user == null) return null;
-        final removeSnaps = <DocumentSnapshot<Map<String, dynamic>>>[];
-        for (final id in removeIds) {
-          removeSnaps.add(await tx.get(incorrect.doc(id)));
-        }
-        var available = 0;
-        for (final id in keepIds) {
-          if ((await tx.get(incorrect.doc(id))).exists) available++;
-        }
+        final (removeSnaps, keepSnaps) = await (
+          Future.wait([for (final id in removeIds) tx.get(incorrect.doc(id))]),
+          Future.wait([for (final id in keepIds) tx.get(incorrect.doc(id))]),
+        ).wait;
+        final available = keepSnaps.where((snap) => snap.exists).length;
 
         for (final snap in removeSnaps) {
           if (snap.exists) tx.delete(snap.reference);

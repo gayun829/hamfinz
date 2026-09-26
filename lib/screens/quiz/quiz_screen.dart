@@ -33,7 +33,6 @@ class _QuizScreenState extends State<QuizScreen> {
   QuizSession? _session;
   bool _loading = true;
   String? _loadError;
-  final List<QuizAnswer> _answers = [];
   int _currentIndex = 0;
   int? _selectedIndex;
   bool _showResult = false;
@@ -108,12 +107,6 @@ class _QuizScreenState extends State<QuizScreen> {
         _showResult = true;
         _submitting = false;
       });
-    } on QuizSessionException catch (e) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -125,17 +118,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _next() async {
-    final selected = _selectedIndex;
-    final submitResult = _submitResult;
-    if (selected == null || submitResult == null) return;
-
-    _answers.add(
-      QuizAnswer(
-        questionId: _currentQuestion.id,
-        selectedIndex: selected,
-        isCorrect: submitResult.isCorrect,
-      ),
-    );
+    if (_selectedIndex == null || _submitResult == null) return;
 
     if (_currentIndex >= _questions.length - 1) {
       if (_closing) return;
@@ -180,13 +163,15 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
           ),
         );
-      } on QuizSessionException catch (e) {
+      } catch (e) {
         // 완료에 실패하면 다시 누르거나 나갈(중도 종료) 수 있게 풀어 둔다.
+        // 프로필 재조회 같은 Firestore 오류도 여기로 오므로 타입을 가리지 않는다.
         _closing = false;
         if (!mounted) return;
+        final mapped = e is QuizSessionException ? e : mapQuizSubmitError(e);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        ).showSnackBar(SnackBar(content: Text(mapped.message)));
       }
       return;
     }
