@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
@@ -115,6 +116,12 @@ class _HomeScreenState extends State<HomeScreen>
   int _newsIndex = 0;
   Timer? _newsTimer;
 
+  /// 뉴스바 제목만 바꿔 그린다. 7초마다 홈 전체를 다시 빌드하지 않게 한다.
+  final _newsTitle = ValueNotifier(_emptyNewsTitle);
+
+  /// 못 불러왔을 때도 배너가 비어 보이지 않게 한다.
+  static const _emptyNewsTitle = '오늘의 금융 뉴스 보러가기';
+
   /// 뉴스바가 한 건을 보여주는 시간.
   static const _newsSlideInterval = Duration(seconds: 7);
 
@@ -122,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _dig.dispose();
     _newsTimer?.cancel();
+    _newsTitle.dispose();
     super.dispose();
   }
 
@@ -253,18 +261,13 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// 뉴스바에 보여줄 제목. 못 불러왔을 때도 배너가 비어 보이지 않게 한다.
-  String get _newsBarTitle =>
-      _news.isEmpty ? '오늘의 금융 뉴스 보러가기' : _news[_newsIndex].title;
-
   Future<void> _loadNews() async {
     try {
       final items = await NewsService.topFinance();
       if (!mounted) return;
-      setState(() {
-        _news = items;
-        _newsIndex = 0;
-      });
+      _news = items;
+      _newsIndex = 0;
+      _newsTitle.value = items.isEmpty ? _emptyNewsTitle : items.first.title;
       // 목록이 들어온 시점부터 다시 세서 첫 기사도 다른 기사만큼 보이게 한다.
       _newsTimer?.cancel();
       _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
@@ -275,7 +278,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _rotateNews() {
     if (!mounted || _news.length < 2) return;
-    setState(() => _newsIndex = (_newsIndex + 1) % _news.length);
+    _newsIndex = (_newsIndex + 1) % _news.length;
+    _newsTitle.value = _news[_newsIndex].title;
   }
 
   Future<void> _openShop() async {
@@ -360,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen>
                   coin: profile.seeds,
                   streak: profile.streak,
                   currentStep: homeMapCurrentStep(profile),
-                  newsTitle: _newsBarTitle,
+                  newsTitle: _newsTitle,
                   reviewStage: reviewStage,
                   dig: _dig,
                   onMenu: _openCategorySwitcher,
@@ -423,7 +427,7 @@ List<Widget> _buildFigmaHomeLayers({
   required int coin,
   required int streak,
   required int currentStep,
-  required String newsTitle,
+  required ValueListenable<String> newsTitle,
   required HomeReviewStage reviewStage,
   required Animation<double> dig,
   required VoidCallback onMenu,
@@ -434,9 +438,6 @@ List<Widget> _buildFigmaHomeLayers({
   final s = figma.s;
   final ahead = reviewStage == HomeReviewStage.ahead;
   final arrived = reviewStage == HomeReviewStage.arrived;
-  final newsLine = newsTitle.startsWith('HOT 뉴스')
-      ? newsTitle
-      : 'HOT 뉴스 / $newsTitle';
 
   return [
     // ── 맵 경로 Subtract + 발판 Ellipse 156/157/154/155/100 ──
@@ -792,47 +793,55 @@ List<Widget> _buildFigmaHomeLayers({
       top: 122.85,
       width: 272,
       height: 18,
-      child: ClipRect(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 450),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          // 전광판처럼 새 제목은 아래에서 올라오고, 이전 제목은 위로 밀려 나간다.
-          // 나가는 쪽은 애니메이션이 거꾸로(1→0) 돌아서 0→(0,-1)로 움직인다.
-          transitionBuilder: (child, animation) {
-            final incoming = child.key == ValueKey(newsLine);
-            final slide = Tween<Offset>(
-              begin: incoming ? const Offset(0, 1) : const Offset(0, -1),
-              end: Offset.zero,
-            );
-            return SlideTransition(
-              position: animation.drive(slide),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          layoutBuilder: (currentChild, previousChildren) => Stack(
-            alignment: Alignment.centerLeft,
-            children: [...previousChildren, ?currentChild],
-          ),
-          child: Align(
-            key: ValueKey(newsLine),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              newsLine,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: FigmaHomeFonts.inter,
-                // Figma 값은 8.747인데 393 프레임에서 그대로 쓰면 배너 안에서
-                // 글씨만 혼자 3배 작다(바로 아래 '오늘의 학습'이 26).
-                fontSize: s(13),
-                fontWeight: FontWeight.w500,
-                height: 1.1,
-                color: Colors.black,
+      child: ValueListenableBuilder<String>(
+        valueListenable: newsTitle,
+        builder: (context, title, _) {
+          final newsLine = title.startsWith('HOT 뉴스')
+              ? title
+              : 'HOT 뉴스 / $title';
+          return ClipRect(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 450),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              // 전광판처럼 새 제목은 아래에서 올라오고, 이전 제목은 위로 밀려 나간다.
+              // 나가는 쪽은 애니메이션이 거꾸로(1→0) 돌아서 0→(0,-1)로 움직인다.
+              transitionBuilder: (child, animation) {
+                final incoming = child.key == ValueKey(newsLine);
+                final slide = Tween<Offset>(
+                  begin: incoming ? const Offset(0, 1) : const Offset(0, -1),
+                  end: Offset.zero,
+                );
+                return SlideTransition(
+                  position: animation.drive(slide),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.centerLeft,
+                children: [...previousChildren, ?currentChild],
+              ),
+              child: Align(
+                key: ValueKey(newsLine),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  newsLine,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: FigmaHomeFonts.inter,
+                    // Figma 값은 8.747인데 393 프레임에서 그대로 쓰면 배너 안에서
+                    // 글씨만 혼자 3배 작다(바로 아래 '오늘의 학습'이 26).
+                    fontSize: s(13),
+                    fontWeight: FontWeight.w500,
+                    height: 1.1,
+                    color: Colors.black,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     ),
     FigmaBox(
@@ -1319,16 +1328,13 @@ class _DiggingHamster extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               // 제자리에서는 발이 구멍 테두리에 걸쳐 있어 자르지 않는다.
-              if (t == 0)
-                moved
-              else
-                ClipPath(
-                  clipper: _DigGroundClipper(
-                    ground: ground,
-                    scale: figma.scale,
-                  ),
-                  child: moved,
-                ),
+              // 자르기만 끄고 위젯은 그대로 둬야 0을 오갈 때 햄스터 레이어를
+              // 통째로 다시 만들지 않는다.
+              ClipPath(
+                clipper: _DigGroundClipper(ground: ground, scale: figma.scale),
+                clipBehavior: t == 0 ? Clip.none : Clip.antiAlias,
+                child: moved,
+              ),
               if (t > 0 && t < 1) ..._dirt(t),
             ],
           );
