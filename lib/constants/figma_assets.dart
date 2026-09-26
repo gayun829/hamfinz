@@ -14,49 +14,27 @@ class FigmaAssets {
   static const _iconsOnboarding = 'assets/icons/onboarding';
 
   // Home
-  static const hamsterMain = '$_home/hamster_main.png';
   static const homeBagLeft = '$_home/bag_left.svg';
   static const homeBagRight = '$_home/bag_right.svg';
   static const homeStar = '$_home/star.svg';
   static const homeSparkle = '$_home/sparkle.svg';
 
-  /// 홈 카드·썸네일 — 단일 햄스터만 (`assets/images/hamster_auth.png`)
-  static const hamsterCard = hamsterAuth;
-  static const bgTop = '$_home/bg_top.svg';
-  static const bgBottom = '$_home/bg_bottom.svg';
-  static const menuIcon = '$_home/menu_icon.svg';
   static const megaphone = '$_home/megaphone.svg';
-  static const chevronRight = '$_home/chevron_right.svg';
-  static const chevronSmall = '$_home/chevron_small.svg';
   static const chevronLearning = '$_home/chevron_learning.svg';
   static const statEnergy = '$_home/stat_energy.svg';
   static const statCoin = '$_home/stat_coin.svg';
   static const statStreak = '$_home/stat_streak.svg';
-  static const cardHamsterFrame = '$_home/card_hamster_frame.svg';
   static const bookmark = '$_home/bookmark.svg';
-  static const questIconCircle = '$_home/quest_icon_circle.svg';
-  static const questIconDot = '$_home/quest_icon_dot.svg';
-  static const navList = '$_home/nav_list.svg';
-  static const navHomeA = '$_home/nav_home_a.svg';
-  static const navHomeB = '$_home/nav_home_b.svg';
-  static const navProfile = '$_home/nav_profile.svg';
 
   // 홈 단계 오각형 — 티어마다 모양이 같고 색만 달라 한 벌을 색 필터로 칠한다.
   static const homeStagePentagonSmall = '$_home/stage_pentagon_small.svg';
   static const homeStagePentagonLarge = '$_home/stage_pentagon_large.svg';
 
   // Home beginner (131:5278)
-  static const homePathMap = '$_homeBeginner/path_map.svg';
-  static const homeHamsterMap = '$_homeBeginner/hamster_map.svg';
-  static const homeEllipse154 = '$_homeBeginner/ellipse_154.svg';
-  static const homeEllipse155 = '$_homeBeginner/ellipse_155.svg';
-  static const homeNode1 = '$_homeBeginner/node_1.png';
-  static const homeNode3 = '$_homeBeginner/node_3.png';
   static const homeBeginnerMegaphone = '$_homeBeginner/megaphone.svg';
   static const homeBeginnerChevronNews = '$_homeBeginner/chevron_news.svg';
   static const homeBeginnerChevronLearning =
       '$_homeBeginner/chevron_learning.svg';
-  static const homeBeginnerLearningQ = '$_homeBeginner/learning_q.svg';
   static const homeBeginnerMenuIcon = '$_homeBeginner/menu_icon.svg';
   static const homeBeginnerStatEnergy = '$_homeBeginner/stat_energy.svg';
   static const homeBeginnerStatCoin = '$_homeBeginner/stat_coin.svg';
@@ -95,10 +73,6 @@ class FigmaAssets {
   static const shopClothingBanner = '$_shop/clothing_shop_hamster.png';
 
   // Calendar
-  static const calendarPeekHamster = '$_calendar/hamster_peek.png';
-  static const calendarDropOn = '$_calendar/drop_empty_1.svg';
-  static const calendarDropMid = '$_calendar/drop_empty_2.svg';
-  static const calendarDropOff = '$_calendar/drop_filled.svg';
   static const calendarPodium1 = '$_calendar/podium_1.svg';
   static const calendarPodium2 = '$_calendar/podium_2.svg';
   static const calendarPodium3 = '$_calendar/podium_3.svg';

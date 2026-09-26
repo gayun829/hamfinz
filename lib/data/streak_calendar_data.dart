@@ -1,7 +1,5 @@
 /// 연속학습 캘린더 프론트 목업. DB 연동 전 화면 확인용.
 abstract final class StreakCalendarMock {
-  static final visibleMonth = DateTime(2025, 4);
-
   /// Figma 예시: 4/14–4/19 연속 학습.
   static final completedDays = <DateTime>{
     DateTime(2025, 4, 14),
@@ -11,19 +9,6 @@ abstract final class StreakCalendarMock {
     DateTime(2025, 4, 18),
     DateTime(2025, 4, 19),
   };
-
-  static const daysUntilGoal = 3;
-  static const pauseUsed = 1;
-  static const pauseMax = 4;
-  static const fallbackStreak = 12;
-  
-  /// 사용자의 현재 랭킹
-  static const userRank = 2;
-  
-  /// 사용자의 현재 연속학습 진행도
-  static const userLearned = 7;
-  static const userGoal = 15;
-  static const userName = '나';
 
   static const friends = <StreakFriendMock>[
     StreakFriendMock(

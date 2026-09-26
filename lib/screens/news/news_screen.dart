@@ -10,8 +10,6 @@ import 'article_screen.dart';
 import 'term_quiz_screen.dart';
 
 /// 목록에서 기사를 여는 콜백.
-typedef OpenArticle = void Function(NewsItem item);
-
 // Figma `뉴스화면` 393폭 프레임 값.
 const _bg = Color(0xFFFBFBFB);
 const _headerBlue = Color(0xFF3CC6FF);

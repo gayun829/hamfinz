@@ -36,7 +36,6 @@ abstract final class FigmaAuthTokens {
   static const primaryButtonHeight = 165.0;
   static const primaryButtonRadius = 82.5;
   static const socialButtonSize = 143.0;
-  static const socialButtonRadius = 89.0;
   static const socialIconGap = 43.0;
   static const duplicateButtonWidth = 204.0;
   static const duplicateButtonHeight = 74.0;
@@ -51,7 +50,6 @@ abstract final class FigmaAuthTokens {
   static const loginHamsterTop = 322.0;
   static const loginHamsterWidth = 333.0;
   static const loginHamsterHeight = 453.0;
-  static const loginHamsterCenterOffsetX = -16.84;
 
   static const signupHamsterTop = 357.0;
   static const signupHamsterWidth = 306.0;
@@ -77,11 +75,6 @@ abstract final class FigmaAuthTokens {
   // Signup vertical spacing
   static const signupHeroHeight = signupHamsterTop + signupHamsterHeight; // 741.147
   static const signupHeroToForm = 64.853; // 806 - 741.147
-  static const signupFieldGap = 82.0;
-  static const signupButtonTopGap = 205.0;
-  static const signupDividerTopGap = 96.0;
-  static const signupSocialTopGap = 98.0;
-  static const signupFooterTopGap = 232.0;
 
   static TextStyle labelStyle(double scale) => TextStyle(
         fontSize: labelFontSize * scale,

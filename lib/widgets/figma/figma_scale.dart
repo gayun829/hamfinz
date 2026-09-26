@@ -9,9 +9,6 @@ class FigmaScale {
   static const homeDesignHeight = 852.0;
   static const homeContentHeight = 784.0;
 
-  static const authDesignWidth = 1212.67;
-  static const authDesignHeight = 2629.0;
-
   /// 퀴즈 화면 좌표계 (393×852) — 4지선다 `137:5521`, OX `137:5890`.
   static const quizDesignWidth = homeDesignWidth;
   static const quizDesignHeight = homeDesignHeight;

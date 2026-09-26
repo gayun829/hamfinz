@@ -21,12 +21,8 @@ class AppTheme {
   static const figmaHomeBackground = Color(0xFFFBFBFB);
   static const figmaMintLight = Color(0xFFB7F1F3);
   static const figmaMintCard = Color(0xFFDDF6FF);
-  static const figmaMintDeep = Color(0xFF46CABF);
   static const figmaTeal = Color(0xFF1B9CA1);
   static const figmaYellow = Color(0xFFFFCA55);
-  static const figmaOrange = Color(0xFFFB8B3B);
-  static const figmaNewsBanner = Color(0xFFB7F1F3);
-  static const figmaSpeechBubble = Color(0xFFF5FAFF);
 
   static ThemeData get theme {
     return ThemeData(

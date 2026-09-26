@@ -15,7 +15,6 @@ class NicknameStepScreen extends StatefulWidget {
 
   final SignupDraft draft;
 
-  static const minLength = AuthService.nicknameMinLength;
   static const maxLength = AuthService.nicknameMaxLength;
   static const hint = AuthService.nicknameLengthHint;
 

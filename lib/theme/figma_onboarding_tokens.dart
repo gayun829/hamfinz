@@ -40,7 +40,6 @@ abstract final class FigmaOnboardingTokens {
 
   // 뒤로가기 (439:679) — 박스 10.644×21.069, 획이 넘쳐 SVG는 15.14×25.54
   static const backBoxWidth = 10.644;
-  static const backBoxHeight = 21.069;
   static const backSvgWidth = 15.1375;
   static const backSvgHeight = 25.541;
   static const backLeft = 27.0;
@@ -50,13 +49,11 @@ abstract final class FigmaOnboardingTokens {
 
   // 입력 필드 (439:523~526) — 좌표는 화면 상단 기준 절대값
   static const fieldLeft = 36.0;
-  static const fieldRight = 25.0; // 밑줄 오른쪽 끝 368.33 기준
   static const labelFontSize = 12.0;
   static const inputFontSize = 18.0;
   static const helperFontSize = 14.0;
   static const clearSize = 20.0;
   static const clearMarkSize = 8.0;
-  static const underlineWidth = 345.0;
   static const underlineThickness = 2.0;
   static const eyeWidth = 20.3241;
   static const eyeHeight = 15.8953;
@@ -64,8 +61,6 @@ abstract final class FigmaOnboardingTokens {
   // 세로 간격 (디자인 y 차이 그대로)
   static const backToHamster = 53.93; // 131 − 77.07
   static const hamsterToLabel = 32.17; // 224 − 191.83
-  static const labelToInput = 29.0; // 260 − 231 (중심 간)
-  static const inputToUnderline = 19.0; // 279 − 260
   // 아래 네 값은 글자 높이를 뺀 "실제로 비우는 간격"이다.
   static const underlineToHelper = 6.0; // 도움말 중심 293.5
   /// 인증 단계. 디자인은 밑줄 → 타이머(301.5) → 재전송(328.5)인데, 타이머를
@@ -92,7 +87,6 @@ abstract final class FigmaOnboardingTokens {
   static const termsCheckHeight = 10.0;
   static const termsTextLeft = 77.0;
   static const termsFontSize = 17.0;
-  static const termsFirstRowTop = 252.0;
   static const termsRowPitch = 78.0;
   static const termsChevronWidth = 14.8016;
   static const termsChevronHeight = 7.97314;
@@ -110,11 +104,9 @@ abstract final class FigmaOnboardingTokens {
   static const introDotWidth = 3.33435;
   static const introDotHeight = 5.79365;
   static const introButtonLeft = 23.33;
-  static const introButtonWidth = 345.0;
   static const introButtonHeight = 48.0;
   static const introButtonRadius = 13.0;
   static const introButtonGap = 12.0; // 541 − 481 − 48
-  static const introFirstButtonTop = 481.0;
   static const introHamsterToButton = 57.0; // 481 − (211 + 213)
   static const introButtonToLogin = 32.0;
   static const introButtonFontSize = 16.0;
@@ -124,7 +116,6 @@ abstract final class FigmaOnboardingTokens {
   static const introAppleIconHeight = 21.0;
   static const introGoogleIconWidth = 16.0;
   static const introGoogleIconHeight = 15.0;
-  static const introIconTextGap = 7.0;
 
   static TextStyle bubbleStyle(double scale) => TextStyle(
     fontSize: bubbleFontSize * scale,

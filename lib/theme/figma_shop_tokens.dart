@@ -14,18 +14,10 @@ abstract final class FigmaShopTokens {
 
   static const pagePadding = 20.0;
   static const cardRadius = 16.0;
-  static const purchaseRadius = 27.0;
   static const headerHeight = 56.0;
 
   static const seedIconHeader = Size(24.537, 23.768);
-  static const seedIconFeatured = Size(25.939, 25.127);
   static const seedIconList = Size(19.096, 20.68);
-  static const seedIconCloset = Size(18.013, 17.449);
-
-  static const closetHamster = Size(95, 113);
-  static const featuredHamster = Size(122, 142);
-  static const closetPreviewHamster = Size(166, 198);
-  static const resetButton = 45.0;
 
   static TextStyle headerTitle(double scale) => TextStyle(
     fontSize: (18 * scale).clamp(16, 20),
