@@ -8,6 +8,7 @@ import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
+import '../utils/energy_reset.dart';
 import '../utils/incorrect_questions.dart';
 import '../utils/learning_dates.dart';
 
@@ -498,12 +499,15 @@ class AuthService {
       final friendships = await _friendships
           .where('uids', arrayContains: user.uid)
           .get();
+      // 한 배치로 지워서, 중간에 규칙에 막혀도 일부만 지워진 계정이 남지 않게 한다.
+      final batch = FirebaseFirestore.instance.batch();
       for (final doc in friendships.docs) {
-        await doc.reference.delete();
+        batch.delete(doc.reference);
       }
-      if (nickname.isNotEmpty) await _nicknames.doc(nickname).delete();
-      if (email.isNotEmpty) await _emails.doc(email).delete();
-      await _users.doc(user.uid).delete();
+      if (nickname.isNotEmpty) batch.delete(_nicknames.doc(nickname));
+      if (email.isNotEmpty) batch.delete(_emails.doc(email));
+      batch.delete(_users.doc(user.uid));
+      await batch.commit();
 
       // ponytail: sessions·mastered 서브컬렉션은 Rules가 delete를 막아 남는다.
       // 개인정보 없이 uid만 달린 고아 문서 — Functions 배포 때 재귀 삭제로 정리.
@@ -705,13 +709,12 @@ class AuthService {
     }
 
     final today = DateHelper.todayKey();
-    var energy = data['energy'] as int? ?? QuizData.maxEnergy;
-    var lastEnergyResetDate = data['lastEnergyResetDate'] as String?;
     // 날짜가 바뀌면 에너지를 최대로 회복한다.
-    if (lastEnergyResetDate != today) {
-      energy = QuizData.maxEnergy;
-      lastEnergyResetDate = today;
-    }
+    final (:energy, :lastEnergyResetDate) = resolveDailyEnergy(
+      storedEnergy: data['energy'] as int?,
+      lastEnergyResetDate: data['lastEnergyResetDate'] as String?,
+      today: today,
+    );
 
     return UserProfile(
       email: email,
@@ -720,7 +723,7 @@ class AuthService {
       streak: streak,
       lastQuizCompletedDate: lastDate,
       todayQuizCompleted: todayCompleted,
-      energy: energy.clamp(0, QuizData.maxEnergy),
+      energy: energy,
       lastEnergyResetDate: lastEnergyResetDate,
 
       selectedHamsterId:

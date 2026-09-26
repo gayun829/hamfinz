@@ -5,6 +5,7 @@ import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/shop_catalog_service.dart';
+import '../../services/shop_purchase_repository.dart';
 import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
@@ -21,9 +22,6 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
-  static const _maxStudyGuards = 4;
-  static const _energyPackAmount = 20;
-
   late UserProfile _profile;
   List<ShopItem> _catalogItems = ShopData.items;
 
@@ -46,7 +44,7 @@ class _ShopScreenState extends State<ShopScreen> {
   );
 
   Future<void> _buyStudyGuard() async {
-    if (_profile.studyGuardCount >= _maxStudyGuards) {
+    if (_profile.studyGuardCount >= ShopPurchaseRepository.maxStudyGuardCount) {
       _showSnackBar('방어권은 최대 4개까지 보유할 수 있어요.');
       return;
     }
@@ -90,7 +88,7 @@ class _ShopScreenState extends State<ShopScreen> {
       return;
     }
     setState(() {});
-    _showSnackBar('에너지 $_energyPackAmount을 구매했어요.');
+    _showSnackBar('에너지 ${ShopPurchaseRepository.energyPackAmount}을 구매했어요.');
   }
 
   void _showSnackBar(String message) {

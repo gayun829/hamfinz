@@ -456,17 +456,18 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
   const shopItemRef = db.collection('shopItems').doc(itemId);
 
   return db.runTransaction(async (tx) => {
+    // 앱에 포함된 상품은 가격을 이미 알므로 shopItems 문서를 읽지 않는다.
+    const fallback = SHOP_CATALOG[itemId];
     const [userSnap, shopItemSnap] = await Promise.all([
       tx.get(userRef),
-      tx.get(shopItemRef),
+      fallback ? null : tx.get(shopItemRef),
     ]);
 
     if (!userSnap.exists) {
       throw new HttpsError('not-found', '유저 프로필을 찾을 수 없어요.');
     }
 
-    const fallback = SHOP_CATALOG[itemId];
-    const remote = shopItemSnap.exists ? shopItemSnap.data() : null;
+    const remote = shopItemSnap?.exists ? shopItemSnap.data() : null;
     const price = Number(fallback?.price ?? remote?.price);
     if (!Number.isFinite(price)) {
       throw new HttpsError('not-found', '존재하지 않는 상품이에요.');

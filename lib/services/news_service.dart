@@ -102,6 +102,19 @@ class NewsService {
     final cached = _cache;
     if (!force && cached != null && !isStale) return cached;
 
+    // 앱 시작 때 홈과 뉴스 탭이 동시에 부르므로, 진행 중인 요청이 있으면 같이 쓴다.
+    return _inflight ??= _refresh(
+      limit,
+      cached,
+    ).whenComplete(() => _inflight = null);
+  }
+
+  static Future<List<NewsItem>>? _inflight;
+
+  static Future<List<NewsItem>> _refresh(
+    int limit,
+    List<NewsItem>? cached,
+  ) async {
     try {
       final items = await _fetch(limit);
       _cache = items;

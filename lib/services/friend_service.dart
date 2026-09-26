@@ -166,7 +166,7 @@ class FriendService {
         .where('status', isEqualTo: 'pending')
         .get();
 
-    final result = <FriendRequestInfo>[];
+    final pending = <Future<FriendRequestInfo>>[];
     for (final doc in snap.docs) {
       final data = doc.data();
       if (data['requestedBy'] == myUid) continue;
@@ -174,14 +174,19 @@ class FriendService {
       final otherUid = uids.firstWhere((u) => u != myUid, orElse: () => '');
       if (otherUid.isEmpty) continue;
 
-      final nickname = data['requestedByNickname'] as String? ??
-          await _lookupNicknameByUid(otherUid);
-
-      result.add(
-        FriendRequestInfo(friendshipId: doc.id, uid: otherUid, nickname: nickname),
-      );
+      pending.add(() async {
+        final nickname =
+            data['requestedByNickname'] as String? ??
+            await _lookupNicknameByUid(otherUid);
+        return FriendRequestInfo(
+          friendshipId: doc.id,
+          uid: otherUid,
+          nickname: nickname,
+        );
+      }());
     }
-    return result;
+    // 스냅샷이 없는 옛 문서의 닉네임 조회를 한꺼번에 보낸다.
+    return Future.wait(pending);
   }
 
   /// 요청을 수락한다. 내 닉네임을 `accepterNickname`으로 같이 남겨서, 나중에
@@ -213,7 +218,7 @@ class FriendService {
         .where('status', isEqualTo: 'accepted')
         .get();
 
-    final result = <Friend>[];
+    final pending = <Future<Friend>>[];
     for (final doc in snap.docs) {
       final data = doc.data();
       final uids = List<String>.from(data['uids'] as List);
@@ -223,13 +228,13 @@ class FriendService {
       final snapshotNickname = data['requestedBy'] == myUid
           ? data['accepterNickname'] as String?
           : data['requestedByNickname'] as String?;
-      final nickname = snapshotNickname ?? await _lookupNicknameByUid(otherUid);
-
-      result.add(
-        Friend(friendshipId: doc.id, uid: otherUid, nickname: nickname),
-      );
+      pending.add(() async {
+        final nickname =
+            snapshotNickname ?? await _lookupNicknameByUid(otherUid);
+        return Friend(friendshipId: doc.id, uid: otherUid, nickname: nickname);
+      }());
     }
-    return result;
+    return Future.wait(pending);
   }
 
   /// 친구 관계를 끊는다. `friendships` 문서 삭제만으로 처리한다(이력은 안 남김).
