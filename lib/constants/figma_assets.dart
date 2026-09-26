@@ -41,6 +41,10 @@ class FigmaAssets {
   static const navHomeB = '$_home/nav_home_b.svg';
   static const navProfile = '$_home/nav_profile.svg';
 
+  // 홈 단계 오각형 — 티어마다 모양이 같고 색만 달라 한 벌을 색 필터로 칠한다.
+  static const homeStagePentagonSmall = '$_home/stage_pentagon_small.svg';
+  static const homeStagePentagonLarge = '$_home/stage_pentagon_large.svg';
+
   // Home beginner (131:5278)
   static const homePathMap = '$_homeBeginner/path_map.svg';
   static const homeHamsterMap = '$_homeBeginner/hamster_map.svg';
