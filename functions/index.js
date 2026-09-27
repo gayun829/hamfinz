@@ -1,3 +1,4 @@
+const { emailAvailability } = require('./email_availability');
 const { learningDatesFromUser } = require('./learning_dates');
 const { completionEnergyReward } = require('./quiz_energy');
 const {
@@ -11,11 +12,13 @@ const {
  *   reconcileIncorrectQuestions (복습할 수 없는 오답 정리)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
  * News — fetchNewsFeed (웹 빌드용 구글뉴스 RSS 프록시)
+ * Auth — checkEmailAvailable (가입 이메일 중복 확인)
  *
  * deploy: firebase deploy --only functions
  */
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 initializeApp();
@@ -698,4 +701,30 @@ exports.fetchNewsFeed = onCall({ region: 'asia-northeast3' }, async (request) =>
     throw new HttpsError('unavailable', `뉴스 응답 오류 (${res.status})`);
   }
   return { xml: await res.text() };
+});
+
+// 가입 이메일 화면의 중복 확인. 클라이언트는 로그인 전이라 Auth에 직접 물을 수
+// 없어서(이메일 열거 보호) Admin SDK로 대신 확인한다. uid·닉네임은 돌려주지 않고
+// 가입 가능 여부와 안내에 필요한 이유만 준다.
+// Dart `AuthService.checkEmailAvailable`과 응답 모양을 맞춰야 한다.
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+exports.checkEmailAvailable = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const email = String(request.data?.email ?? '').trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(email) || email.length > 254) {
+    throw new HttpsError('invalid-argument', '올바른 이메일 형식이 아니에요.');
+  }
+
+  let user;
+  try {
+    user = await getAuth().getUserByEmail(email);
+  } catch (e) {
+    if (e.code === 'auth/user-not-found') return emailAvailability(null, false);
+    throw new HttpsError('internal', '이메일을 확인하지 못했어요.');
+  }
+  const profile = await db.collection('users').doc(user.uid).get();
+  return emailAvailability(
+    { providerIds: user.providerData.map((p) => p.providerId) },
+    profile.exists,
+  );
 });

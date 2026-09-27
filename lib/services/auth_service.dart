@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -87,6 +88,32 @@ class AuthService {
           return {'incorrectQuestionCounts': counts};
         });
     return readIncorrectQuestionCounts(stored);
+  }
+
+  /// 가입 이메일 화면의 중복 확인. 쓸 수 있으면 null, 아니면 안내 문구.
+  ///
+  /// 로그인 전이라 Auth에 직접 물을 수 없어 Callable `checkEmailAvailable`로
+  /// 확인한다. 함수 호출이 실패하면(네트워크·배포 전) 막지 않고 넘긴다 — 계정을
+  /// 만드는 [beginSignUp]이 `email-already-in-use`로 한 번 더 거른다.
+  Future<String?> checkEmailAvailable(String email) async {
+    final Map<String, dynamic> result;
+    try {
+      final response =
+          await FirebaseFunctions.instanceFor(
+            region: 'asia-northeast3',
+          ).httpsCallable('checkEmailAvailable').call<Map<String, dynamic>>({
+            'email': email.trim().toLowerCase(),
+          });
+      result = response.data;
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'invalid-argument') return '올바른 이메일 형식이 아니에요.';
+      return null;
+    }
+    if (result['available'] == true) return null;
+    if (result['reason'] == 'social') {
+      return '구글·카카오로 가입된 이메일이에요. 소셜 로그인으로 들어와 주세요.';
+    }
+    return '이미 가입된 이메일이에요. 로그인해 주세요.';
   }
 
   /// 회원가입 1단계: 계정을 만들고 인증 메일을 보낸다.
