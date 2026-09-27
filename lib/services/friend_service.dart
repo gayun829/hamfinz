@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 enum FriendStatus { none, requestSent, requestReceived, friends }
@@ -37,6 +38,40 @@ class Friend {
   final String friendshipId;
   final String uid;
   final String nickname;
+}
+
+/// 캘린더 "이번 달 친구와의 경쟁"의 한 사람(나 포함).
+class FriendRankEntry {
+  const FriendRankEntry({
+    required this.rank,
+    required this.nickname,
+    required this.streak,
+    required this.isMe,
+  });
+
+  factory FriendRankEntry.fromJson(Map<String, dynamic> json) =>
+      FriendRankEntry(
+        rank: (json['rank'] as num?)?.toInt() ?? 0,
+        nickname: json['nickname'] as String? ?? '',
+        streak: (json['streak'] as num?)?.toInt() ?? 0,
+        isMe: json['isMe'] as bool? ?? false,
+      );
+
+  final int rank;
+  final String nickname;
+  final int streak;
+  final bool isMe;
+}
+
+class FriendsRanking {
+  const FriendsRanking({required this.friendCount, required this.participants});
+
+  static const empty = FriendsRanking(friendCount: 0, participants: []);
+
+  final int friendCount;
+
+  /// 연속학습 순으로 정렬된 나와 친구들.
+  final List<FriendRankEntry> participants;
 }
 
 /// 친구 검색은 `nicknames`/`emails` 공개 인덱스로, 관계는 `friendships/{uidA}_{uidB}`
@@ -174,11 +209,16 @@ class FriendService {
       final otherUid = uids.firstWhere((u) => u != myUid, orElse: () => '');
       if (otherUid.isEmpty) continue;
 
-      final nickname = data['requestedByNickname'] as String? ??
+      final nickname =
+          data['requestedByNickname'] as String? ??
           await _lookupNicknameByUid(otherUid);
 
       result.add(
-        FriendRequestInfo(friendshipId: doc.id, uid: otherUid, nickname: nickname),
+        FriendRequestInfo(
+          friendshipId: doc.id,
+          uid: otherUid,
+          nickname: nickname,
+        ),
       );
     }
     return result;
@@ -230,6 +270,22 @@ class FriendService {
       );
     }
     return result;
+  }
+
+  /// 나와 친구들의 연속학습 순위. 친구의 `users` 문서는 못 읽으니
+  /// `getFriendsRanking` Function이 친구 여부를 확인하고 streak만 돌려준다.
+  Future<FriendsRanking> getFriendsRanking() async {
+    final response = await FirebaseFunctions.instanceFor(
+      region: 'asia-northeast3',
+    ).httpsCallable('getFriendsRanking').call<Map<String, dynamic>>();
+    final data = response.data;
+    return FriendsRanking(
+      friendCount: (data['friendCount'] as num?)?.toInt() ?? 0,
+      participants: [
+        for (final entry in data['participants'] as List? ?? const [])
+          FriendRankEntry.fromJson(Map<String, dynamic>.from(entry as Map)),
+      ],
+    );
   }
 
   /// 친구 관계를 끊는다. `friendships` 문서 삭제만으로 처리한다(이력은 안 남김).

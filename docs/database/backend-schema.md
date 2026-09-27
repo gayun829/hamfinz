@@ -527,7 +527,7 @@ friendships/{uidA}_{uidB}
 - ~~**기존 유저 마이그레이션**~~ 결정함 — lazy 백필. `AuthService`의 `login`/`signInWithGoogle`/`signInWithKakao` 성공 시마다 `_backfillSearchIndexes(user)`를 호출해서, 내 uid로 된 인덱스가 없으면 그때 만든다(있으면 조회 1번으로 끝나 저렴). 별도 1회성 스크립트는 필요 없음.
 - **이메일 검색 남용**: `emails/{emailLower}`는 로그인한 사용자면 누구나 특정 이메일의 가입 여부·닉네임을 확인할 수 있게 된다 (이메일 존재 확인/enumeration). 우선은 로그인 필요 조건만 걸어두고, 문제 되면 요청 빈도 제한 등을 나중에 추가한다.
 - **친구 삭제(unfriend)**: 결정함 — `friendships` 문서를 그냥 삭제한다 (`allow delete`는 이미 당사자 누구에게나 열려 있어서 별도 작업 불필요, `status: removed` 같은 이력은 안 남긴다).
-- 캘린더 "친구와의 경쟁" 랭킹처럼 진행률을 보여주려면 `users`의 일부 필드(streak 등) 노출이 필요 — §2 owner(Auth)와 범위 논의 필요
+- 캘린더 "친구와의 경쟁" 랭킹: `users` 규칙은 그대로 두고 `getFriendsRanking` Callable(asia-northeast3)이 수락된 `friendships`로 친구인지 확인한 뒤 나+친구의 `nickname`·연속학습 일수(마지막 학습일이 오늘·어제가 아니면 0)만 돌려준다. 다른 `users` 필드는 노출하지 않는다. 배포 전에는 앱 카드에 "친구 순위를 불러오지 못했어요"가 뜬다 — 노출 범위는 §2 owner(Auth) 리뷰 필요
 
 ---
 

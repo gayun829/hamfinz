@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
-import '../../data/streak_calendar_data.dart';
+import '../../services/friend_service.dart';
 import '../../utils/date_helper.dart';
 
 import '../../widgets/figma/figma_asset_image.dart';
@@ -10,6 +10,7 @@ import '../friends/add_friend_screen.dart';
 
 const _mint = Color(0xFFDEFDFE);
 const _cyan = Color(0xFF65D6F8);
+const _band = Color(0xFFE0FEFF);
 
 class StreakCalendarScreen extends StatefulWidget {
   const StreakCalendarScreen({
@@ -19,6 +20,7 @@ class StreakCalendarScreen extends StatefulWidget {
     this.completedDates = const <String>{},
     this.goalDays = 16,
     this.onNavTap,
+    this.loadFriendsRanking,
   });
 
   final int streak;
@@ -27,12 +29,49 @@ class StreakCalendarScreen extends StatefulWidget {
   final int goalDays;
   final ValueChanged<int>? onNavTap;
 
+  /// 친구 순위를 불러온다. 없으면(테스트 등) 친구가 없는 걸로 본다.
+  final Future<FriendsRanking> Function()? loadFriendsRanking;
+
   @override
   State<StreakCalendarScreen> createState() => _StreakCalendarScreenState();
 }
 
 class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
   DateTime _month = DateHelper.koreaNow();
+  FriendsRanking? _ranking;
+  bool _rankingFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    final load = widget.loadFriendsRanking;
+    var ranking = FriendsRanking.empty;
+    var failed = false;
+    if (load != null) {
+      try {
+        ranking = await load();
+      } catch (_) {
+        // 순위를 못 불러와도 캘린더는 보여야 하니 카드에만 안내를 띄운다.
+        failed = true;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _ranking = ranking;
+      _rankingFailed = failed;
+    });
+  }
+
+  Future<void> _openAddFriend() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddFriendScreen()));
+    await _loadFriends();
+  }
 
   void _navigate(int index) {
     Navigator.of(context).maybePop();
@@ -190,7 +229,12 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                       ),
                       child: const Divider(height: 1, color: Color(0xFFE6E6E6)),
                     ),
-                    _FriendsCard(scale: scale, onOpen: () => _navigate(1)),
+                    _FriendsCard(
+                      scale: scale,
+                      ranking: _ranking,
+                      failed: _rankingFailed,
+                      onAddFriend: _openAddFriend,
+                    ),
                   ],
                 ),
               ),
@@ -331,6 +375,7 @@ class _Calendar extends StatelessWidget {
     final rows = (leading + count + 6) ~/ 7;
     final now = DateHelper.koreaNow();
     final today = DateTime(now.year, now.month, now.day);
+    final currentRun = _currentRun(today);
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
@@ -411,62 +456,96 @@ class _Calendar extends StatelessWidget {
                           final inMonth = date.month == month.month;
                           final completed =
                               inMonth && completedDates.contains(key);
-                          final todayCompleted = completed && date == today;
+                          final isToday = date == today;
+                          final todayCompleted = completed && isToday;
+                          final inRun = completed && currentRun.contains(key);
+                          final runStart =
+                              col == 0 ||
+                              !currentRun.contains(
+                                DateHelper.dateKey(
+                                  DateTime(date.year, date.month, date.day - 1),
+                                ),
+                              ) ||
+                              date.day == 1;
+                          final runEnd =
+                              col == 6 ||
+                              isToday ||
+                              !currentRun.contains(
+                                DateHelper.dateKey(
+                                  DateTime(date.year, date.month, date.day + 1),
+                                ),
+                              ) ||
+                              date.day == count;
+                          final pill = Radius.circular(s(100));
                           return Semantics(
                             label: '$key${completed ? ', 학습 완료' : ''}',
                             child: SizedBox(
                               height: s(42),
-                              child: Center(
-                                child: SizedBox(
-                                  width: s(29),
-                                  height: s(27),
-                                  child: Stack(
+                              child: LayoutBuilder(
+                                builder: (context, cell) {
+                                  final half = cell.maxWidth / 2;
+                                  return Stack(
                                     alignment: Alignment.center,
                                     children: [
-                                      if (todayCompleted) ...[
+                                      // 오늘과 이어진 연속학습일은 한 줄의 띠로 잇는다.
+                                      // 오늘 칸에서는 띠가 가운데까지만 오고 햄스터가 덮는다.
+                                      if (inRun)
                                         Positioned(
-                                          left: 0,
-                                          top: 2,
-                                          child: _dot(s(9)),
-                                        ),
-                                        Positioned(
-                                          right: 0,
-                                          top: 2,
-                                          child: _dot(s(9)),
-                                        ),
-                                      ],
-                                      Container(
-                                        key: completed
-                                            ? ValueKey(
-                                                '${todayCompleted ? 'today-hamster' : 'study-circle'}-$key',
-                                              )
-                                            : null,
-                                        width: s(23),
-                                        height: s(23),
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: completed
-                                              ? const Color(0xFFB3E5FC)
-                                              : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(
-                                            s(todayCompleted ? 7 : 20),
+                                          key: ValueKey('streak-band-$key'),
+                                          left: runStart ? half - s(16) : 0,
+                                          right: runEnd
+                                              ? (isToday ? half : half - s(18))
+                                              : 0,
+                                          height: s(23),
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: _band,
+                                              borderRadius:
+                                                  BorderRadius.horizontal(
+                                                    left: runStart
+                                                        ? pill
+                                                        : Radius.zero,
+                                                    right: runEnd && !isToday
+                                                        ? pill
+                                                        : Radius.zero,
+                                                  ),
+                                            ),
                                           ),
                                         ),
-                                        child: Text(
-                                          '${date.day}',
-                                          style: TextStyle(
-                                            fontSize: s(12),
-                                            color: !inMonth
-                                                ? const Color(0xFFD8D8D8)
-                                                : completed || date == today
-                                                ? Colors.black
-                                                : const Color(0xFF999999),
+                                      if (todayCompleted)
+                                        Transform.translate(
+                                          offset: Offset(0, -s(2.1)),
+                                          child: FigmaSvg(
+                                            FigmaAssets.calendarTodayHamster,
+                                            key: ValueKey('today-hamster-$key'),
+                                            width: s(39),
+                                            height: s(27.3),
                                           ),
+                                        )
+                                      else if (completed && !inRun)
+                                        Container(
+                                          key: ValueKey('study-circle-$key'),
+                                          width: s(23),
+                                          height: s(23),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFB3E5FC),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      Text(
+                                        '${date.day}',
+                                        style: TextStyle(
+                                          fontSize: s(12),
+                                          color: !inMonth
+                                              ? const Color(0xFFD8D8D8)
+                                              : completed || isToday
+                                              ? Colors.black
+                                              : const Color(0xFF999999),
                                         ),
                                       ),
                                     ],
-                                  ),
-                                ),
+                                  );
+                                },
                               ),
                             ),
                           );
@@ -481,25 +560,45 @@ class _Calendar extends StatelessWidget {
     );
   }
 
-  Widget _dot(double size) => Container(
-    width: size,
-    height: size,
-    decoration: const BoxDecoration(
-      color: Color(0xFFB3E5FC),
-      shape: BoxShape.circle,
-    ),
-  );
+  /// 오늘부터 거꾸로 끊김 없이 이어지는 학습일들. 오늘 학습했을 때만 띠로 잇고,
+  /// 그 밖의 학습일은 동그라미로 둔다.
+  Set<String> _currentRun(DateTime today) {
+    var day = today;
+    final run = <String>{};
+    while (completedDates.contains(DateHelper.dateKey(day))) {
+      run.add(DateHelper.dateKey(day));
+      day = DateTime(day.year, day.month, day.day - 1);
+    }
+    return run;
+  }
 }
 
 class _FriendsCard extends StatelessWidget {
-  const _FriendsCard({required this.scale, required this.onOpen});
+  const _FriendsCard({
+    required this.scale,
+    required this.ranking,
+    required this.failed,
+    required this.onAddFriend,
+  });
   final double scale;
-  final VoidCallback onOpen;
+
+  /// null이면 아직 불러오는 중.
+  final FriendsRanking? ranking;
+  final bool failed;
+  final VoidCallback onAddFriend;
 
   @override
   Widget build(BuildContext context) {
     double s(double value) => value * scale;
-    final friends = StreakCalendarMock.friends;
+    final ranking = this.ranking;
+    final people = ranking?.participants ?? const <FriendRankEntry>[];
+    // 1위의 연속학습을 꽉 찬 막대로 두고 나머지는 그 대비로 채운다.
+    final leaderStreak = people.isEmpty ? 0 : people.first.streak;
+    final message = failed
+        ? '친구 순위를 불러오지 못했어요'
+        : ranking != null && ranking.friendCount == 0
+        ? '친구가 아직 없어요..'
+        : null;
     return Container(
       decoration: _card(scale),
       height: s(246),
@@ -513,62 +612,32 @@ class _FriendsCard extends StatelessWidget {
               style: TextStyle(fontSize: s(16), color: Colors.black),
             ),
           ),
-          if (friends.isEmpty)
+          if (message != null)
             Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+              child: Text(
+                message,
+                style: TextStyle(fontSize: s(16), color: Colors.black),
+              ),
+            )
+          else
+            for (var i = 0; i < people.length && i < 4; i++)
+              Positioned(
+                left: s([30.0, 160.0, 230.0, 272.0][i]),
+                top: s([46.0, 20.0, 126.0, 60.0][i]),
+                width: s([118.0, 78.0, 66.0, 48.0][i]),
+                child: _Rank(
+                  scale: scale,
+                  entry: people[i],
+                  leaderStreak: leaderStreak,
+                  index: i,
                 ),
-                child: const Text('친구 추가하기'),
               ),
-            ),
-          for (var i = 0; i < friends.length && i < 4; i++)
-            Positioned(
-              left: s([30.0, 160.0, 230.0, 272.0][i]),
-              top: s([46.0, 20.0, 126.0, 60.0][i]),
-              width: s([118.0, 78.0, 66.0, 48.0][i]),
-              child: _Rank(scale: scale, friend: friends[i], index: i),
-            ),
-          Positioned(
-            right: s(22),
-            bottom: s(19),
-            width: s(154),
-            height: s(24),
-            child: TextButton(
-              onPressed: onOpen,
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFFB2EFF2),
-                foregroundColor: const Color(0xFF344447),
-                padding: EdgeInsets.symmetric(horizontal: s(6)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        '이번 달 금융마블 바로가기',
-                        style: TextStyle(fontSize: s(9)),
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    size: s(13),
-                    color: const Color(0xFFD5D9CD),
-                  ),
-                ],
-              ),
-            ),
-          ),
           Positioned(
             right: s(4),
             top: 0,
             child: IconButton(
               tooltip: '친구 추가',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AddFriendScreen()),
-              ),
+              onPressed: onAddFriend,
               icon: Icon(Icons.person_add_alt_1, size: s(21), color: _cyan),
             ),
           ),
@@ -579,128 +648,148 @@ class _FriendsCard extends StatelessWidget {
 }
 
 class _Rank extends StatelessWidget {
-  const _Rank({required this.scale, required this.friend, required this.index});
+  const _Rank({
+    required this.scale,
+    required this.entry,
+    required this.leaderStreak,
+    required this.index,
+  });
   final double scale;
-  final StreakFriendMock friend;
+  final FriendRankEntry entry;
+  final int leaderStreak;
   final int index;
 
   @override
   Widget build(BuildContext context) {
     double s(double value) => value * scale;
     final height = [128.0, 96.0, 61.0, 46.0][index];
-    return Column(
-      children: [
-        SizedBox(
-          height: s(height),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                top: s(height * 0.3),
-                child: FigmaSvg(
-                  [
-                    FigmaAssets.calendarPodium1,
-                    FigmaAssets.calendarPodium2,
-                    FigmaAssets.calendarPodium3,
-                    FigmaAssets.calendarPodium4,
-                  ][index],
-                  fit: BoxFit.contain,
-                ),
-              ),
-              if (index != 2)
+    final name = entry.isMe ? '나' : entry.nickname;
+    return Semantics(
+      label: '${entry.rank}위 $name, 연속학습 ${entry.streak}일',
+      excludeSemantics: true,
+      child: Column(
+        children: [
+          SizedBox(
+            height: s(height),
+            child: Stack(
+              children: [
                 Positioned.fill(
-                  bottom: s(8),
-                  child: FigmaPng(
-                    'assets/figma/calendar/hamster_rank_${index == 0
-                        ? 1
-                        : index == 1
-                        ? 2
-                        : 4}.png',
+                  top: s(height * 0.3),
+                  child: FigmaSvg(
+                    [
+                      FigmaAssets.calendarPodium1,
+                      FigmaAssets.calendarPodium2,
+                      FigmaAssets.calendarPodium3,
+                      FigmaAssets.calendarPodium4,
+                    ][index],
                     fit: BoxFit.contain,
                   ),
                 ),
-            ],
-          ),
-        ),
-        if (index == 0)
-          Padding(
-            padding: EdgeInsets.only(top: s(4), bottom: s(3)),
-            child: Text('1위 ${friend.name}', style: TextStyle(fontSize: s(15))),
-          ),
-        SizedBox(
-          height: s(index == 0 ? 16 : 13),
-          child: Row(
-            children: [
-              if (index == 1 || index == 2) ...[
-                Container(
-                  width: s(14),
-                  height: s(14),
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFB2EFF2),
-                    shape: BoxShape.circle,
+                if (index != 2)
+                  Positioned.fill(
+                    bottom: s(8),
+                    child: FigmaPng(
+                      'assets/figma/calendar/hamster_rank_${index == 0
+                          ? 1
+                          : index == 1
+                          ? 2
+                          : 4}.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  child: Text(
-                    '${friend.rank}',
-                    style: TextStyle(fontSize: s(10), color: Colors.grey),
-                  ),
-                ),
-                SizedBox(width: s(3)),
               ],
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final fraction = friend.goal > 0
-                        ? (friend.learned / friend.goal).clamp(0.0, 1.0)
-                        : 0.0;
-                    final height = s(
-                      index == 0
-                          ? 16
-                          : index == 3
-                          ? 6
-                          : 12,
-                    );
-                    return Container(
-                      height: height,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F0F0),
-                        borderRadius: BorderRadius.circular(height),
-                      ),
-                      child: Stack(
-                        children: [
-                          FractionallySizedBox(
-                            widthFactor: fraction,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: _cyan,
-                                borderRadius: BorderRadius.circular(height),
-                              ),
-                            ),
-                          ),
-                          if (fraction > 0)
-                            Positioned(
-                              left: ((constraints.maxWidth * fraction) - height)
-                                  .clamp(0.0, constraints.maxWidth - height),
-                              top: height * 0.18,
+            ),
+          ),
+          if (index == 0)
+            Padding(
+              padding: EdgeInsets.only(top: s(4), bottom: s(3)),
+              child: Text(
+                '1위 $name',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: s(15)),
+              ),
+            ),
+          SizedBox(
+            height: s(index == 0 ? 16 : 13),
+            child: Row(
+              children: [
+                if (index == 1 || index == 2) ...[
+                  Container(
+                    width: s(14),
+                    height: s(14),
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFB2EFF2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${entry.rank}',
+                      style: TextStyle(fontSize: s(10), color: Colors.grey),
+                    ),
+                  ),
+                  SizedBox(width: s(3)),
+                ],
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final fraction = leaderStreak > 0
+                          ? (entry.streak / leaderStreak).clamp(0.0, 1.0)
+                          : 0.0;
+                      final height = s(
+                        index == 0
+                            ? 16
+                            : index == 3
+                            ? 6
+                            : 12,
+                      );
+                      return Container(
+                        height: height,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(height),
+                        ),
+                        child: Stack(
+                          children: [
+                            FractionallySizedBox(
+                              widthFactor: fraction,
                               child: Container(
-                                width: height * .64,
-                                height: height * .64,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF36C3FA),
-                                  shape: BoxShape.circle,
+                                decoration: BoxDecoration(
+                                  color: _cyan,
+                                  borderRadius: BorderRadius.circular(height),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    );
-                  },
+                            if (fraction > 0)
+                              Positioned(
+                                left:
+                                    ((constraints.maxWidth * fraction) - height)
+                                        .clamp(
+                                          0.0,
+                                          constraints.maxWidth - height,
+                                        ),
+                                top: height * 0.18,
+                                child: Container(
+                                  width: height * .64,
+                                  height: height * .64,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF36C3FA),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

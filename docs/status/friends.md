@@ -33,7 +33,7 @@
 - [ ] 이번 변경사항 커밋 → push → PR
 - [ ] 팀원 리뷰 (특히 Auth owner)
 - [ ] 실기기에서 수락 → 내 친구 탭에 뜨는지 → 끊기까지 전체 흐름 테스트
-- [ ] 캘린더 "친구와의 경쟁" 랭킹은 여전히 목업(`StreakCalendarMock`) — 이번 범위 밖
+- [x] 캘린더 "친구와의 경쟁" 랭킹 실데이터 연결 — `getFriendsRanking` Function (배포 필요: `firebase deploy --only functions:getFriendsRanking`)
 
 ## 알아둘 것
 
