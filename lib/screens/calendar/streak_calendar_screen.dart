@@ -528,7 +528,7 @@ class _Calendar extends StatelessWidget {
                                           width: s(23),
                                           height: s(23),
                                           decoration: const BoxDecoration(
-                                            color: Color(0xFFB3E5FC),
+                                            color: _band,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
