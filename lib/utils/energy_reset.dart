@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../data/quiz_data.dart';
 import 'date_helper.dart';
 
@@ -18,6 +20,28 @@ int completionEnergyReward(int energySpent) =>
 /// 저장된 에너지가 날짜가 바뀌어도 회복되지 않아 화면은 100인데 제출은 막히는
 /// 상태가 된다. 트랜잭션은 이 함수로 회복을 반영하고 [ResolvedEnergy.lastEnergyResetDate]까지
 /// 같이 저장해야 한다.
+/// 중도 종료한 세션에서 쓴 에너지를 돌려준다. 에너지는 날짜가 바뀌면 최대치로
+/// 리셋되므로 오늘([today]) 시작한 세션만 돌려준다. 이전 날짜 세션에서 쓴
+/// 에너지는 리셋으로 이미 사라졌어야 해서, 돌려주면 오늘 에너지 위에 어제치가
+/// 얹힌다. `functions/quiz_energy.js`의 `abandonRefund`와 같은 규칙이다.
+({int energyRemaining, int energyRefunded}) abandonRefund({
+  required int energy,
+  required int spent,
+  required String? sessionDate,
+  required String today,
+}) {
+  final refundable = sessionDate == today && spent > 0 ? spent : 0;
+  // 환불이 에너지를 줄이는 일은 없게 한다.
+  final energyRemaining = max(
+    energy,
+    min(QuizData.maxEnergy, energy + refundable),
+  );
+  return (
+    energyRemaining: energyRemaining,
+    energyRefunded: energyRemaining - energy,
+  );
+}
+
 ResolvedEnergy resolveDailyEnergy({
   required int? storedEnergy,
   required String? lastEnergyResetDate,

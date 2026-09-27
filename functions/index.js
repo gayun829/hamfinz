@@ -1,5 +1,10 @@
 const { learningDatesFromUser } = require('./learning_dates');
-const { completionEnergyReward } = require('./quiz_energy');
+const {
+  abandonRefund,
+  completionEnergyReward,
+  kstDateKey,
+  sessionDateKey,
+} = require('./quiz_energy');
 const {
   hasIncorrectQuestionCounts,
   planSessionIncorrectQuestions,
@@ -80,23 +85,13 @@ const CATEGORY_LABELS = {
 };
 
 function todayKey() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+  return kstDateKey(new Date());
 }
 
 function yesterdayKey() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d);
+  return kstDateKey(d);
 }
 
 
@@ -214,8 +209,9 @@ exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => 
 
 /**
  * 한 카테고리의 오답을 실제 출제 가능한 문제와 맞춘다.
- * 삭제·비활성화되었거나 카테고리가 바뀐 문제는 복습에 나올 수 없으므로 오답 목록에서
- * 빼고, 오답 수를 남은 문서 수로 다시 센다. 그러지 않으면 복습 홈에서 나갈 수 없다.
+ * 삭제·비활성화되었거나 카테고리가 바뀐 문제는 복습에 나올 수 없으므로 오답 수를
+ * 복습할 수 있는 문서 수로 다시 센다. 그러지 않으면 복습 홈에서 나갈 수 없다.
+ * 오답 문서는 문제가 삭제된 경우에만 지운다.
  */
 exports.reconcileIncorrectQuestions = onCall({ region: 'asia-northeast3' }, async (request) => {
   const uid = request.auth?.uid;
@@ -272,7 +268,7 @@ exports.reconcileIncorrectQuestions = onCall({ region: 'asia-northeast3' }, asyn
         incorrectQuestionCount: plan.total,
       });
     }
-    return { removed: plan.removeIds.length };
+    return { removed: plan.removeIds.length, available: plan.available };
   });
 });
 
@@ -492,7 +488,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
 
 /**
  * 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션에서 푼 문제는 정답·오답 목록에
- * 반영되지 않은 채(안 푼 문제) 남고, 쓴 에너지는 돌려준다.
+ * 반영되지 않은 채(안 푼 문제) 남고, 오늘 시작한 세션이면 쓴 에너지를 돌려준다.
  * 이미 닫힌 세션이면 아무것도 하지 않는다.
  */
 exports.abandonSession = onCall({ region: 'asia-northeast3' }, async (request) => {
@@ -518,14 +514,19 @@ exports.abandonSession = onCall({ region: 'asia-northeast3' }, async (request) =
       return { energyRefunded: 0, energyRemaining: null };
     }
     const session = sessionSnap.data();
-    const { energy, lastEnergyResetDate } = resolveEnergy(userSnap.data(), todayKey());
+    const today = todayKey();
+    const { energy, lastEnergyResetDate } = resolveEnergy(userSnap.data(), today);
     if (session.status !== 'inProgress') {
       return { energyRefunded: 0, energyRemaining: energy };
     }
 
-    const spent = Number(session.energySpent ?? 0);
-    const energyRemaining = Math.min(MAX_ENERGY, energy + spent);
-    const energyRefunded = energyRemaining - energy;
+    const { energyRemaining, energyRefunded } = abandonRefund({
+      energy,
+      spent: Number(session.energySpent ?? 0),
+      sessionDate: sessionDateKey(session),
+      today,
+      maxEnergy: MAX_ENERGY,
+    });
 
     tx.update(userRef, { energy: energyRemaining, lastEnergyResetDate });
     tx.update(sessionRef, {

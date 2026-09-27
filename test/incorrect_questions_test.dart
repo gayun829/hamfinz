@@ -111,6 +111,44 @@ void main() {
     );
   });
 
+  test('오답 정리는 삭제된 문제의 기록만 지우고 복습할 수 있는 오답만 센다', () {
+    const active = {'isActive': true, 'categoryId': 'saving'};
+    final plan = planIncorrectQuestionReconcile(
+      questionsById: {
+        'ok': (deleted: false, data: active),
+        'deleted': (deleted: true, data: null),
+        // 규칙상 읽을 수 없는 문제는 비활성일 수 있어 지우지 않는다.
+        'unreadable': (deleted: false, data: null),
+        'inactive': (
+          deleted: false,
+          data: const {'isActive': false, 'categoryId': 'saving'},
+        ),
+        'moved': (
+          deleted: false,
+          data: const {'isActive': true, 'categoryId': 'stock'},
+        ),
+      },
+      categoryId: 'saving',
+    );
+
+    expect(plan.removeIds, ['deleted']);
+    expect(plan.countedIds, ['ok']);
+  });
+
+  test('다시 활성화된 문제는 다음 정리 때 오답 수로 돌아온다', () {
+    final plan = planIncorrectQuestionReconcile(
+      questionsById: {
+        'a': (
+          deleted: false,
+          data: const {'isActive': true, 'categoryId': 'saving'},
+        ),
+      },
+      categoryId: 'saving',
+    );
+    expect(plan.countedIds, ['a']);
+    expect(plan.removeIds, isEmpty);
+  });
+
   test('정리 후 복습 기준 아래로 내려가면 복습 홈이 풀린다', () {
     final profile = UserProfile(
       email: 'review@test.dev',

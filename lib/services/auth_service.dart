@@ -53,6 +53,15 @@ class AuthService {
     await _incorrectCountsBackfill.run(uid);
   }
 
+  /// 오답 정리 결과를 맵이 없는 예전 계정의 집계에도 반영한다.
+  void applyReconciledIncorrectCount(
+    String uid,
+    String categoryId,
+    int available,
+  ) {
+    _incorrectCountsBackfill.applyReconciled(uid, categoryId, available);
+  }
+
   late final _incorrectCountsBackfill = IncorrectQuestionCountsBackfill(
     loadIncorrectDocs: (uid) async {
       final snap = await _users.doc(uid).collection('incorrectQuestions').get();
