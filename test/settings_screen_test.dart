@@ -9,6 +9,8 @@ void main() {
     WidgetTester tester,
     Size size, {
     String bio = '',
+    int learningStage = 1,
+    VoidCallback? onLogout,
   }) async {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -27,8 +29,8 @@ void main() {
             email: 'ham@test.com',
             nickname: '김햄핀이',
             bio: bio,
-          ),
-          onLogout: () {},
+          )..learningStage = learningStage,
+          onLogout: onLogout ?? () {},
         ),
       ),
     );
@@ -42,7 +44,8 @@ void main() {
     expect(find.text('친구 목록'), findsOneWidget);
     expect(find.text('연락처 연동'), findsOneWidget);
     expect(find.text('개인정보 설정'), findsOneWidget);
-    expect(find.textContaining('학습과정'), findsOneWidget);
+    expect(find.text('학습 과정'), findsOneWidget);
+    expect(find.text('열심히 달리는 중이에요~~!'), findsOneWidget);
     expect(find.text('만족도 조사'), findsOneWidget);
     expect(find.text('규정 & 개인정보 처리 방침'), findsOneWidget);
     expect(find.text('로그아웃/ 계정전환'), findsOneWidget);
@@ -99,5 +102,62 @@ void main() {
 
     expect(find.text('원래 소개'), findsOneWidget);
     expect(find.text('한줄소개를 저장하지 못했어요.'), findsOneWidget);
+  });
+
+  testWidgets('learning card shows the current stage on the flame',
+      (tester) async {
+    await pumpSettings(tester, const Size(393, 852), learningStage: 3);
+    expect(find.text('3'), findsOneWidget);
+  });
+
+  testWidgets('tapping the learning card opens the stage sheet',
+      (tester) async {
+    await pumpSettings(tester, const Size(393, 852), learningStage: 3);
+    await tester.tap(find.text('열심히 달리는 중이에요~~!'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1~10단계 중 하나를 선택하세요.'), findsOneWidget);
+    expect(find.text('선택한 단계 난이도 문제가 출제됩니다.'), findsOneWidget);
+    expect(find.text('초급'), findsOneWidget);
+    expect(find.text('중급'), findsOneWidget);
+    expect(find.text('고급'), findsOneWidget);
+    for (var stage = 1; stage <= 10; stage++) {
+      expect(find.bySemanticsLabel('$stage단계'), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tapping outside the stage sheet closes it', (tester) async {
+    await pumpSettings(tester, const Size(393, 852));
+    await tester.tap(find.text('열심히 달리는 중이에요~~!'));
+    await tester.pumpAndSettle();
+    expect(find.text('1~10단계 중 하나를 선택하세요.'), findsOneWidget);
+
+    await tester.tapAt(const Offset(200, 100));
+    await tester.pumpAndSettle();
+    expect(find.text('1~10단계 중 하나를 선택하세요.'), findsNothing);
+  });
+
+  testWidgets('logout popup cancels without logging out', (tester) async {
+    var loggedOut = false;
+    await pumpSettings(
+      tester,
+      const Size(393, 852),
+      onLogout: () => loggedOut = true,
+    );
+    await tester.ensureVisible(find.text('로그아웃/ 계정전환'));
+    await tester.tap(find.text('로그아웃/ 계정전환'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('정말 로그아웃하시겠어요?'), findsOneWidget);
+    expect(find.text('취소'), findsOneWidget);
+    // 제목과 확인 버튼 모두 '로그아웃'.
+    expect(find.text('로그아웃'), findsNWidgets(2));
+
+    await tester.tap(find.text('취소'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('정말 로그아웃하시겠어요?'), findsNothing);
+    expect(loggedOut, isFalse);
   });
 }

@@ -75,9 +75,15 @@ class FigmaAssets {
   static const homeBeginnerStatEnergy = '$_homeBeginner/stat_energy.svg';
   static const homeBeginnerStatCoin = '$_homeBeginner/stat_coin.svg';
   static const homeBeginnerStatStreak = '$_homeBeginner/stat_streak.svg';
-  static const homeBeginnerNavHome = '$_homeBeginner/nav_home.svg';
-  static const homeBeginnerNavList = '$_homeBeginner/nav_list.png';
-  static const homeBeginnerNavProfile = '$_homeBeginner/nav_profile.svg';
+
+  // 하단 탭 아이콘 — 선택된 탭만 파란색, 나머지는 회색 (뉴스화면 579:2230,
+  // 홈화면_초급 526:2699, 마이페이지 538:56).
+  static const tabNewsOn = '$_home/tab_news_on.svg';
+  static const tabNewsOff = '$_home/tab_news_off.svg';
+  static const tabHomeOn = '$_home/tab_home_on.svg';
+  static const tabHomeOff = '$_home/tab_home_off.svg';
+  static const tabMyOn = '$_home/tab_my_on.svg';
+  static const tabMyOff = '$_home/tab_my_off.svg';
 
   // Auth — 벡터 SVG는 assets/icons/, PNG는 assets/figma/auth/
   static const authDividerLine = '$_iconsAuth/divider_line.svg';
@@ -130,6 +136,12 @@ class FigmaAssets {
   static const settingsChevron = '$_settings/chevron.svg';
   static const settingsChevronSmall = '$_settings/chevron_small.svg';
   static const settingsPlus = '$_settings/plus_small.svg';
+
+  /// 학습 과정 카드의 불꽃 (Group 82, 32×43) — 위에 현재 단계 숫자를 얹는다.
+  static const settingsStageFlame = '$_settings/stage_flame.svg';
+
+  /// 학습 과정 시트의 곰 모양 단계 칩 (Group 556, 67×47) — colorFilter로 칠한다.
+  static const settingsStageBear = '$_settings/stage_bear.svg';
 
   // Quiz (Figma `137:5521` 퀴즈._객_문제)
   static const quizSpeechBubble = '$_quiz/speech_bubble.svg';

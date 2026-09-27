@@ -20,15 +20,15 @@ class HomeBottomNav extends StatelessWidget {
   static const designHeight =
       FigmaScale.homeDesignHeight - FigmaScale.homeContentHeight;
 
+  /// 화면 폭 [width]에서 하단 탭이 차지하는 높이.
+  static double heightFor(double width) =>
+      FigmaScale.ofWidth(width, designWidth: designWidth).s(designHeight);
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final figma = FigmaScale.ofWidth(
-          constraints.maxWidth,
-          designWidth: designWidth,
-        );
-        final height = figma.s(designHeight);
+        final height = heightFor(constraints.maxWidth);
 
         return SizedBox(
           width: constraints.maxWidth,
@@ -75,50 +75,46 @@ List<Widget> buildHomeBottomNavLayers({
         ),
       ),
     ),
-    FigmaTapArea(
-      figma: figma,
-      left: 39,
-      top: 7,
-      width: 24,
-      height: 26,
-      onTap: () => onNavTap(0),
-      child: Opacity(
-        opacity: currentNavIndex == 0 ? 1 : 0.45,
-        child: FigmaPng(
-          FigmaAssets.homeBeginnerNavList,
+    for (final (index, tab) in _tabs.indexed)
+      FigmaTapArea(
+        figma: figma,
+        left: tab.left,
+        top: tab.top,
+        width: tab.width,
+        height: tab.height,
+        onTap: () => onNavTap(index),
+        child: FigmaSvg(
+          currentNavIndex == index ? tab.onAsset : tab.offAsset,
           fit: BoxFit.contain,
         ),
       ),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 185,
-      top: 8,
-      width: 28,
-      height: 23,
-      onTap: () => onNavTap(1),
-      child: Opacity(
-        opacity: currentNavIndex == 1 ? 1 : 0.45,
-        child: const FigmaSvg(
-          FigmaAssets.homeBeginnerNavHome,
-          fit: BoxFit.contain,
-        ),
-      ),
-    ),
-    FigmaTapArea(
-      figma: figma,
-      left: 327,
-      top: 9,
-      width: 29,
-      height: 19,
-      onTap: () => onNavTap(2),
-      child: Opacity(
-        opacity: currentNavIndex == 2 ? 1 : 0.45,
-        child: const FigmaSvg(
-          FigmaAssets.homeBeginnerNavProfile,
-          fit: BoxFit.contain,
-        ),
-      ),
-    ),
   ];
 }
+
+/// 탭 아이콘 위치 (하단 탭 top 기준 Figma 좌표) — 0 뉴스, 1 홈, 2 마이페이지.
+const _tabs = [
+  (
+    left: 39.0,
+    top: 7.0,
+    width: 23.86,
+    height: 25.81,
+    onAsset: FigmaAssets.tabNewsOn,
+    offAsset: FigmaAssets.tabNewsOff,
+  ),
+  (
+    left: 185.11,
+    top: 8.32,
+    width: 28.06,
+    height: 23.12,
+    onAsset: FigmaAssets.tabHomeOn,
+    offAsset: FigmaAssets.tabHomeOff,
+  ),
+  (
+    left: 327.01,
+    top: 9.59,
+    width: 28.64,
+    height: 19.44,
+    onAsset: FigmaAssets.tabMyOn,
+    offAsset: FigmaAssets.tabMyOff,
+  ),
+];

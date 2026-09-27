@@ -11,6 +11,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/home_bottom_nav.dart';
 import '../../widgets/learning_stage_sheet.dart';
 import '../friends/add_friend_screen.dart';
 import '../legal/legal_document_screen.dart';
@@ -33,20 +34,8 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _logout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃하시겠어요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('로그아웃'),
-          ),
-        ],
-      ),
+      barrierColor: FigmaSettingsTokens.scrim,
+      builder: (_) => const _LogoutDialog(),
     );
 
     if (confirmed != true) return;
@@ -181,6 +170,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       initialStage: profile.learningStage,
       onStageChanged: (stage) => onProfileChanged?.call(stage),
+      bottomGap: HomeBottomNav.heightFor(MediaQuery.sizeOf(context).width),
     );
   }
 
@@ -215,10 +205,6 @@ class SettingsScreen extends StatelessWidget {
 
     final rows = [
       ('개인정보 설정', () => _showComingSoon(context, '개인정보 설정')),
-      (
-        '학습과정 (${learningStageLabel(profile.learningStage)})',
-        () => _openLearningStage(context),
-      ),
       ('만족도 조사', () => _showComingSoon(context, '만족도 조사')),
       ('규정 & 개인정보 처리 방침', () => _openLegal(context)),
       ('로그아웃/ 계정전환', () => _logout(context)),
@@ -249,6 +235,12 @@ class SettingsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _LearningStageCard(
+                      figma: figma,
+                      stage: profile.learningStage,
+                      onTap: () => _openLearningStage(context),
+                    ),
+                    SizedBox(height: s(FigmaSettingsTokens.menuGap)),
                     SizedBox(
                       height: s(FigmaSettingsTokens.topRowHeight),
                       child: Row(
@@ -529,7 +521,7 @@ class _BioBoxState extends State<_BioBox> {
   }
 }
 
-/// 흰 카드 + 블러 그림자 (Figma `캘린더 그림자` + `Rectangle 536`).
+/// 한 줄 라벨 + 오른쪽 아이콘 카드.
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
     required this.figma,
@@ -552,6 +544,51 @@ class _SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
+
+    return _CardSurface(
+      figma: figma,
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: s(FigmaSettingsTokens.textLeft),
+          right: s(trailingRight),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: FigmaSettingsTokens.menuStyle(
+                  figma.scale,
+                  destructive: destructive,
+                ),
+              ),
+            ),
+            trailing,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 흰 카드 + 블러 그림자 (Figma `캘린더 그림자` + `Rectangle 536`).
+class _CardSurface extends StatelessWidget {
+  const _CardSurface({
+    required this.figma,
+    required this.onTap,
+    required this.child,
+  });
+
+  final FigmaScale figma;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
     final radius = BorderRadius.circular(s(FigmaSettingsTokens.cardRadius));
 
     return DecoratedBox(
@@ -568,31 +605,7 @@ class _SettingsCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: radius,
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: s(FigmaSettingsTokens.textLeft),
-              right: s(trailingRight),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: FigmaSettingsTokens.menuStyle(
-                      figma.scale,
-                      destructive: destructive,
-                    ),
-                  ),
-                ),
-                trailing,
-              ],
-            ),
-          ),
-        ),
+        child: InkWell(onTap: onTap, child: child),
       ),
     );
   }
@@ -650,6 +663,261 @@ class _Chevron extends StatelessWidget {
     return Transform.flip(
       flipX: true,
       child: FigmaSvg(asset, width: width, height: height),
+    );
+  }
+}
+
+/// 학습 과정 카드 (Figma `538:56` 마이페이지_학습과정_달리기) — 탭하면 단계 선택 시트.
+class _LearningStageCard extends StatelessWidget {
+  const _LearningStageCard({
+    required this.figma,
+    required this.stage,
+    required this.onTap,
+  });
+
+  final FigmaScale figma;
+  final int stage;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    final current = normalizeLearningStage(stage);
+
+    return SizedBox(
+      height: s(FigmaSettingsTokens.learningCardHeight),
+      child: _CardSurface(
+        figma: figma,
+        onTap: onTap,
+        child: Stack(
+          children: [
+            FigmaBox(
+              figma: figma,
+              left: 19,
+              top: 16,
+              child: Text(
+                '학습 과정',
+                style: FigmaSettingsTokens.learningTitleStyle(figma.scale),
+              ),
+            ),
+            FigmaBox(
+              figma: figma,
+              left: 19,
+              top: 42,
+              child: Text(
+                '열심히 달리는 중이에요~~!',
+                style: FigmaSettingsTokens.learningSubtitleStyle(figma.scale),
+              ),
+            ),
+            FigmaBox(
+              figma: figma,
+              left: 19,
+              top: 67,
+              width: 32,
+              height: 42.88,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const FigmaSvg(
+                    FigmaAssets.settingsStageFlame,
+                    fit: BoxFit.fill,
+                  ),
+                  // 숫자 중심이 불꽃 중심보다 6.6px 아래 (Figma 423 vs 416.4).
+                  Padding(
+                    padding: EdgeInsets.only(top: s(13.2)),
+                    child: Center(
+                      child: Text(
+                        '$current',
+                        style: FigmaSettingsTokens.stageNumberStyle(figma.scale),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: s(61),
+              right: s(22),
+              top: s(79),
+              height: s(31.05),
+              child: _StageProgressBar(
+                figma: figma,
+                progress: tierProgress(current),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 회색 트랙 + 노랑→주황 채움 + 윗부분 하이라이트 (Figma `538:149`).
+class _StageProgressBar extends StatelessWidget {
+  const _StageProgressBar({required this.figma, required this.progress});
+
+  final FigmaScale figma;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxHeight;
+        final radius = BorderRadius.circular(height / 2);
+        // 채움이 트랙 높이보다 짧으면 둥근 끝이 찌그러지므로 최소 높이만큼은 채운다.
+        final fillWidth = (constraints.maxWidth * progress.clamp(0.0, 1.0))
+            .clamp(height, constraints.maxWidth);
+        final glossWidth = fillWidth - s(42);
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: FigmaSettingsTokens.progressTrack,
+                  borderRadius: radius,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: fillWidth,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  gradient: const LinearGradient(
+                    colors: [
+                      FigmaSettingsTokens.progressFillLeft,
+                      FigmaSettingsTokens.progressFillRight,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (glossWidth > 0)
+              Positioned(
+                left: s(21),
+                top: s(5),
+                width: glossWidth,
+                height: s(5),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: FigmaSettingsTokens.progressGloss,
+                    borderRadius: BorderRadius.circular(s(65)),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 로그아웃 확인 팝업 (Figma `546:1381` 마이페이지_로그아웃). 로그아웃이면 true.
+class _LogoutDialog extends StatelessWidget {
+  const _LogoutDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    final figma = FigmaScale.ofContext(
+      context,
+      designWidth: FigmaSettingsTokens.designWidth,
+    );
+    final s = figma.s;
+    final buttonStyle = FigmaSettingsTokens.dialogButtonStyle(figma.scale);
+
+    return Dialog(
+      backgroundColor: FigmaSettingsTokens.dialogFill,
+      elevation: 0,
+      insetPadding: EdgeInsets.symmetric(horizontal: s(42)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(s(FigmaSettingsTokens.cardRadius)),
+      ),
+      child: SizedBox(
+        width: s(FigmaSettingsTokens.dialogWidth),
+        height: s(FigmaSettingsTokens.dialogHeight),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(s(27), s(23), s(27), s(21)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '로그아웃',
+                style: FigmaSettingsTokens.dialogTitleStyle(figma.scale),
+              ),
+              SizedBox(height: s(17)),
+              Text(
+                '정말 로그아웃하시겠어요?',
+                style: FigmaSettingsTokens.dialogMessageStyle(figma.scale),
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _DialogButton(
+                    figma: figma,
+                    label: '취소',
+                    style: buttonStyle,
+                    filled: true,
+                    onTap: () => Navigator.pop(context, false),
+                  ),
+                  SizedBox(width: s(18)),
+                  _DialogButton(
+                    figma: figma,
+                    label: '로그아웃',
+                    style: buttonStyle,
+                    onTap: () => Navigator.pop(context, true),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 팝업 버튼 — `취소`는 하늘색 알약(70×33), `로그아웃`은 글자만.
+class _DialogButton extends StatelessWidget {
+  const _DialogButton({
+    required this.figma,
+    required this.label,
+    required this.style,
+    required this.onTap,
+    this.filled = false,
+  });
+
+  final FigmaScale figma;
+  final String label;
+  final TextStyle style;
+  final VoidCallback onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    final radius = BorderRadius.circular(s(100));
+
+    return Material(
+      color: filled ? FigmaSettingsTokens.dialogCancelFill : Colors.transparent,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          height: s(33),
+          constraints: BoxConstraints(minWidth: filled ? s(70) : 0),
+          alignment: Alignment.center,
+          child: Text(label, style: style),
+        ),
+      ),
     );
   }
 }
