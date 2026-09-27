@@ -212,14 +212,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
           height: FigmaQuizQuestionTokens.bubbleHeight + contentShift,
           child: Transform.flip(
             flipX: true,
-            child: FigmaSvg(
-              FigmaAssets.quizSpeechBubble,
-              width: figma.s(FigmaQuizQuestionTokens.bubbleWidth),
-              height: figma.s(
-                FigmaQuizQuestionTokens.bubbleHeight + contentShift,
-              ),
-              fit: BoxFit.fill,
-            ),
+            child: _StretchedBubble(figma: figma, extraHeight: contentShift),
           ),
         ),
         FigmaBox(
@@ -500,5 +493,85 @@ class FigmaQuizQuestionView extends StatelessWidget {
         ),
       ),
     ];
+  }
+}
+
+/// 질문이 길어져 말풍선이 커질 때 SVG 전체를 BoxFit.fill로 늘리면 둥근 모서리와
+/// 꼬리가 세로로 찌그러진다. 위·아래는 원래 비율로 그리고, 모서리 사이 곧은
+/// 구간의 한 줄만 세로로 늘려 늘어난 높이를 채운다.
+class _StretchedBubble extends StatelessWidget {
+  const _StretchedBubble({required this.figma, required this.extraHeight});
+
+  final FigmaScale figma;
+  final double extraHeight;
+
+  static const _width = FigmaQuizQuestionTokens.bubbleWidth;
+  static const _height = FigmaQuizQuestionTokens.bubbleHeight;
+
+  /// 본체(0~100)의 모서리 반지름이 13이라 50 부근은 좌우 테두리가 곧다.
+  static const _split = 50.0;
+
+  /// 늘린 줄이 위·아래 조각 밑으로 겹쳐 들어가 이음새가 보이지 않게 한다.
+  static const _overlap = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (extraHeight <= 0) {
+      return _slice(top: 0, sourceTop: 0, sourceHeight: _height);
+    }
+    return SizedBox(
+      width: figma.s(_width),
+      height: figma.s(_height + extraHeight),
+      child: Stack(
+        children: [
+          _slice(
+            top: _split - _overlap,
+            sourceTop: _split,
+            sourceHeight: 1,
+            height: extraHeight + _overlap * 2,
+          ),
+          _slice(top: 0, sourceTop: 0, sourceHeight: _split),
+          _slice(
+            top: _split + extraHeight,
+            sourceTop: _split,
+            sourceHeight: _height - _split,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// SVG의 [sourceTop]부터 [sourceHeight]만큼을 [height] 높이로 그린다.
+  Widget _slice({
+    required double top,
+    required double sourceTop,
+    required double sourceHeight,
+    double? height,
+  }) {
+    final drawHeight = height ?? sourceHeight;
+    final stretch = drawHeight / sourceHeight;
+    final slice = SizedBox(
+      width: figma.s(_width),
+      height: figma.s(drawHeight),
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned(
+            left: 0,
+            top: -figma.s(sourceTop * stretch),
+            width: figma.s(_width),
+            height: figma.s(_height * stretch),
+            child: FigmaSvg(
+              FigmaAssets.quizSpeechBubble,
+              width: figma.s(_width),
+              height: figma.s(_height * stretch),
+              fit: BoxFit.fill,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (extraHeight <= 0) return slice;
+    return Positioned(left: 0, top: figma.s(top), child: slice);
   }
 }

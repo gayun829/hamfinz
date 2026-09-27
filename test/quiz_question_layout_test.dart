@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:testapp/constants/figma_assets.dart';
 import 'package:testapp/theme/figma_quiz_fonts.dart';
 import 'package:testapp/theme/figma_quiz_ox_tokens.dart';
 import 'package:testapp/theme/figma_quiz_question_tokens.dart';
+import 'package:testapp/widgets/figma/figma_asset_image.dart';
 import 'package:testapp/widgets/figma/figma_quiz_ox_view.dart';
 import 'package:testapp/widgets/figma/figma_quiz_question_view.dart';
 import 'package:testapp/widgets/figma/quiz_question_layout.dart';
@@ -120,6 +122,27 @@ void main() {
         greaterThan(shortTop + 1),
       );
       _expectFitsWithoutScroll(tester);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 긴 질문은 폭 $width에서 말풍선 모서리와 꼬리를 찌그러뜨리지 않는다', (tester) async {
+      await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
+
+      final bubbles = tester
+          .widgetList<FigmaSvg>(find.byType(FigmaSvg))
+          .where((svg) => svg.asset == FigmaAssets.quizSpeechBubble)
+          .toList();
+      final undistorted = bubbles.where(
+        (svg) =>
+            (svg.height! / svg.width! -
+                    FigmaQuizQuestionTokens.bubbleHeight /
+                        FigmaQuizQuestionTokens.bubbleWidth)
+                .abs() <
+            0.001,
+      );
+      // 위 조각(모서리)과 아래 조각(모서리·꼬리)은 원래 비율, 가운데 한 줄만 늘린다.
+      expect(bubbles, hasLength(3));
+      expect(undistorted, hasLength(2));
       expect(tester.takeException(), isNull);
     });
 
