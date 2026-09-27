@@ -127,7 +127,14 @@ void main() {
 
       expect(_svgCount(tester, FigmaAssets.quizQuestionBox), 1);
       expect(_svgCount(tester, FigmaAssets.quizCharacter), 0);
-      expect(_svgCount(tester, FigmaAssets.quizTopCoinStack), 1);
+      expect(_svgCount(tester, FigmaAssets.quizBoxCoinStack), 1);
+      // 코인은 박스 오른쪽 위가 아니라 박스 아래에 선다 (Figma `639:2721`).
+      expect(
+        tester.getTopLeft(_svgFinder(FigmaAssets.quizBoxCoinStack)).dy,
+        greaterThan(
+          tester.getBottomLeft(_svgFinder(FigmaAssets.quizQuestionBox)).dy,
+        ),
+      );
       final style = tester.widget<Text>(find.text(longQuestion)).style!;
       expect(
         style.fontSize! /
@@ -187,6 +194,34 @@ void main() {
       expect(boxes, hasLength(3));
       expect(undistorted, hasLength(2));
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 긴 질문 정답·해설은 폭 $width에서 코인을 토글 왼쪽에 둔다', (tester) async {
+      for (final explain in [false, true]) {
+        await _pumpQuiz(
+          tester,
+          width: width,
+          child: _choiceView(
+            longQuestion,
+            showAnswer: true,
+            showExplanation: explain,
+            explanation: '해설',
+          ),
+        );
+
+        // Figma `639:2820`·`639:3380` — Group 630(코인 더미) 224,367 / 토글 270·272,368.
+        final scale = math.min(
+          width / 393,
+          _viewportHeight / FigmaQuizQuestionTokens.contentHeight,
+        );
+        final left = (width - 393 * scale) / 2;
+        final stack = tester.getTopLeft(
+          _svgFinder(FigmaAssets.quizBoxCoinStack),
+        );
+        expect(stack.dx, closeTo(left + 216.7 * scale, 1));
+        expect(stack.dy, closeTo(357.7 * scale, 1));
+        expect(tester.takeException(), isNull);
+      }
     });
 
     testWidgets('객관식 해설은 폭 $width에서 노란 박스와 해설 토글을 쓴다', (tester) async {
@@ -303,6 +338,10 @@ Widget _oxView(String question) {
     onNext: () {},
   );
 }
+
+Finder _svgFinder(String asset) => find.byWidgetPredicate(
+  (widget) => widget is FigmaSvg && widget.asset == asset,
+);
 
 int _svgCount(WidgetTester tester, String asset) => tester
     .widgetList<FigmaSvg>(find.byType(FigmaSvg))

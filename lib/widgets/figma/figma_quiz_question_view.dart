@@ -418,7 +418,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
           ),
         ),
       ),
-      ..._topCoins(figma),
+      ..._boxCoins(figma, boxShift: contentShift),
     ];
   }
 
@@ -453,7 +453,7 @@ class FigmaQuizQuestionView extends StatelessWidget {
           ),
         ),
       ),
-      ..._topCoins(figma),
+      ..._boxCoins(figma, boxShift: 0),
     ];
   }
 
@@ -521,34 +521,36 @@ class FigmaQuizQuestionView extends StatelessWidget {
     ];
   }
 
-  /// 긴 질문·해설의 오른쪽 위 코인 (Ellipse 231·Group 629/630/631).
-  List<Widget> _topCoins(FigmaScale figma) {
+  /// 긴 질문·해설 박스 아래 코인 (Ellipse 231·Group 629/630/631, Figma `639:2721`).
+  /// 토글이 있으면 그 왼쪽으로 옮긴다 (`639:2820`·`639:3380`).
+  List<Widget> _boxCoins(FigmaScale figma, {required double boxShift}) {
+    final shift =
+        Offset(0, boxShift) +
+        (showAnswer || showExplanation ? _togglePairShift : Offset.zero);
+    Rect at(double left, double top, double width, double height) =>
+        Rect.fromLTWH(left, top, width, height).shift(shift);
+
     return [
+      _art(figma, FigmaAssets.quizBoxCoinShadow, at(288, 381, 15, 5)),
+      _art(figma, FigmaAssets.quizBoxCoinStack, at(308.7, 345.7, 48.6, 51.6)),
       _art(
         figma,
-        FigmaAssets.quizTopCoinShadow,
-        const Rect.fromLTWH(284, 133, 15, 5),
-      ),
-      _art(
-        figma,
-        FigmaAssets.quizTopCoinStack,
-        const Rect.fromLTWH(304.7, 97.7, 48.6, 51.6),
-      ),
-      _art(
-        figma,
-        FigmaAssets.quizTopCoin,
-        const Rect.fromLTWH(242.329, 104.328, 43.6006, 43.6006),
+        FigmaAssets.quizBoxCoin,
+        at(246.329, 352.328, 43.6006, 43.6006),
       ),
       _rotatedArt(
         figma,
-        box: const Rect.fromLTWH(279, 111, 23.982, 23.982),
+        box: at(283, 359, 23.982, 23.982),
         inner: const Size(17.251, 17.251),
         degrees: 55.59,
-        asset: FigmaAssets.quizTopCoinSmall,
+        asset: FigmaAssets.quizBoxCoinSmall,
         assetRect: const Rect.fromLTWH(-6.878, -6.167, 31.0085, 31.0085),
       ),
     ];
   }
+
+  /// 문제/해설 토글이 박스 아래 오른쪽을 차지하면 코인은 그 왼쪽에 선다.
+  static const _togglePairShift = Offset(-92, 12);
 
   Widget _art(FigmaScale figma, String asset, Rect rect) {
     return FigmaBox(

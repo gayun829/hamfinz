@@ -141,17 +141,17 @@ class FigmaAssets {
   static const quizQuestionBox = '$_quiz/question_box.svg';
   static const quizQuestionBoxAnswer = '$_quiz/question_box_answer.svg';
 
-  // 객관식 코인 장식 — 햄핀이 옆(짧은 질문) / 오른쪽 위(긴 질문·해설).
+  // 객관식 코인 장식 — 햄핀이 옆(짧은 질문) / 박스 아래(긴 질문·해설).
   static const quizCoin = '$_quiz/coin.svg';
   static const quizCoinMark = '$_quiz/coin_mark.svg';
   static const quizCoinStack = '$_quiz/coin_stack.svg';
   static const quizCoinShadowSmall = '$_quiz/coin_shadow_small.svg';
   static const quizCoinShadowMedium = '$_quiz/coin_shadow_medium.svg';
   static const quizCoinShadowLarge = '$_quiz/coin_shadow_large.svg';
-  static const quizTopCoin = '$_quiz/top_coin.svg';
-  static const quizTopCoinSmall = '$_quiz/top_coin_small.svg';
-  static const quizTopCoinStack = '$_quiz/top_coin_stack.svg';
-  static const quizTopCoinShadow = '$_quiz/top_coin_shadow.svg';
+  static const quizBoxCoin = '$_quiz/box_coin.svg';
+  static const quizBoxCoinSmall = '$_quiz/box_coin_small.svg';
+  static const quizBoxCoinStack = '$_quiz/box_coin_stack.svg';
+  static const quizBoxCoinShadow = '$_quiz/box_coin_shadow.svg';
   static const quizQuestionIconExplain = '$_quiz/q_icon_explain.svg';
 
   // OX 퀴즈 (Figma `137:5890` 퀴즈_ox) — Q 아이콘은 4지선다와 같은 에셋을 쓴다.
