@@ -66,7 +66,10 @@ service cloud.firestore {
     }
 
     match /emails/{emailLower} {
-      allow read: if request.auth != null;
+      // 가입 이메일 화면의 중복 확인도 로그인 전이라 get은 비로그인에도 연다 —
+      // nicknames와 같은 대가(메일을 알면 uid·닉네임 조회)를 치른다. list는 로그인 사용자만.
+      allow get: if true;
+      allow list: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nickname'])

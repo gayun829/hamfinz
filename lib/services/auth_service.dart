@@ -89,6 +89,24 @@ class AuthService {
     return readIncorrectQuestionCounts(stored);
   }
 
+  /// 가입 이메일 화면의 중복 확인. 쓸 수 있으면 null, 아니면 안내 문구.
+  ///
+  /// `emails/` 인덱스는 가입을 마친 계정에만 생겨서, 인증 단계에서 멈춘 계정은
+  /// 통과한다 — 비밀번호 화면의 [_resumeSignUp]이 이어받는다. 인덱스가 빠진
+  /// 옛 계정이나 조회 실패도 통과시키고 [beginSignUp]이 `email-already-in-use`로
+  /// 한 번 더 거른다.
+  Future<String?> checkEmailAvailable(String email) async {
+    final key = email.trim().toLowerCase();
+    if (key.isEmpty) return null;
+    try {
+      final doc = await _emails.doc(key).get();
+      if (!doc.exists) return null;
+    } on FirebaseException {
+      return null;
+    }
+    return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  }
+
   /// 회원가입 1단계: 계정을 만들고 인증 메일을 보낸다.
   /// 프로필은 아직 안 만든다 — 인증 완료 후 [completeSignUp]에서 만든다.
   Future<String?> beginSignUp({
