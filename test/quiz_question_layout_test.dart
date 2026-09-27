@@ -27,6 +27,8 @@ void main() {
   const longQuestion =
       '향후 1~3년 지급액 2,000,000원, 2,500,000원, 3,000,000원, '
       '할인율 4%의 준비금 현재가치는 6,500,000원보다 크다.';
+  // 긴 질문 박스(여섯 줄)에도 다 들어가지 않아 박스가 늘어나는 질문.
+  const overflowingQuestion = '$longQuestion $longQuestion $longQuestion';
 
   double oxHeight(String text, {TextScaler scaler = TextScaler.noScaling}) {
     return QuizQuestionLayout.textHeight(
@@ -110,39 +112,99 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('객관식 긴 질문은 폭 $width에서 잘리지 않고 CTA가 내려간다', (tester) async {
+    testWidgets('객관식 짧은 질문은 폭 $width에서 말풍선과 햄핀이·코인을 쓴다', (tester) async {
       await _pumpQuiz(tester, width: width, child: _choiceView('금리는 돈의 가격이다.'));
-      final shortTop = tester.getTopLeft(find.text('다음으로')).dy;
 
+      expect(_svgCount(tester, FigmaAssets.quizSpeechBubble), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCharacter), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCoinStack), 1);
+      expect(_svgCount(tester, FigmaAssets.quizQuestionBox), 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 61자 이상 질문은 폭 $width에서 햄핀이 없는 박스에 18로 쓴다', (tester) async {
       await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
 
-      _expectQuestionNotClipped(tester, longQuestion);
+      expect(_svgCount(tester, FigmaAssets.quizQuestionBox), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCharacter), 0);
+      expect(_svgCount(tester, FigmaAssets.quizTopCoinStack), 1);
+      final style = tester.widget<Text>(find.text(longQuestion)).style!;
       expect(
-        tester.getTopLeft(find.text('다음으로')).dy,
-        greaterThan(shortTop + 1),
+        style.fontSize! /
+            (math.min(
+              width / 393,
+              _viewportHeight / FigmaQuizQuestionTokens.contentHeight,
+            )),
+        closeTo(FigmaQuizQuestionTokens.longQuestionFontSize, 0.01),
       );
+      _expectQuestionNotClipped(tester, longQuestion);
+      _expectCtaInDesignSlot(
+        tester,
+        width: width,
+        ctaTop: FigmaQuizQuestionTokens.ctaTop,
+        ctaHeight: FigmaQuizQuestionTokens.ctaHeight,
+        contentHeight: FigmaQuizQuestionTokens.contentHeight,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 박스에도 넘치는 질문은 폭 $width에서 잘리지 않고 CTA가 내려간다', (tester) async {
+      await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
+      final boxTop = tester.getTopLeft(find.text('다음으로')).dy;
+
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(overflowingQuestion),
+      );
+
+      _expectQuestionNotClipped(tester, overflowingQuestion);
+      expect(tester.getTopLeft(find.text('다음으로')).dy, greaterThan(boxTop + 1));
       _expectFitsWithoutScroll(tester);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('객관식 긴 질문은 폭 $width에서 말풍선 모서리와 꼬리를 찌그러뜨리지 않는다', (tester) async {
-      await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
+    testWidgets('객관식 박스가 늘어나도 폭 $width에서 모서리를 찌그러뜨리지 않는다', (tester) async {
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(overflowingQuestion),
+      );
 
-      final bubbles = tester
+      final boxes = tester
           .widgetList<FigmaSvg>(find.byType(FigmaSvg))
-          .where((svg) => svg.asset == FigmaAssets.quizSpeechBubble)
+          .where((svg) => svg.asset == FigmaAssets.quizQuestionBox)
           .toList();
-      final undistorted = bubbles.where(
+      final undistorted = boxes.where(
         (svg) =>
             (svg.height! / svg.width! -
-                    FigmaQuizQuestionTokens.bubbleHeight /
-                        FigmaQuizQuestionTokens.bubbleWidth)
+                    FigmaQuizQuestionTokens.boxHeight /
+                        FigmaQuizQuestionTokens.boxWidth)
                 .abs() <
             0.001,
       );
-      // 위 조각(모서리)과 아래 조각(모서리·꼬리)은 원래 비율, 가운데 한 줄만 늘린다.
-      expect(bubbles, hasLength(3));
+      // 위·아래 조각(모서리)은 원래 비율, 가운데 한 줄만 늘린다.
+      expect(boxes, hasLength(3));
       expect(undistorted, hasLength(2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 해설은 폭 $width에서 노란 박스와 해설 토글을 쓴다', (tester) async {
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(
+          '금리는 돈의 가격이다.',
+          showAnswer: true,
+          showExplanation: true,
+          explanation: '돈을 빌리는 값이 금리다.',
+        ),
+      );
+
+      expect(_svgCount(tester, FigmaAssets.quizExplainBox), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCharacter), 0);
+      expect(find.text('돈을 빌리는 값이 금리다.'), findsOneWidget);
+      expect(find.text('해설'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -242,8 +304,22 @@ Widget _oxView(String question) {
   );
 }
 
-Widget _choiceView(String question) {
+int _svgCount(WidgetTester tester, String asset) => tester
+    .widgetList<FigmaSvg>(find.byType(FigmaSvg))
+    .where((svg) => svg.asset == asset)
+    .length;
+
+Widget _choiceView(
+  String question, {
+  bool showAnswer = false,
+  bool showExplanation = false,
+  String explanation = '',
+}) {
   return FigmaQuizQuestionView(
+    showAnswer: showAnswer,
+    showExplanation: showExplanation,
+    explanation: explanation,
+    correctIndex: showAnswer ? 0 : null,
     questionNumber: 1,
     totalQuestions: 10,
     question: question,
