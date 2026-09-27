@@ -15,6 +15,7 @@
   "categoryStats": {},
   "interestCategories": ["saving"],
   "learningStage": 1,
+  "incorrectQuestionCounts": {},
   "incorrectQuestionCount": 0,
   "seeds": 0,
   "ownedShopItemIds": []
@@ -38,7 +39,8 @@
 | `categoryStats` | 카테고리 label → `CategoryStat` |
 | `interestCategories` | 관심 카테고리 id 목록 |
 | `learningStage` | 현재 학습과정(초급·중급·고급) |
-| `incorrectQuestionCount` | Firestore `incorrectQuestions`의 고유 문제 수. 10 초과 시 복습 홈 |
+| `incorrectQuestionCounts` | 카테고리 id → `incorrectQuestions`의 고유 문제 수. **활성 카테고리** 값이 10 이상이면 복습 홈 |
+| `incorrectQuestionCount` | `incorrectQuestionCounts`의 합(파생 값). 복습 판단에는 쓰지 않는다 |
 | `seeds` | 상점 해바라기씨 잔액 |
 | `ownedShopItemIds` | 구매한 상점 아이템 id |
 
@@ -61,8 +63,14 @@
 
 오답 상세는 `users/{uid}/incorrectQuestions/{questionId}`에 저장한다. 문제 id,
 카테고리, 난이도, 누적 오답 횟수와 최초·최근 오답 시각을 포함하며 같은 문제는
-문서 하나로 합친다. 복습 세션에서 맞추면 문서를 삭제하고
-`incorrectQuestionCount`를 줄인다.
+문서 하나로 합친다. 복습 세션에서 맞추면 문서를 삭제하고 그 문제 카테고리의
+`incorrectQuestionCounts` 값(과 합계)을 줄인다. 복습 세션은 활성 카테고리의 오답만
+출제한다. `categoryId`가 없는 예전 문서는 `allowance`로 본다.
+
+`incorrectQuestionCounts`가 없는 예전 계정은 `incorrectQuestions`를 세어 채운다
+(지연 백필). 개발 모드는 클라이언트가 트랜잭션으로 저장하고, 프로덕션 규칙은 이
+필드의 클라이언트 쓰기를 막으므로 첫 `submitAnswer`에서 Functions가 저장한다.
+그 전까지 앱은 집계값을 메모리에 들고 화면에만 쓴다.
 
 ## 정적 데이터
 

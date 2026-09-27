@@ -36,14 +36,27 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 5. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
 
-고유 오답이 10개를 넘으면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
+활성 카테고리의 고유 오답(`users.incorrectQuestionCounts[categoryId]`)이 **10개 이상**이면 홈은 복습 화면으로 바뀌고, **오늘의 학습**은 `startReviewSession`을 탄다.
 
 ```
 1. Auth uid + energy >= 50
-2. users/{uid}/incorrectQuestions 조회 후 최대 10문항 선정
-3. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`)
-4. QuizQuestionLearning 반환 (correctIndex 없음)
+2. users/{uid}/incorrectQuestions에서 활성 카테고리 문서만 조회 후 최대 10문항 선정
+   (categoryId가 없는 예전 문서는 allowance로 보므로, allowance만 전체를 읽어 거른다)
+3. 삭제·비활성화(isActive=false)되었거나 카테고리가 바뀐 문제는 건너뜀
+   (규칙상 비활성 문제는 읽기가 거절되므로 거절도 "복습 불가"로 본다)
+4. 복습 불가 문제를 만났거나 저장된 오답 수 ≠ 오답 문서 수면 오답 정리
+   - 배포: Callable `reconcileIncorrectQuestions({ categoryId })`
+   - 개발: 클라이언트 트랜잭션
+   - 복습 불가 문서를 지우고 그 카테고리 오답 수를 남은 문서 수로 다시 센다
+   - 정리가 실패해도 복습 시작은 계속한다 (다음 복습에서 다시 시도)
+5. 복습할 문제가 하나도 없으면 일반 학습 세션(`startSession`)을 연다
+   → 사용자가 복습 홈에 갇히지 않는다
+6. users/{uid}/sessions/{sessionId} 생성 (`source: reviewSession`, `categoryId`)
+7. QuizQuestionLearning 반환 (correctIndex 없음)
 ```
+
+이미 오답 목록에 있는 문제를 다시 제출하면 오답 문서에 기록된 카테고리로 센다.
+문제의 카테고리가 나중에 바뀌어도 오답 수와 오답 문서가 어긋나지 않게 하기 위해서다.
 
 ---
 
@@ -67,13 +80,11 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 1. 세션 `inProgress` · questionId ∈ `questionIds` · 미제출 확인
 2. `quizQuestions/{id}.correctIndex` 와 **서버 비교**
 3. `users.energy -= 5`
-4. `sessions/.../answers/{questionId}` 저장 (`isCorrect`, `categoryId`, …)
-5. 정답 시 `users/.../mastered/{questionId}` upsert
-   - 오답 목록에 있던 문제면 `incorrectQuestions/{questionId}` 삭제
-   - `users.incorrectQuestionCount`를 1 감소 (0 미만으로 내려가지 않음)
-6. 오답 시 `users/.../incorrectQuestions/{questionId}` upsert
-   - 최초 오답인 문제만 `users.incorrectQuestionCount`를 1 증가
-   - 반복 오답은 `wrongCount`와 최근 오답 정보만 갱신
+4. `sessions/.../answers/{questionId}` 저장 (`isCorrect`, `categoryId`, `difficulty`, …)
+5. `sessions/{id}.energySpent += 5`
+
+**정답(`mastered`)·오답(`incorrectQuestions`)은 여기서 쓰지 않는다.** 세션을 끝까지
+풀어야 `completeSession`이 반영한다. 중간에 나가면 푼 문제도 안 푼 문제로 남는다.
 
 ### 응답
 
@@ -102,7 +113,17 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 
 ### 서버 처리
 
-1. `answers` subcollection 전부 존재 확인 (10문항)
+1. `answers` subcollection 전부 존재 확인 (세션의 모든 문항)
+1-1. 답을 문제 상태에 반영 — 문제는 **안 푼 문제 / 정답 / 오답** 셋 중 하나다
+   - 정답: `users/.../mastered/{questionId}` upsert. 오답 목록에 있던 문제면
+     `incorrectQuestions/{questionId}` 삭제 + 그 카테고리 `incorrectQuestionCounts` −1
+     (0이 되면 키 삭제)
+   - 오답: `users/.../incorrectQuestions/{questionId}` upsert. 처음 틀린 문제만 그
+     카테고리 값 +1, 반복 오답은 `wrongCount`와 최근 오답 정보만 갱신
+   - 이미 오답 목록에 있던 문제는 오답 문서에 기록된 카테고리로 센다
+   - `users.incorrectQuestionCount`는 맵의 합으로 함께 저장한다 (파생 값)
+   - 맵이 없는 예전 계정은 `incorrectQuestions`를 세어 채운다. Functions는 맵이 없을 때만
+     같은 트랜잭션에서 컬렉션을 읽고, 클라이언트는 트랜잭션 전에 한 번 채운다.
 2. 씨앗 (정답 × 5) · `categoryStats` (한글 label 키, 에너지 세션이면 `completedSessions + 1`)
 3. streak · `learningDates` 갱신
 3-1. 실제 소모량 이내에서 에너지 최대 `+20` (최대 100까지)
@@ -116,6 +137,25 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 채워진 양이다 (퀴즈_결과보기창 오른쪽 수치).
 
 앱은 `AuthService.getCurrentUser()`로 프로필 재동기화.
+
+---
+
+## 4. abandonSession (중도 종료)
+
+**구현:** `QuizSessionRepository.abandonSession` — Firestore 트랜잭션  
+(배포 시 Cloud Function `abandonSession`)
+
+퀴즈 화면의 뒤로가기(화면 버튼·시스템 뒤로가기)로 세션을 끝까지 풀지 않고 나갈 때.
+
+1. 세션이 `inProgress`가 아니면 아무것도 하지 않는다 (이미 완료·종료)
+2. `sessions/{id}.energySpent`만큼 에너지를 돌려준다 (최대 100)
+3. `sessions/{id}` → `status: abandoned`, `energyRefunded`, `abandonedAt`
+4. 그 세션의 `answers`는 정답·오답 목록에 반영하지 않는다 → 안 푼 문제로 남는다
+   (씨앗·streak·`categoryStats`도 주지 않는다)
+
+앱이 종료돼 뒤로가기 처리를 못 한 세션은 다음에 **오늘의 학습**을 누를 때
+(`QuizService.abandonOpenSessions`) 닫고 에너지를 돌려준다. 에너지 확인 전에 하므로
+돌려받은 에너지로 바로 시작할 수 있다. 다른 기기에서 진행 중인 세션도 이때 닫힌다.
 
 ---
 
@@ -149,6 +189,7 @@ startSession (로딩)
   → [정답 제출] → submitAnswer (Firestore 트랜잭션)
   → 정·오답 UI (채점 결과 correctIndex)
   → [다음] × 9
+  → (도중에 뒤로가기 → abandonSession → 홈, 푼 문제는 안 푼 문제로)
   → 마지막 문제 → completeSession
   → QuizCompleteScreen (터치)
   → QuizStreakScreen (다음으로)

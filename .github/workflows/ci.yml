@@ -18,3 +18,8 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # Functions 순수 로직 테스트 — 외부 패키지 없이 node:test로 돈다.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test functions/*.test.js

@@ -41,6 +41,9 @@ class _QuizScreenState extends State<QuizScreen> {
   SubmitAnswerResult? _submitResult;
   bool _submitting = false;
 
+  /// 세션 완료 또는 중도 종료를 처리 중이거나 끝냈다 — 둘이 겹치지 않게 한다.
+  bool _closing = false;
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +138,8 @@ class _QuizScreenState extends State<QuizScreen> {
     );
 
     if (_currentIndex >= _questions.length - 1) {
+      if (_closing) return;
+      _closing = true;
       try {
         final result = await QuizService.instance.completeSession(
           profile: widget.profile,
@@ -176,6 +181,8 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         );
       } on QuizSessionException catch (e) {
+        // 완료에 실패하면 다시 누르거나 나갈(중도 종료) 수 있게 풀어 둔다.
+        _closing = false;
         if (!mounted) return;
         ScaffoldMessenger.of(
           context,
@@ -191,6 +198,23 @@ class _QuizScreenState extends State<QuizScreen> {
       _showExplanation = false;
       _submitResult = null;
     });
+  }
+
+  /// 끝까지 풀지 않고 나간다. 이번 세션에서 푼 문제는 안 푼 문제로 남고
+  /// 쓴 에너지는 돌려받는다. 실패해도 나가기는 막지 않는다 — 다음 학습을
+  /// 시작할 때 남은 세션을 다시 닫는다.
+  Future<void> _leave() async {
+    final session = _session;
+    if (session != null && !_closing) {
+      _closing = true;
+      try {
+        await QuizService.instance.abandonSession(
+          profile: widget.profile,
+          sessionId: session.sessionId,
+        );
+      } catch (_) {}
+    }
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _notifyStageAdvance(BuildContext context, int? advancedStage) {
@@ -247,11 +271,16 @@ class _QuizScreenState extends State<QuizScreen> {
     final question = _currentQuestion;
     final correctIndex = _showResult ? _submitResult?.correctIndex : null;
 
-    if (question.type == QuizType.multipleChoice) {
-      return _buildMcQuizScreen(question, correctIndex);
-    }
-
-    return _buildOxQuizScreen(question, correctIndex);
+    // 시스템 뒤로가기도 화면의 뒤로가기와 같이 세션을 중도 종료한다.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leave();
+      },
+      child: question.type == QuizType.multipleChoice
+          ? _buildMcQuizScreen(question, correctIndex)
+          : _buildOxQuizScreen(question, correctIndex),
+    );
   }
 
   /// Figma `137:5521` 문제 / `137:5589` 정답 / `291:931` 해설 — 4지선다 전용.
@@ -268,7 +297,7 @@ class _QuizScreenState extends State<QuizScreen> {
       showExplanation: _showExplanation,
       correctIndex: correctIndex,
       explanation: question.explanation,
-      onBack: () => Navigator.of(context).pop(),
+      onBack: _leave,
       onSelect: _selectAnswer,
       onNext: _onNextPressed,
       onQuestionTap: _showResult
@@ -294,7 +323,7 @@ class _QuizScreenState extends State<QuizScreen> {
       showExplanation: _showExplanation,
       correctIndex: correctIndex,
       explanation: question.explanation,
-      onBack: () => Navigator.of(context).pop(),
+      onBack: _leave,
       onSelect: _selectAnswer,
       onNext: _onNextPressed,
       onQuestionTap: _showResult

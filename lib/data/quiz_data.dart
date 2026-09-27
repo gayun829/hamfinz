@@ -4,7 +4,7 @@ class QuizData {
 
   static const int dailyQuestionCount = 10;
 
-  /// 고유 오답 수가 이 값을 초과하면 다음 홈부터 복습 단계를 보여준다.
+  /// 활성 카테고리의 고유 오답 수가 이 값 이상이면 다음 학습은 복습이다.
   static const int reviewQuestionThreshold = 10;
 
 

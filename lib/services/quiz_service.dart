@@ -54,6 +54,37 @@ class QuizService {
     return result;
   }
 
+  /// 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션에서 푼 문제는 안 푼 문제로
+  /// 남고, 쓴 에너지는 돌려받는다.
+  Future<void> abandonSession({
+    required UserProfile profile,
+    required String sessionId,
+  }) async {
+    final energy = QuizBackendConfig.usesCloudFunctions
+        ? await QuizFunctionsRepository.instance.abandonSession(
+            sessionId: sessionId,
+          )
+        : await QuizSessionRepository.instance.abandonSession(
+            sessionId: sessionId,
+          );
+    if (energy != null) {
+      profile.energy = energy.clamp(0, QuizData.maxEnergy);
+    }
+  }
+
+  /// 앱이 종료돼 닫지 못한 세션을 닫고 에너지를 돌려받는다.
+  /// 실패해도 학습 시작은 막지 않는다 — 다음 시작에서 다시 시도한다.
+  Future<void> abandonOpenSessions({required UserProfile profile}) async {
+    try {
+      final ids = await QuizSessionRepository.instance.openSessionIds();
+      for (final id in ids) {
+        await abandonSession(profile: profile, sessionId: id);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Open session cleanup failed: $e');
+    }
+  }
+
   /// 씨앗 · streak · categoryStats · 세션 completed.
   /// 백엔드: [QuizBackendConfig.submitBackend]
   Future<QuizSessionResult> completeSession({
