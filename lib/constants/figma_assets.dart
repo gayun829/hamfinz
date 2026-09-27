@@ -61,7 +61,6 @@ class FigmaAssets {
 
   // Home beginner (131:5278)
   static const homePathMap = '$_homeBeginner/path_map.svg';
-  static const homeHamsterMap = '$_homeBeginner/hamster_map.svg';
   static const homeEllipse154 = '$_homeBeginner/ellipse_154.svg';
   static const homeEllipse155 = '$_homeBeginner/ellipse_155.svg';
   static const homeNode1 = '$_homeBeginner/node_1.png';
