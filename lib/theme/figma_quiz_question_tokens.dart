@@ -119,9 +119,15 @@ abstract final class FigmaQuizQuestionTokens {
   static const optionTops = [417.0, 493.0, 569.0, 645.0];
 
   static const ctaLeft = 24.0;
-  static const ctaTop = 748.0;
+  // Figma(748)는 보기와 버튼 사이가 비어 스크롤이 생겨서, 마지막 보기(645) 바로 아래에 붙인다.
+  static const ctaGap = 20.0;
+  static const ctaTop = 645.0 + optionHeight + ctaGap;
   static const ctaWidth = 345.0;
   static const ctaHeight = 50.0;
   static const ctaRadius = 13.0;
   static const ctaFontSize = 18.0;
+
+  /// 질문이 기본 높이일 때의 캔버스 높이 — 버튼 아래 홈 인디케이터 여백까지.
+  static const bottomMargin = 34.0;
+  static const contentHeight = ctaTop + ctaHeight + bottomMargin;
 }

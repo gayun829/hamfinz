@@ -501,6 +501,10 @@ class QuizSessionRepository {
           categoryStats.putIfAbsent(sessionLabel, CategoryStat.new);
           categoryStats[sessionLabel]!.completedSessions += 1;
         }
+        final reviewCategoryId =
+            sessionSource == QuizSession.reviewSessionSource
+            ? session['categoryId'] as String?
+            : null;
 
         final seedsEarned = correctCount * QuizData.seedsPerCorrect;
 
@@ -566,6 +570,12 @@ class QuizSessionRepository {
             (key, value) => MapEntry(key, value.toJson()),
           ),
           'learningDates': learningDates,
+          if (reviewCategoryId != null)
+            'reviewArrivals.$reviewCategoryId':
+                categoryStats[_categoryLabels[reviewCategoryId] ??
+                        reviewCategoryId]
+                    ?.completedSessions ??
+                0,
         };
         final nextTotal = totalIncorrectQuestionCount(incorrectPlan.counts);
         final currentTotal =

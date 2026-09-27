@@ -202,4 +202,26 @@ void main() {
     profile.interestCategories = const ['saving'];
     expect(activeCategoryNeedsReview(profile), isTrue);
   });
+
+  test('복습을 끝낸 뒤 다음 학습을 마치기 전까지만 복습 집 도착 홈을 연다', () {
+    final profile = UserProfile(
+      email: 'arrive@test.dev',
+      nickname: '도착',
+      interestCategories: const ['saving'],
+      categoryStats: {'저축': CategoryStat(completedSessions: 4)},
+      reviewArrivals: const {'saving': 4},
+    );
+
+    expect(activeCategoryReviewArrived(profile), isTrue);
+
+    profile.incorrectQuestionCounts = const {'saving': 11};
+    expect(activeCategoryReviewArrived(profile), isFalse);
+
+    profile.incorrectQuestionCounts = const {};
+    profile.categoryStats = {'저축': CategoryStat(completedSessions: 5)};
+    expect(activeCategoryReviewArrived(profile), isFalse);
+
+    profile.interestCategories = const ['stock'];
+    expect(activeCategoryReviewArrived(profile), isFalse);
+  });
 }

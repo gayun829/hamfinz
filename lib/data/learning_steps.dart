@@ -17,16 +17,19 @@ const int kMaxLearningSteps = kSessionsPerLearningStage * kMaxLearningStage;
 int homeMapCurrentStep(UserProfile profile) {
   final id = resolveActiveInterestCategoryId(profile.interestCategories);
   if (id == null) return 1;
+  return (completedSessionsFor(profile, id) + 1).clamp(1, kMaxLearningSteps);
+}
+
+/// 카테고리에서 끝낸 학습 세션 수. 복습 세션은 세지 않는다.
+int completedSessionsFor(UserProfile profile, String categoryId) {
   QuizCategory? category;
   for (final value in QuizCategory.values) {
-    if (value.name == id) {
+    if (value.name == categoryId) {
       category = value;
       break;
     }
   }
-  final sessions =
-      profile.categoryStats[category?.label ?? '']?.completedSessions ?? 0;
-  return (sessions + 1).clamp(1, kMaxLearningSteps);
+  return profile.categoryStats[category?.label ?? '']?.completedSessions ?? 0;
 }
 
 /// Figma 홈은 1과 3처럼 현재 step과 +2를 같이 보여 준다.

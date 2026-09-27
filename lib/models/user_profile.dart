@@ -15,6 +15,7 @@ class UserProfile {
     this.learningStage = 1,
     this.incorrectQuestionCounts = const {},
     this.incorrectQuestionCount = 0,
+    this.reviewArrivals = const {},
     this.seeds = 0,
     this.ownedShopItemIds = const [],
     this.studyGuardCount = 0,
@@ -54,6 +55,10 @@ class UserProfile {
 
   /// [incorrectQuestionCounts]의 합. 복습 여부는 활성 카테고리 개수로 판단한다.
   int incorrectQuestionCount;
+
+  /// 카테고리 id별로 복습을 끝낸 시점의 완료 학습 세션 수.
+  /// 다음 학습을 끝내기 전까지 홈에 복습 집에 도착한 햄핀이를 보여 준다.
+  Map<String, int> reviewArrivals;
 
   /// 상점 해바라기씨 잔액.
   int seeds;
