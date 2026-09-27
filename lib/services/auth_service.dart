@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -92,26 +91,18 @@ class AuthService {
 
   /// 가입 이메일 화면의 중복 확인. 쓸 수 있으면 null, 아니면 안내 문구.
   ///
-  /// 로그인 전이라 Auth에 직접 물을 수 없어 Callable `checkEmailAvailable`로
-  /// 확인한다. 함수 호출이 실패하면(네트워크·배포 전) 막지 않고 넘긴다 — 계정을
-  /// 만드는 [beginSignUp]이 `email-already-in-use`로 한 번 더 거른다.
+  /// `emails/` 인덱스는 가입을 마친 계정에만 생겨서, 인증 단계에서 멈춘 계정은
+  /// 통과한다 — 비밀번호 화면의 [_resumeSignUp]이 이어받는다. 인덱스가 빠진
+  /// 옛 계정이나 조회 실패도 통과시키고 [beginSignUp]이 `email-already-in-use`로
+  /// 한 번 더 거른다.
   Future<String?> checkEmailAvailable(String email) async {
-    final Map<String, dynamic> result;
+    final key = email.trim().toLowerCase();
+    if (key.isEmpty) return null;
     try {
-      final response =
-          await FirebaseFunctions.instanceFor(
-            region: 'asia-northeast3',
-          ).httpsCallable('checkEmailAvailable').call<Map<String, dynamic>>({
-            'email': email.trim().toLowerCase(),
-          });
-      result = response.data;
-    } on FirebaseFunctionsException catch (e) {
-      if (e.code == 'invalid-argument') return '올바른 이메일 형식이 아니에요.';
+      final doc = await _emails.doc(key).get();
+      if (!doc.exists) return null;
+    } on FirebaseException {
       return null;
-    }
-    if (result['available'] == true) return null;
-    if (result['reason'] == 'social') {
-      return '구글·카카오로 가입된 이메일이에요. 소셜 로그인으로 들어와 주세요.';
     }
     return '이미 가입된 이메일이에요. 로그인해 주세요.';
   }

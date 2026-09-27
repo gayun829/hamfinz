@@ -8,7 +8,7 @@ import 'signup_draft.dart';
 
 /// 가입 2단계 — 이메일 (Figma `439:463`).
 ///
-/// 형식을 본 뒤 서버에 이미 가입된 메일인지 묻는다. 확인에 실패하면 넘어가고,
+/// 형식을 본 뒤 `emails/` 인덱스로 이미 가입된 메일인지 본다. 확인에 실패하면 넘어가고,
 /// 계정을 만드는 비밀번호 화면에서 Firebase가 `email-already-in-use`로 한 번 더 거른다.
 class EmailStepScreen extends StatefulWidget {
   const EmailStepScreen({super.key, required this.draft});
