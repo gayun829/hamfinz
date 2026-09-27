@@ -604,16 +604,15 @@ class FigmaQuizQuestionView extends StatelessWidget {
   }
 
   Color _optionFill(int index) {
-    if (!showAnswer || showExplanation || index >= options.length) {
-      return Colors.white;
-    }
+    // 해설을 보는 동안에도 정답·오답 색을 그대로 둔다.
+    if (!showAnswer || index >= options.length) return Colors.white;
     if (index == correctIndex) return _T.optionCorrectFill;
     if (index == selectedIndex) return _T.optionWrongFill;
     return Colors.white;
   }
 
   Color _optionBorder(int index) {
-    if (index >= options.length || showExplanation) return _T.optionBorder;
+    if (index >= options.length) return _T.optionBorder;
     if (showAnswer) {
       if (index == correctIndex) return _T.optionCorrectBorder;
       if (index == selectedIndex) return _T.optionWrongBorder;

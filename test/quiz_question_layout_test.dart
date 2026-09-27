@@ -224,6 +224,34 @@ void main() {
       }
     });
 
+    testWidgets('객관식 해설을 봐도 폭 $width에서 정답 보기 색이 남는다', (tester) async {
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(
+          '금리는 돈의 가격이다.',
+          showAnswer: true,
+          showExplanation: true,
+          explanation: '해설',
+        ),
+      );
+
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .ancestor(
+                          of: find.text('가'),
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
+      expect(decoration.color, FigmaQuizQuestionTokens.optionCorrectFill);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('객관식 해설은 폭 $width에서 노란 박스와 해설 토글을 쓴다', (tester) async {
       await _pumpQuiz(
         tester,
