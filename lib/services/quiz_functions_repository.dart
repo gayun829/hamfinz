@@ -39,6 +39,17 @@ class QuizFunctionsRepository {
     }
   }
 
+  /// 그날 첫 접속 에너지를 받는다. 이미 받은 날이면 저장된 에너지를 그대로 준다.
+  Future<({int energy, String lastEnergyResetDate})> claimDailyEnergy() async {
+    final response = await _functions
+        .httpsCallable('claimDailyEnergy')
+        .call<Map<String, dynamic>>();
+    return (
+      energy: (response.data['energy'] as num).toInt(),
+      lastEnergyResetDate: response.data['lastEnergyResetDate'] as String,
+    );
+  }
+
   /// 끝까지 풀지 않고 나간 세션을 닫고 쓴 에너지를 돌려받는다.
   /// 돌려준 뒤의 에너지를 반환한다.
   Future<int?> abandonSession({required String sessionId}) async {

@@ -35,8 +35,6 @@ class ShopPurchaseResult {
         return '씨앗이 부족해요.';
       case ShopPurchaseStatus.studyGuardMaxCapacity:
         return '방어권은 최대 4개까지 보유할 수 있어요.';
-      case ShopPurchaseStatus.energyAlreadyFull:
-        return '에너지가 이미 가득 차 있어요.';
       case ShopPurchaseStatus.notLoggedIn:
         return '로그인 정보가 없어요.';
       case ShopPurchaseStatus.failed:
@@ -52,7 +50,6 @@ enum ShopPurchaseStatus {
   alreadyOwned,
   insufficientSeeds,
   studyGuardMaxCapacity,
-  energyAlreadyFull,
   notLoggedIn,
 
   /// 서버 호출 자체가 실패(네트워크·Functions 미배포 등). [ShopPurchaseResult.errorMessage] 참고.

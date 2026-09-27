@@ -52,8 +52,6 @@ class ShopFunctionsRepository {
           return ShopPurchaseStatus.insufficientSeeds;
         case 'studyGuardMaxCapacity':
           return ShopPurchaseStatus.studyGuardMaxCapacity;
-        case 'energyAlreadyFull':
-          return ShopPurchaseStatus.energyAlreadyFull;
       }
     }
 
@@ -62,7 +60,6 @@ class ShopFunctionsRepository {
     if (message.contains('최대 3개') || message.contains('최대 4개')) {
       return ShopPurchaseStatus.studyGuardMaxCapacity;
     }
-    if (message.contains('가득 차')) return ShopPurchaseStatus.energyAlreadyFull;
     return ShopPurchaseStatus.failed;
   }
 

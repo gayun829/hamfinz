@@ -70,10 +70,6 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Future<void> _buyEnergy() async {
-    if (_profile.energy >= 100) {
-      _showSnackBar('에너지가 이미 가득 차 있어요.');
-      return;
-    }
     final price = _catalogItem('energy_pack').price;
     if (_profile.seeds < price) {
       _showSnackBar('씨앗이 부족해요. $price씨앗이 필요합니다.');

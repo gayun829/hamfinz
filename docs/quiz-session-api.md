@@ -126,8 +126,8 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
      같은 트랜잭션에서 컬렉션을 읽고, 클라이언트는 트랜잭션 전에 한 번 채운다.
 2. 씨앗 (정답 × 5) · `categoryStats` (한글 label 키, 에너지 세션이면 `completedSessions + 1`)
 3. streak · `learningDates` 갱신
-3-1. 실제 소모량 이내에서 에너지 최대 `+20` (최대 100까지)
-     → 채워진 양을 `energyEarned`로 반환
+3-1. 실제 소모량 이내에서 에너지 최대 `+20` (한도 없음)
+     → 더한 양을 `energyEarned`로 반환
 4. `sessions/{id}` → `status: completed`
 5. `users/{uid}` 갱신 (Admin SDK — 클라이언트 energy/seeds 직접 쓰기 불필요)
 
@@ -148,7 +148,7 @@ Firestore `quizQuestions` 풀 기반 **유저별 10문항** 학습 세션.
 퀴즈 화면의 뒤로가기(화면 버튼·시스템 뒤로가기)로 세션을 끝까지 풀지 않고 나갈 때.
 
 1. 세션이 `inProgress`가 아니면 아무것도 하지 않는다 (이미 완료·종료)
-2. `sessions/{id}.energySpent`만큼 에너지를 돌려준다 (최대 100)
+2. `sessions/{id}.energySpent`만큼 에너지를 돌려준다 (한도 없음, 세션을 시작한 날과 무관)
 3. `sessions/{id}` → `status: abandoned`, `energyRefunded`, `abandonedAt`
 4. 그 세션의 `answers`는 정답·오답 목록에 반영하지 않는다 → 안 푼 문제로 남는다
    (씨앗·streak·`categoryStats`도 주지 않는다)
