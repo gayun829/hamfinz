@@ -843,7 +843,7 @@ class _LogoutDialog extends StatelessWidget {
         width: s(FigmaSettingsTokens.dialogWidth),
         height: s(FigmaSettingsTokens.dialogHeight),
         child: Padding(
-          padding: EdgeInsets.fromLTRB(s(27), s(23), s(27), s(21)),
+          padding: EdgeInsets.fromLTRB(s(27), s(23), s(13), s(21)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -864,14 +864,16 @@ class _LogoutDialog extends StatelessWidget {
                     figma: figma,
                     label: '취소',
                     style: buttonStyle,
-                    filled: true,
+                    horizontalPadding: 21,
                     onTap: () => Navigator.pop(context, false),
                   ),
-                  SizedBox(width: s(18)),
+                  // 알약 여백을 빼면 Figma 간격 18 (취소 끝 251 → 로그아웃 글자 269).
+                  SizedBox(width: s(4)),
                   _DialogButton(
                     figma: figma,
                     label: '로그아웃',
                     style: buttonStyle,
+                    horizontalPadding: 14,
                     onTap: () => Navigator.pop(context, true),
                   ),
                 ],
@@ -884,39 +886,56 @@ class _LogoutDialog extends StatelessWidget {
   }
 }
 
-/// 팝업 버튼 — `취소`는 하늘색 알약(70×33), `로그아웃`은 글자만.
-class _DialogButton extends StatelessWidget {
+/// 팝업 버튼 — 평소엔 글자만, 누르고 있는 동안만 하늘색 알약(높이 33)이 뜬다.
+class _DialogButton extends StatefulWidget {
   const _DialogButton({
     required this.figma,
     required this.label,
     required this.style,
+    required this.horizontalPadding,
     required this.onTap,
-    this.filled = false,
   });
 
   final FigmaScale figma;
   final String label;
   final TextStyle style;
+
+  /// 알약 좌우 여백 — `취소`는 21이면 Figma 알약 폭 70과 맞는다.
+  final double horizontalPadding;
   final VoidCallback onTap;
-  final bool filled;
+
+  @override
+  State<_DialogButton> createState() => _DialogButtonState();
+}
+
+class _DialogButtonState extends State<_DialogButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed != pressed) setState(() => _pressed = pressed);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final s = figma.s;
-    final radius = BorderRadius.circular(s(100));
+    final s = widget.figma.s;
 
-    return Material(
-      color: filled ? FigmaSettingsTokens.dialogCancelFill : Colors.transparent,
-      borderRadius: radius,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        child: Container(
-          height: s(33),
-          constraints: BoxConstraints(minWidth: filled ? s(70) : 0),
-          alignment: Alignment.center,
-          child: Text(label, style: style),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      onTap: widget.onTap,
+      child: Container(
+        height: s(33),
+        padding: EdgeInsets.symmetric(horizontal: s(widget.horizontalPadding)),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _pressed
+              ? FigmaSettingsTokens.dialogCancelFill
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(s(100)),
         ),
+        child: Text(widget.label, style: widget.style),
       ),
     );
   }

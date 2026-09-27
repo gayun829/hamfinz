@@ -160,4 +160,36 @@ void main() {
     expect(find.text('정말 로그아웃하시겠어요?'), findsNothing);
     expect(loggedOut, isFalse);
   });
+
+  testWidgets('logout popup buttons turn sky blue only while pressed',
+      (tester) async {
+    await pumpSettings(tester, const Size(393, 852));
+    await tester.ensureVisible(find.text('로그아웃/ 계정전환'));
+    await tester.tap(find.text('로그아웃/ 계정전환'));
+    await tester.pumpAndSettle();
+
+    // '로그아웃'은 제목에도 있으므로 마지막(버튼) 것을 쓴다.
+    Color? fillOf(String label) {
+      final box = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(label).last, matching: find.byType(Container))
+            .first,
+      );
+      return (box.decoration as BoxDecoration?)?.color;
+    }
+
+    const sky = Color(0xFFDDF5FF);
+    expect(fillOf('취소'), Colors.transparent);
+    expect(fillOf('로그아웃'), Colors.transparent);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('취소')),
+    );
+    await tester.pump();
+    expect(fillOf('취소'), sky);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(find.text('정말 로그아웃하시겠어요?'), findsNothing);
+  });
 }
