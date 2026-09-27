@@ -22,6 +22,7 @@ class AuthService {
   final _nicknames = FirebaseFirestore.instance.collection('nicknames');
   final _emails = FirebaseFirestore.instance.collection('emails');
   final _friendships = FirebaseFirestore.instance.collection('friendships');
+  final _streaks = FirebaseFirestore.instance.collection('streaks');
 
   Future<String?> getCurrentEmail() async => _auth.currentUser?.email;
 
@@ -442,10 +443,24 @@ class AuthService {
     await _emails.doc(emailLower).set({'uid': uid, 'nickname': nickname});
   }
 
+  /// 친구 경쟁용 `streaks/{uid}`를 users 문서 값으로 맞춘다. 로그인마다 덮어써서
+  /// 이 인덱스가 생기기 전 계정도 채워진다. 실패해도 로그인은 막지 않는다
+  /// (Rules 배포 전 등) — 친구에게 내 연속학습이 0으로 보일 뿐이다.
+  Future<void> _publishStreak(String uid, Map<String, dynamic>? user) async {
+    if (user == null) return;
+    try {
+      await _streaks.doc(uid).set({
+        'streak': (user['streak'] as num?)?.toInt() ?? 0,
+        'lastQuizCompletedDate': user['lastQuizCompletedDate'] as String?,
+      });
+    } on FirebaseException catch (_) {}
+  }
+
   /// nicknames/emails 인덱스가 생기기 전에 가입한 기존 계정을 위한 백필.
   /// 로그인할 때마다 호출하되, 내 uid로 인덱스가 이미 있으면 아무 것도 안 해서 저렴하다.
   Future<void> _backfillSearchIndexes(User user) async {
     final profileDoc = await _users.doc(user.uid).get();
+    await _publishStreak(user.uid, profileDoc.data());
     final nickname = profileDoc.data()?['nickname'] as String?;
     if (nickname == null || nickname.isEmpty) return;
 
@@ -541,6 +556,11 @@ class AuthService {
       }
       if (nickname.isNotEmpty) await _nicknames.doc(nickname).delete();
       if (email.isNotEmpty) await _emails.doc(email).delete();
+      // friendships를 이미 지워서 남아도 아무도 못 읽는다 — Rules 배포 전이라
+      // 막혀도 탈퇴는 계속한다.
+      try {
+        await _streaks.doc(user.uid).delete();
+      } on FirebaseException catch (_) {}
       await _users.doc(user.uid).delete();
 
       // ponytail: sessions·mastered 서브컬렉션은 Rules가 delete를 막아 남는다.

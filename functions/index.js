@@ -1,6 +1,5 @@
 const { learningDatesFromUser } = require('./learning_dates');
 const { completionEnergyReward } = require('./quiz_energy');
-const { effectiveStreak, rankParticipants } = require('./friends_ranking');
 const {
   hasIncorrectQuestionCounts,
   planSessionIncorrectQuestions,
@@ -12,7 +11,6 @@ const {
  *   reconcileIncorrectQuestions (복습할 수 없는 오답 정리)
  * Shop — purchaseShopItem (씨앗 차감 상점 구매)
  * News — fetchNewsFeed (웹 빌드용 구글뉴스 RSS 프록시)
- * Friends — getFriendsRanking (캘린더 "이번 달 친구와의 경쟁" 순위)
  *
  * deploy: firebase deploy --only functions
  */
@@ -700,43 +698,4 @@ exports.fetchNewsFeed = onCall({ region: 'asia-northeast3' }, async (request) =>
     throw new HttpsError('unavailable', `뉴스 응답 오류 (${res.status})`);
   }
   return { xml: await res.text() };
-});
-
-// 캘린더 "이번 달 친구와의 경쟁" 순위. `users/{uid}`는 본인만 읽을 수 있어서 친구의
-// streak은 클라이언트가 직접 못 읽는다. 여기서 수락된 friendships로 친구인지 확인한 뒤
-// 닉네임·연속학습 일수만 돌려준다 — users 문서의 다른 필드는 밖으로 내보내지 않는다.
-exports.getFriendsRanking = onCall({ region: 'asia-northeast3' }, async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError('unauthenticated', '로그인이 필요해요.');
-  }
-
-  const friendships = await db
-    .collection('friendships')
-    .where('uids', 'array-contains', uid)
-    .where('status', '==', 'accepted')
-    .get();
-  const friendUids = [...new Set(friendships.docs
-    .map((doc) => (doc.get('uids') || []).find((other) => other !== uid))
-    .filter((other) => typeof other === 'string' && other))];
-
-  const refs = [uid, ...friendUids].map((id) => db.collection('users').doc(id));
-  const snaps = await db.getAll(...refs);
-  const today = todayKey();
-  const yesterday = yesterdayKey();
-
-  const participants = snaps
-    .filter((snap) => snap.exists)
-    .map((snap) => {
-      const user = snap.data();
-      return {
-        uid: snap.id,
-        nickname: typeof user.nickname === 'string' ? user.nickname : '',
-        streak: effectiveStreak(user, today, yesterday),
-        todayCompleted: user.lastQuizCompletedDate === today,
-        isMe: snap.id === uid,
-      };
-    });
-
-  return { friendCount: friendUids.length, participants: rankParticipants(participants) };
 });

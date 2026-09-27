@@ -32,7 +32,7 @@
 
 | 단계 | 내용 | 비고 |
 |------|------|------|
-| 1. 친구 랭킹 실데이터 연결 | `streak_calendar_screen.dart`의 "이번 달 친구와의 경쟁" 위젯을 `StreakCalendarMock.friends` 목업 대신 실제 `friendships` + 각 친구의 streak로 연결 | 구현됨 — `getFriendsRanking` Function이 닉네임·streak만 돌려준다. Function 배포와 Auth owner 리뷰 남음 (`backend-schema.md` §6 참고) |
+| 1. 친구 랭킹 실데이터 연결 | `streak_calendar_screen.dart`의 "이번 달 친구와의 경쟁" 위젯을 `StreakCalendarMock.friends` 목업 대신 실제 `friendships` + 각 친구의 streak로 연결 | 구현됨 — 친구만 읽을 수 있는 `streaks/{uid}` 인덱스. Rules 배포와 Auth owner 리뷰 남음 (`backend-schema.md` §6 참고) |
 | 2. 넛지(콕 찌르기) | 오늘 학습 안 한 친구에게 리마인드 알림 보내기 | 새 재화·경제 로직 없이 푸시 알림만 필요해서 구현 부담이 작음 |
 | 3. 마일스톤 응원 리액션 | 스트릭 마일스톤 달성 시 친구가 축하 리액션 (햄스터 테마로 각색 — 예: "쓰다듬기"/"해바라기씨 주기" 이모트) | 실 재화 이동 없이 앱 톤에 맞는 가벼운 소셜 터치 |
 | 4. 우정 퀘스트 | 친구와 2인 팀으로 주간 목표(예: 이번 주 함께 퀴즈 30문제) 달성 시 보상 | 기존 세션 기록과 씨앗 보상 로직 재사용 가능 |
