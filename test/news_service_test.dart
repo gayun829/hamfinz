@@ -109,6 +109,17 @@ void main() {
     expect(matchFinanceTerm('메디포스트, 신임 대표 영입'), isNull);
   });
 
+  test('부분 문자열로 엉뚱한 용어를 잡지 않는다', () {
+    // '차주'(돈 빌린 사람)·'고금리'가 더 긴 단어 안에 숨어 있는 제목들.
+    expect(matchFinanceTerm('자동차주 일제히 강세…현대차 3%↑')?.term, '자동차주');
+    expect(matchFinanceTerm('완성차주 반등')?.term, '완성차주');
+    expect(matchFinanceTerm('법정 최고금리 20%로 인하 검토')?.term, '최고금리');
+    expect(matchFinanceTerm('카드사 최고금리 낮춘다')?.term, '최고금리');
+    // TV 수신료는 은행 수신(예금)이 아니다.
+    expect(matchFinanceTerm('KBS 수신료 분리징수 원상복구'), isNull);
+    expect(matchFinanceTerm('수신료 논란 속 은행 수신 잔액 증가')?.term, '수신');
+  });
+
   test('용어마다 실재하는 관심 카테고리 id가 붙어 있다', () {
     const validIds = {
       'allowance',
@@ -153,9 +164,12 @@ void main() {
     expect(lessons.map((t) => t.quiz!.answer).toSet().length, 3);
   });
 
-  test('설명이 없는 용어는 학습으로 안 이어진다', () {
-    final bare = kFinanceTerms.firstWhere((t) => t.quiz == null);
-    expect(bare.hasLesson, isFalse);
+  test('뉴스 목록에 오르는 용어는 모두 퀴즈가 있다', () {
+    // 필터에만 걸리고 퀴즈가 없으면 기사를 눌러도 아무것도 안 뜬다.
+    for (final term in kFinanceTerms) {
+      expect(term.hasLesson, isTrue, reason: term.term);
+    }
+    expect(const FinanceTerm(term: '빈칸', categoryId: 'saving').hasLesson, isFalse);
   });
 
   test('길이가 같으면 제목에서 먼저 나온 용어를 고른다', () {

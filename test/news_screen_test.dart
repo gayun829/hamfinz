@@ -17,7 +17,7 @@ String _titleFor(FinanceTerm term) {
 String _chipLabel(FinanceTerm term) =>
     '${findInterestCategory(term.categoryId)?.emoji ?? '📰'} ${term.term}';
 
-/// 뜻이 있는 용어 3개와 뜻이 없는 용어 1개.
+/// 뜻이 있는 용어 3개.
 ///
 /// [NewsService]가 목록을 캐시해서 테스트 사이에 같은 피드를 써야 한다.
 final _withSummary = [
@@ -27,14 +27,9 @@ final _withSummary = [
       term,
 ].take(3).toList();
 
-final _withoutSummary = kFinanceTerms.firstWhere(
-  (term) =>
-      term.summary.isEmpty &&
-      matchFinanceTerm('${term.term} 관련 소식')?.term == term.term,
-);
 
 String get _rss {
-  final titles = [..._withSummary.map(_titleFor), _titleFor(_withoutSummary)];
+  final titles = _withSummary.map(_titleFor).toList();
   final items = [
     for (var i = 0; i < titles.length; i++)
       '<item><title>${titles[i]}</title><link>https://example.com/$i</link>'
@@ -83,13 +78,12 @@ void main() {
   final chipFinder = find.text(_chipLabel(_withSummary.first));
   final tipFinder = find.text(_withSummary.first.summary);
 
-  testWidgets('뜻이 있는 용어만 칩으로 올린다', (tester) async {
+  testWidgets('기사에서 잡은 용어를 칩으로 올린다', (tester) async {
     await withFeed(() async {
       await pumpNews(tester);
       for (final term in _withSummary) {
         expect(find.text(_chipLabel(term)), findsOneWidget, reason: term.term);
       }
-      expect(find.text(_chipLabel(_withoutSummary)), findsNothing);
     });
   });
 

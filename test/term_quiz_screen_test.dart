@@ -59,6 +59,10 @@ void main() {
 
     await tester.tap(find.text('정답 보기'));
     await tester.pumpAndSettle();
+    // 틀렸다는 게 글로 바로 보인다.
+    expect(find.text('아쉬워요, 틀렸어요'), findsOneWidget);
+    expect(find.byIcon(Icons.cancel), findsWidgets);
+    await tester.ensureVisible(find.text('해설 보기'));
     await tester.tap(find.text('해설 보기'));
     await tester.pumpAndSettle();
 

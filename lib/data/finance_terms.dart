@@ -7,8 +7,8 @@
 /// 2. **뉴스 용어 퀴즈** — RSS는 본문을 안 준다. 그래서 기사를 시험 보지 않고,
 ///    제목에서 잡은 용어 하나를 3지선다 한 문제로 묻고 해설로 가르친다.
 ///
-/// 설명·문제가 붙은 용어만 학습으로 이어진다([FinanceTerm.hasLesson]).
-/// 나머지는 필터로만 쓰인다 — 자주 걸리는 용어부터 채워 나가면 된다.
+/// 목록에 오른 기사는 눌렀을 때 퀴즈가 떠야 하므로, 용어를 추가할 때는
+/// 설명·문제까지 같이 채운다([FinanceTerm.hasLesson], 테스트가 막는다).
 library;
 
 /// 용어 하나에 붙는 3지선다 한 문제.
@@ -146,7 +146,22 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '예금·적금은 원금이 보장된다. 원금이 줄 수 있는 건 주식·펀드처럼 투자하는 상품이다.',
     ),
   ),
-  FinanceTerm(term: '수신', categoryId: 'saving'),
+  FinanceTerm(
+    term: '수신',
+    categoryId: 'saving',
+    summary: '은행이 고객에게서 받아 맡아 둔 돈. 예금·적금이 여기에 든다.',
+    forMe: '내 예금이 은행 입장에선 수신이다. 「수신금리」는 예금 금리를 말한다.',
+    quiz: TermQuiz(
+      question: '은행 뉴스에 「수신 잔액이 늘었다」는 무슨 뜻일까?',
+      options: [
+        '사람들이 은행에 맡긴 돈이 늘었다',
+        '은행이 빌려준 돈이 늘었다',
+        '은행이 번 이자 수익이 늘었다',
+      ],
+      answer: 0,
+      why: '수신은 은행이 「받은」 돈이다. 은행이 빌려준 돈은 반대말인 여신이라고 부른다.',
+    ),
+  ),
   FinanceTerm(
     term: '고금리',
     categoryId: 'saving',
@@ -229,10 +244,87 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '못 갚아도 은행이 집을 팔아 회수할 수 있어 떼일 위험이 작기 때문이다. 다만 LTV 규제가 있어 집값 전액을 빌릴 수는 없다.',
     ),
   ),
-  FinanceTerm(term: '주담대', categoryId: 'credit'),
-  FinanceTerm(term: '전세대출', categoryId: 'credit'),
-  FinanceTerm(term: '가계대출', categoryId: 'credit'),
-  FinanceTerm(term: '신용대출', categoryId: 'credit'),
+  FinanceTerm(
+    term: '주담대',
+    categoryId: 'credit',
+    summary: '주택담보대출의 줄임말. 집을 담보로 잡고 빌리는 돈.',
+    forMe: '집을 맡기는 만큼 금리는 낮은 편이지만, 못 갚으면 집이 넘어갈 수 있다.',
+    quiz: TermQuiz(
+      question: '주담대 금리가 신용대출보다 보통 낮은 이유는?',
+      options: [
+        '집이 담보라 은행이 떼일 위험이 적어서',
+        '정부가 이자 절반을 대신 내 줘서',
+        '빌리는 기간이 훨씬 짧아서',
+      ],
+      answer: 0,
+      why: '못 갚아도 은행이 집을 팔아 돈을 돌려받을 수 있다. 위험이 적으니 이자를 덜 받는다.',
+    ),
+  ),
+  FinanceTerm(
+    term: '전세대출',
+    categoryId: 'credit',
+    summary: '전세 보증금을 내려고 빌리는 대출.',
+    forMe: '보증금 일부를 빌리고 계약 기간 동안 이자를 낸다. 원금은 보통 계약이 끝날 때 갚는다.',
+    quiz: TermQuiz(
+      question: '전세대출 원금은 보통 언제 갚을까?',
+      options: [
+        '계약이 끝나 보증금을 돌려받을 때',
+        '매달 월세처럼 조금씩 나눠서',
+        '집주인이 대신 갚아 줘서 안 갚는다',
+      ],
+      answer: 0,
+      why: '대부분 만기에 한 번에 갚는 방식이다. 그동안은 이자만 내고, 돌려받은 보증금으로 원금을 갚는다.',
+    ),
+  ),
+  FinanceTerm(
+    term: '가계대출',
+    categoryId: 'credit',
+    summary: '개인·가정이 빌린 돈을 모두 합친 것. 주담대·신용대출이 다 들어간다.',
+    forMe: '가계대출이 빨리 늘면 정부가 규제를 조여서 내가 빌릴 수 있는 한도가 줄 수 있다.',
+    quiz: TermQuiz(
+      question: '「가계대출이 급증」하면 정부가 흔히 꺼내는 대책은?',
+      options: [
+        '대출 한도를 줄이는 규제',
+        '대출 금리를 0%로 내리기',
+        '예금 이자를 정부가 보태 주기',
+      ],
+      answer: 0,
+      why: '빚이 너무 빨리 늘면 갚지 못하는 사람이 늘어난다. 그래서 대출 문턱을 높여 속도를 늦춘다.',
+    ),
+  ),
+  FinanceTerm(
+    term: '신용대출',
+    categoryId: 'credit',
+    summary: '담보 없이 내 신용만 보고 빌려주는 대출.',
+    forMe: '빨리 빌릴 수 있지만 담보대출보다 금리가 높다. 신용점수에 따라 한도와 금리가 달라진다.',
+    quiz: TermQuiz(
+      question: '신용대출 금리를 정하는 데 가장 크게 작용하는 것은?',
+      options: [
+        '내 신용점수와 소득',
+        '내가 사는 동네',
+        '대출을 신청한 요일',
+      ],
+      answer: 0,
+      why: '담보가 없으니 은행은 「이 사람이 잘 갚을까」만 본다. 그래서 신용점수와 소득이 금리를 가른다.',
+    ),
+  ),
+  // 「최고금리」는 법정 상한 얘기라 '고금리'로 가르치면 반대가 된다. 길이 우선으로 먼저 잡는다.
+  FinanceTerm(
+    term: '최고금리',
+    categoryId: 'credit',
+    summary: '법으로 정한 대출 이자의 상한. 2021년부터 연 20%다.',
+    forMe: '이보다 높은 이자는 불법이다. 상한이 내려가면 이자 부담은 줄지만 대출 문턱이 높아지기도 한다.',
+    quiz: TermQuiz(
+      question: '법정 최고금리를 넘는 이자를 요구받았다면?',
+      options: [
+        '넘는 부분은 무효라 안 내도 된다',
+        '계약서에 썼으니 다 내야 한다',
+        '은행만 해당돼서 나랑은 상관없다',
+      ],
+      answer: 0,
+      why: '최고금리를 넘는 이자 약정은 그 넘는 부분이 무효다. 은행뿐 아니라 대부업·개인 간 거래에도 적용된다.',
+    ),
+  ),
   FinanceTerm(
     term: '대출금리',
     categoryId: 'credit',
@@ -285,16 +377,16 @@ const List<FinanceTerm> kFinanceTerms = [
     term: '연체',
     categoryId: 'credit',
     summary: '갚기로 한 날짜를 넘겨 못 갚는 것.',
-    forMe: '며칠만 늦어도 기록이 남고, 다음 대출 금리가 올라간다.',
+    forMe: '하루만 늦어도 연체이자가 붙고, 길어지면 기록이 남아 다음 대출 금리가 올라간다.',
     quiz: TermQuiz(
       question: '카드값을 5일 늦게 냈다. 어떻게 될까?',
       options: [
         '아무 일도 없다',
-        '연체 기록이 남고 신용점수가 떨어진다',
+        '연체이자가 붙고, 길어지면 신용점수가 떨어진다',
         '다음 달에 몰아서 내면 된다',
       ],
       answer: 1,
-      why: '짧은 연체도 기록에 남고 연체이자가 붙는다. 점수가 떨어지면 다음에 빌릴 때 금리가 올라간다.',
+      why: '하루만 늦어도 연체이자가 붙는다. 10만 원 이상을 5영업일 넘게 못 갚으면 기록이 남아 점수가 떨어지고, 다음에 빌릴 때 금리가 올라간다.',
     ),
   ),
   FinanceTerm(
@@ -347,7 +439,55 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '성장하는 중소·벤처기업을 위해 따로 만든 시장이다. 회사 규모가 작아 변동도 크다.',
     ),
   ),
-  FinanceTerm(term: '공모주', categoryId: 'stock'),
+  FinanceTerm(
+    term: '공모주',
+    categoryId: 'stock',
+    summary: '회사가 상장하면서 일반 투자자에게 처음 파는 주식.',
+    forMe: '청약으로 신청하는데, 경쟁이 세면 몇 주밖에 못 받는다. 상장 첫날 공모가보다 떨어질 수도 있다.',
+    quiz: TermQuiz(
+      question: '공모주에 대해 맞는 말은?',
+      options: [
+        '상장 뒤 공모가보다 떨어질 수도 있다',
+        '상장하면 반드시 가격이 오른다',
+        '신청한 만큼 전부 배정받는다',
+      ],
+      answer: 0,
+      why: '공모주도 주식이라 손해가 날 수 있다. 인기가 많으면 신청한 양보다 훨씬 적게 받는다.',
+    ),
+  ),
+  // 자동차 업종 주식. 없으면 부분 문자열 '차주'(돈 빌린 사람)로 잡힌다.
+  FinanceTerm(
+    term: '자동차주',
+    categoryId: 'stock',
+    summary: '현대차·기아처럼 자동차 업종 회사의 주식.',
+    forMe: '환율·수출 실적·관세 소식에 같이 움직일 때가 많다.',
+    quiz: TermQuiz(
+      question: '「자동차주 일제히 강세」는 무슨 뜻일까?',
+      options: [
+        '자동차 회사들 주가가 함께 올랐다',
+        '자동차 대출을 받은 사람이 늘었다',
+        '자동차를 새로 산 사람이 늘었다',
+      ],
+      answer: 0,
+      why: '「○○주」는 그 업종 주식을 묶어 부르는 말이다. 돈을 빌린 사람을 뜻하는 「차주」와는 다르다.',
+    ),
+  ),
+  FinanceTerm(
+    term: '완성차주',
+    categoryId: 'stock',
+    summary: '부품 회사가 아니라 완성된 자동차를 만들어 파는 회사의 주식.',
+    forMe: '같은 자동차 업종이라도 완성차주와 부품주가 따로 움직일 때가 있다.',
+    quiz: TermQuiz(
+      question: '다음 중 「완성차주」에 해당하는 회사는?',
+      options: [
+        '자동차를 만들어 파는 회사',
+        '타이어만 만들어 납품하는 회사',
+        '자동차 보험을 파는 회사',
+      ],
+      answer: 0,
+      why: '완성차는 다 만든 자동차를 말한다. 타이어·부품 회사는 「부품주」로 따로 묶는다.',
+    ),
+  ),
   FinanceTerm(
     term: '증시',
     categoryId: 'stock',
@@ -444,7 +584,22 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '금리와 채권 가격은 반대로 움직인다. 새로 나온 채권이 이자를 더 주면, 이자가 적은 옛 채권은 값을 깎아야 팔린다.',
     ),
   ),
-  FinanceTerm(term: '상장', categoryId: 'stock'),
+  FinanceTerm(
+    term: '상장',
+    categoryId: 'stock',
+    summary: '회사 주식을 거래소에 올려 누구나 사고팔 수 있게 하는 것.',
+    forMe: '상장된 주식은 증권 앱에서 바로 살 수 있다. 상장폐지되면 사고팔기 어려워진다.',
+    quiz: TermQuiz(
+      question: '회사가 「코스피에 상장했다」는 건?',
+      options: [
+        '누구나 증권사에서 그 주식을 살 수 있다',
+        '정부가 그 회사를 사들였다',
+        '회사가 은행에서 큰돈을 빌렸다',
+      ],
+      answer: 0,
+      why: '상장 전에는 아는 사람끼리만 주식을 주고받는다. 상장하면 거래소에서 누구나 사고판다.',
+    ),
+  ),
 
   // 세금
   FinanceTerm(
@@ -463,7 +618,22 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '소득공제는 세금을 계산하기 전 소득을 줄이고, 세액공제는 계산된 세금에서 바로 뺀다.',
     ),
   ),
-  FinanceTerm(term: '세액공제', categoryId: 'tax'),
+  FinanceTerm(
+    term: '세액공제',
+    categoryId: 'tax',
+    summary: '계산된 세금에서 일정 금액을 바로 빼 주는 것.',
+    forMe: '연말정산 때 연금저축·월세 같은 항목이 세액공제라 돌려받는 돈에 바로 붙는다.',
+    quiz: TermQuiz(
+      question: '세액공제가 소득공제와 다른 점은?',
+      options: [
+        '내야 할 세금 자체에서 바로 뺀다',
+        '세금 낼 날짜를 다음 해로 미룬다',
+        '세금을 매기는 소득을 줄여 준다',
+      ],
+      answer: 0,
+      why: '소득공제는 세금을 매기는 소득을 줄이고, 세액공제는 다 계산된 세금에서 바로 뺀다.',
+    ),
+  ),
   FinanceTerm(
     term: '연말정산',
     categoryId: 'tax',
@@ -480,7 +650,22 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '미리 뗀 돈이 실제 세금보다 적었으면 그만큼 더 낸다. 프리랜서·사업자는 이듬해 5월 종합소득세로 따로 신고한다.',
     ),
   ),
-  FinanceTerm(term: '원천징수', categoryId: 'tax'),
+  FinanceTerm(
+    term: '원천징수',
+    categoryId: 'tax',
+    summary: '월급·이자를 줄 때 세금을 미리 떼고 주는 것.',
+    forMe: '예금 이자에서 15.4%가 빠지고 들어오는 게 원천징수다.',
+    quiz: TermQuiz(
+      question: '예금 이자가 생각보다 적게 들어온 이유는?',
+      options: [
+        '세금을 미리 떼고 줘서',
+        '은행이 수수료를 떼서',
+        '그사이 물가가 올라서',
+      ],
+      answer: 0,
+      why: '이자소득에는 15.4%(소득세 14% + 지방소득세 1.4%)가 원천징수된다.',
+    ),
+  ),
   FinanceTerm(
     term: '종합소득세',
     categoryId: 'tax',
@@ -497,8 +682,38 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '전년도 소득을 이듬해 5월에 신고·납부한다. 근로소득만 있으면 연말정산으로 끝나서 따로 안 한다.',
     ),
   ),
-  FinanceTerm(term: '비과세', categoryId: 'tax'),
-  FinanceTerm(term: '과세', categoryId: 'tax'),
+  FinanceTerm(
+    term: '비과세',
+    categoryId: 'tax',
+    summary: '세금을 매기지 않는 것.',
+    forMe: '비과세 상품은 이자에서 15.4%를 떼지 않아, 같은 금리라도 손에 쥐는 돈이 더 많다.',
+    quiz: TermQuiz(
+      question: '금리가 똑같다면 손에 쥐는 이자가 더 많은 쪽은?',
+      options: [
+        '비과세 예금',
+        '세금을 떼는 일반 예금',
+        '두 예금이 똑같다',
+      ],
+      answer: 0,
+      why: '일반 예금은 이자에서 15.4%를 떼고 준다. 비과세는 그만큼이 내 몫으로 남는다.',
+    ),
+  ),
+  FinanceTerm(
+    term: '과세',
+    categoryId: 'tax',
+    summary: '소득이나 거래에 세금을 매기는 것.',
+    forMe: '「과세 대상」이면 그 소득에서 세금이 나간다. 주식 수익에 세금을 매길지가 뉴스가 되기도 한다.',
+    quiz: TermQuiz(
+      question: '「과세 대상 소득」이라는 말은?',
+      options: [
+        '세금을 내야 하는 소득',
+        '세금을 돌려받는 소득',
+        '신고하지 않아도 되는 소득',
+      ],
+      answer: 0,
+      why: '과세는 세금을 매긴다는 뜻이다. 세금을 안 매기는 건 반대말인 비과세다.',
+    ),
+  ),
   FinanceTerm(
     term: '세금',
     categoryId: 'tax',
@@ -533,8 +748,38 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '이름 그대로 실제 손해를 보장한다. 자기부담금이 있어 전액은 안 나온다.',
     ),
   ),
-  FinanceTerm(term: '자동차보험', categoryId: 'insurance'),
-  FinanceTerm(term: '연금보험', categoryId: 'insurance'),
+  FinanceTerm(
+    term: '자동차보험',
+    categoryId: 'insurance',
+    summary: '차 사고로 남이나 나에게 생긴 손해를 보상해 주는 보험.',
+    forMe: '차를 가지면 책임보험은 꼭 들어야 한다. 사고를 내면 다음 해 보험료가 오를 수 있다.',
+    quiz: TermQuiz(
+      question: '자동차보험에 대해 맞는 말은?',
+      options: [
+        '차를 가지면 책임보험은 꼭 들어야 한다',
+        '사고가 나도 보험료는 그대로다',
+        '원하는 사람만 들면 되는 보험이다',
+      ],
+      answer: 0,
+      why: '책임보험(대인배상Ⅰ·대물배상)은 법으로 정한 의무 보험이다. 사고 이력은 보험료에 반영된다.',
+    ),
+  ),
+  FinanceTerm(
+    term: '연금보험',
+    categoryId: 'insurance',
+    summary: '돈을 꾸준히 붓다가 나중에 연금으로 나눠 받는 보험.',
+    forMe: '오래 유지해야 손해가 없다. 일찍 해지하면 낸 돈보다 적게 돌려받을 수 있다.',
+    quiz: TermQuiz(
+      question: '연금보험을 가입 2년 만에 해지하면?',
+      options: [
+        '낸 돈보다 적게 돌려받을 수 있다',
+        '낸 돈에 이자까지 붙여 다 받는다',
+        '법으로 해지가 막혀 있다',
+      ],
+      answer: 0,
+      why: '보험은 초기에 사업비가 빠져서, 일찍 해지하면 해지환급금이 낸 돈보다 적은 경우가 많다.',
+    ),
+  ),
   FinanceTerm(
     term: '보험료',
     categoryId: 'insurance',
@@ -601,7 +846,22 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '금리를 올려 빌리고 쓰는 걸 줄이게 만들어 물가를 누른다. 가만히 둔 현금은 인플레이션만큼 매년 힘이 빠진다.',
     ),
   ),
-  FinanceTerm(term: '생활비', categoryId: 'allowance'),
+  FinanceTerm(
+    term: '생활비',
+    categoryId: 'allowance',
+    summary: '먹고 자고 다니는 데 매달 드는 돈.',
+    forMe: '고정비(월세·통신비)와 변동비(식비·쇼핑)로 나눠 보면 줄일 곳이 보인다.',
+    quiz: TermQuiz(
+      question: '다음 중 고정비에 가까운 것은?',
+      options: [
+        '매달 똑같이 나가는 통신비',
+        '친구들과 먹은 외식비',
+        '충동적으로 산 옷값',
+      ],
+      answer: 0,
+      why: '고정비는 매달 비슷하게 꼭 나가는 돈이다. 쓸 때마다 달라지는 건 변동비라 줄이기 쉽다.',
+    ),
+  ),
   FinanceTerm(
     term: '물가',
     categoryId: 'allowance',
@@ -634,7 +894,22 @@ const List<FinanceTerm> kFinanceTerms = [
       why: '같은 1달러를 사는 데 원화를 더 줘야 하기 때문이다. 수입할 때도 원화를 더 줘야 해서 기름·밀가루처럼 수입에 기대는 품목부터 값이 오른다.',
     ),
   ),
-  FinanceTerm(term: '용돈', categoryId: 'allowance'),
+  FinanceTerm(
+    term: '용돈',
+    categoryId: 'allowance',
+    summary: '정해진 기간 동안 쓰라고 받는 돈.',
+    forMe: '받자마자 저축할 몫부터 떼어 두면 남은 돈 안에서 쓰게 된다.',
+    quiz: TermQuiz(
+      question: '용돈 관리에 가장 도움이 되는 습관은?',
+      options: [
+        '받자마자 저축할 돈부터 떼기',
+        '쓰고 남으면 그때 저축하기',
+        '모자라면 다음 달 걸 당겨 받기',
+      ],
+      answer: 0,
+      why: '남으면 저축하려 하면 대개 남지 않는다. 먼저 떼어 두는 「선저축」이 가장 확실하다.',
+    ),
+  ),
   FinanceTerm(
     term: '연금',
     categoryId: 'allowance',
@@ -653,6 +928,10 @@ const List<FinanceTerm> kFinanceTerms = [
   ),
 ];
 
+/// 용어를 품고 있지만 금융과 상관없는 단어. 퀴즈가 없어도 되니 [kFinanceTerms]에
+/// 넣어 막을 수 없다 — 「KBS 수신료」를 '수신'(예금)으로 가르치면 안 된다.
+const _kNonFinanceWords = ['수신료'];
+
 /// 제목에서 용어를 찾는다. 없으면 null.
 ///
 /// 규칙 두 개.
@@ -663,6 +942,10 @@ const List<FinanceTerm> kFinanceTerms = [
 /// 「미국 국채금리 급등」처럼 2글자끼리 붙은 제목을 전부 금리로 끌어갔다.
 /// 실측으로 연합뉴스 TOP 10 중 6건이 금리였고 그중 3건이 이 동점 탓이었다.
 FinanceTerm? matchFinanceTerm(String title) {
+  // 같은 길이의 공백으로 지워서 다른 용어의 위치(규칙 2)는 그대로 둔다.
+  for (final word in _kNonFinanceWords) {
+    title = title.replaceAll(word, ' ' * word.length);
+  }
   FinanceTerm? best;
   var bestAt = -1;
   for (final candidate in kFinanceTerms) {
