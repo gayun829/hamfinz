@@ -6,6 +6,7 @@ import '../../theme/figma_quiz_ox_tokens.dart';
 import 'figma_asset_image.dart';
 import 'figma_canvas.dart';
 import 'figma_scale.dart';
+import 'quiz_coin_bar.dart';
 import 'quiz_question_layout.dart';
 
 /// Figma `137:5890` 문제 / `137:5957` 정답 / `291:971` 해설.
@@ -204,6 +205,7 @@ class FigmaQuizOxView extends StatelessWidget {
           fit: BoxFit.fill,
         ),
       ),
+      ..._coins(figma),
       FigmaBox(
         figma: figma,
         left: FigmaQuizOxTokens.qIconLeft,
@@ -357,6 +359,55 @@ class FigmaQuizOxView extends StatelessWidget {
     ];
   }
 
+  /// 햄핀이 왼쪽 코인 더미, 오른쪽 코인·금빛 막대 (Figma `639:3030`~`639:3042`).
+  List<Widget> _coins(FigmaScale figma) {
+    Widget art(String asset, Rect rect) => FigmaBox(
+      figma: figma,
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      child: FigmaSvg(asset, fit: BoxFit.fill),
+    );
+
+    return [
+      art(
+        FigmaAssets.quizOxCoinShadow,
+        const Rect.fromLTWH(305.78, 286.72, 17.024, 5.675),
+      ),
+      art(
+        FigmaAssets.quizOxCoinStack,
+        const Rect.fromLTWH(93.7, 265.7, 48.6, 51.6),
+      ),
+      art(
+        FigmaAssets.quizOxCoin,
+        const Rect.fromLTWH(263.024, 267.797, 49.4842, 49.4842),
+      ),
+      QuizCoinBar(
+        figma: figma,
+        box: const Rect.fromLTWH(304.64, 270.83, 19.178, 14.843),
+        size: const Size(7.047, 18.009),
+        degrees: 61.24,
+        radius: 11.745,
+        opacity: 0.77,
+        glowOffsetY: 0.783,
+        glowBlur: 6.499,
+        glowSpread: 1.566,
+      ),
+      QuizCoinBar(
+        figma: figma,
+        box: const Rect.fromLTWH(303.4, 256, 13.939, 9.033),
+        size: const Size(5.084, 12.992),
+        degrees: 108.98,
+        radius: 8.473,
+        opacity: 0.77,
+        glowOffsetY: 0.565,
+        glowBlur: 4.688,
+        glowSpread: 1.13,
+      ),
+    ];
+  }
+
   /// 얇은 SUIT Thin 숫자에 디자인의 1.5px stroke를 덧입힌다.
   Widget _numberText(FigmaScale figma) {
     final base = TextStyle(
@@ -404,7 +455,7 @@ class FigmaQuizOxView extends StatelessWidget {
               fontSize: figma.s(FigmaQuizOxTokens.explainTextFontSize),
               fontWeight: FontWeight.w400,
               color: Colors.black,
-              height: 1.35,
+              height: FigmaQuizOxTokens.questionLineHeight,
             ),
           ),
         ),

@@ -154,6 +154,29 @@ bool isReviewableQuestion(Map<String, dynamic>? question, String categoryId) {
   return incorrectQuestionCategoryId(question) == categoryId;
 }
 
+/// 오답 정리용으로 읽은 문제. 문서가 없다고 확인된 경우만 [deleted]다.
+typedef ReconcileQuestion = ({bool deleted, Map<String, dynamic>? data});
+
+/// 한 카테고리 오답 문서를 정리할 계획. 문제가 삭제된 오답만 지우고([removeIds]),
+/// 복습할 수 있는 오답만 센다([countedIds]). 비활성·카테고리 변경 문제는 기록을
+/// 남겨 두어 다시 복습할 수 있게 되면 다음 정리 때 오답 수로 돌아온다.
+({List<String> removeIds, List<String> countedIds})
+planIncorrectQuestionReconcile({
+  required Map<String, ReconcileQuestion> questionsById,
+  required String categoryId,
+}) {
+  final removeIds = <String>[];
+  final countedIds = <String>[];
+  for (final MapEntry(key: id, value: question) in questionsById.entries) {
+    if (question.deleted) {
+      removeIds.add(id);
+    } else if (isReviewableQuestion(question.data, categoryId)) {
+      countedIds.add(id);
+    }
+  }
+  return (removeIds: removeIds, countedIds: countedIds);
+}
+
 /// [categoryId] 오답 수를 [available]로 맞춘 맵. 0이면 키를 지운다.
 Map<String, int> withCategoryIncorrectCount(
   Map<String, int> counts,

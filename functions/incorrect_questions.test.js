@@ -126,8 +126,8 @@ test('inactive, deleted or moved questions are not reviewable', () => {
   assert.equal(isReviewableQuestion({ isActive: true }, 'allowance'), true);
 });
 
-test('reconcile drops unreviewable wrong answers so review can end', () => {
-  // 11개 중 2개가 비활성화·삭제 → 9개만 남아 복습 기준(10 초과) 아래로 내려간다.
+test('reconcile stops counting unreviewable wrong answers so review can end', () => {
+  // 11개 중 비활성화·삭제·카테고리 변경 3개 → 8개만 세어 복습 기준 아래로 내려간다.
   const incorrectDocs = Array.from({ length: 11 }, (_, i) => ({
     id: `q${i}`,
     data: { categoryId: 'saving' },
@@ -137,6 +137,7 @@ test('reconcile drops unreviewable wrong answers so review can end', () => {
     questionsById[doc.id] = { isActive: true, categoryId: 'saving' };
   }
   questionsById.q3 = { isActive: false, categoryId: 'saving' };
+  questionsById.q5 = { isActive: true, categoryId: 'stock' };
   questionsById.q7 = null;
 
   const plan = reconcileCategoryIncorrectQuestions({
@@ -145,10 +146,42 @@ test('reconcile drops unreviewable wrong answers so review can end', () => {
     incorrectDocs,
     questionsById,
   });
-  assert.deepEqual(plan.removeIds, ['q3', 'q7']);
-  assert.deepEqual(plan.counts, { saving: 9, stock: 2 });
-  assert.equal(plan.total, 11);
+  // 삭제된 문제만 문서를 지운다. 비활성·카테고리 변경은 기록을 남긴다.
+  assert.deepEqual(plan.removeIds, ['q7']);
+  assert.equal(plan.available, 8);
+  assert.deepEqual(plan.counts, { saving: 8, stock: 2 });
+  assert.equal(plan.total, 10);
   assert.equal(plan.changed, true);
+});
+
+test('reconcile counts a reactivated question again', () => {
+  const incorrectDocs = [
+    { id: 'a', data: { categoryId: 'saving', wrongCount: 3 } },
+    { id: 'b', data: { categoryId: 'saving' } },
+  ];
+  const inactive = reconcileCategoryIncorrectQuestions({
+    counts: { saving: 2 },
+    categoryId: 'saving',
+    incorrectDocs,
+    questionsById: {
+      a: { isActive: false, categoryId: 'saving' },
+      b: { isActive: true, categoryId: 'saving' },
+    },
+  });
+  assert.deepEqual(inactive.removeIds, []);
+  assert.deepEqual(inactive.counts, { saving: 1 });
+
+  const reactivated = reconcileCategoryIncorrectQuestions({
+    counts: inactive.counts,
+    categoryId: 'saving',
+    incorrectDocs,
+    questionsById: {
+      a: { isActive: true, categoryId: 'saving' },
+      b: { isActive: true, categoryId: 'saving' },
+    },
+  });
+  assert.deepEqual(reactivated.counts, { saving: 2 });
+  assert.equal(reactivated.changed, true);
 });
 
 test('reconcile resets a count that has no wrong-answer docs behind it', () => {

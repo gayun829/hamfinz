@@ -9,19 +9,22 @@
 | 세션당 문제 수 | 10 |
 | 문제 풀 | Firestore `quizQuestions` (`isActive == true`) |
 | 정답당 씨앗 | +5 |
-| 최대 에너지 | 100 |
+| 에너지 한도 | **없음** |
 | 문제 1개당 에너지 | −5 (잠정, 변동 가능) |
 | 세션 완료 에너지 보상 | 실제 소모량 이내에서 **최대 +20** |
 | 세션 시작 최소 에너지 | **50** (10×5) |
 | 일일 학습 횟수 제한 | **없음** (에너지만 있으면 반복) |
-| 에너지 회복 | 날짜가 바뀌면 100으로 리셋 |
+| 매일 지급 | 그날 **첫 접속** 때 +100 (접속하지 않은 날 몫은 쌓이지 않음) |
+| 추가 획득 | 상점 에너지팩 구매 (씨앗) |
 
-에너지 회복은 **읽을 때 계산하고 쓸 때 저장한다** (`lib/utils/energy_reset.dart`).
-`AuthService._profileFromJson`은 화면용으로만 계산하고 저장하지 않으므로,
-저장값을 깎는 쪽(`submitAnswer`·`completeSession`·`ShopPurchaseRepository`·
-Functions `resolveEnergy`)이 `energy`와 `lastEnergyResetDate`를 **같이** 써야 한다.
-한쪽만 빠지면 저장된 에너지가 날짜가 바뀌어도 깎이기만 해서, 화면은 100인데
-제출은 "에너지가 부족해요"로 막히는 상태가 된다.
+매일 지급은 **접속할 때 저장한다**. `AuthService.getCurrentUser`가 그날 첫 조회에서
+`lastEnergyResetDate`가 오늘이 아니면 `energy += 100`, `lastEnergyResetDate = 오늘`을
+저장한다 (개발: 클라이언트 트랜잭션, 배포: Cloud Function `claimDailyEnergy`).
+
+그 저장이 실패해도 한 날에 한 번만 지급되도록, 에너지를 쓰는 쪽
+(`submitAnswer`·`completeSession`·`abandonSession`·`ShopPurchaseRepository`·
+Functions `resolveEnergy`)도 같은 규칙(`lib/utils/energy_reset.dart`
+`resolveDailyEnergy`)으로 계산하고 `energy`와 `lastEnergyResetDate`를 **같이** 쓴다.
 
 ## 출제
 
@@ -66,9 +69,8 @@ Functions `resolveEnergy`)이 `energy`와 `lastEnergyResetDate`를 **같이** �
 
 - 씨앗(`정답 수 × 5`) · 카테고리 통계 · `learningDates` · streak 갱신  
 - **에너지 보상:** 실제 소모량 이내에서 최대 `+20`
-  (`QuizData.sessionCompleteEnergyReward`, 100을 넘지 않게 clamp).
-  1문제 복습에서 5를 썼다면 최대 5만 돌려주며, 실제로 채워진 양만
-  `energyEarned`로 내려간다 — 98이었으면 `+2`.
+  (`QuizData.sessionCompleteEnergyReward`). 1문제 복습에서 5를 썼다면 5만
+  돌려준다. 한도가 없으므로 보상 전체가 `energyEarned`로 내려간다.
   Functions 쪽 `ENERGY_SESSION_COMPLETE_REWARD`와 값을 맞춰야 한다.  
 - **Streak:** `todayQuizCompleted`가 false일 때만 (하루 첫 세션)  
   - 어제 완료 → +1  

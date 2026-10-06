@@ -128,15 +128,18 @@ function planSessionIncorrectQuestions({
 }
 
 // 복습에 낼 수 있는 문제인지. 삭제·비활성화되었거나 카테고리가 바뀐 문제는
-// 복습에서 나오지 않으므로 오답 수에도 남겨 두면 안 된다 (복습 홈에 갇힘).
+// 복습에서 나오지 않으므로 오답 수에 세면 안 된다 (복습 홈에 갇힘).
 function isReviewableQuestion(question, categoryId) {
   if (!question || question.isActive !== true) return false;
   return (question.categoryId || 'allowance') === categoryId;
 }
 
 // 한 카테고리의 오답 문서를 실제 출제 가능한 문제와 맞춘다.
+// 문제가 삭제된 오답 문서만 지운다. 비활성화되었거나 카테고리가 바뀐 문제는
+// 문서(wrongCount, firstWrongAt)를 남기고 오답 수에서만 빼서, 다시 복습할 수
+// 있게 되면 다음 정리 때 오답 수로 돌아온다.
 // incorrectDocs: [{ id, data }] — 이 카테고리 오답 문서
-// questionsById: { [id]: 문제 데이터 | null(없음) }
+// questionsById: { [id]: 문제 데이터 | null(삭제됨) }
 function reconcileCategoryIncorrectQuestions({
   counts,
   categoryId,
@@ -147,10 +150,11 @@ function reconcileCategoryIncorrectQuestions({
   let available = 0;
   for (const doc of incorrectDocs) {
     if ((doc.data?.categoryId || 'allowance') !== categoryId) continue;
-    if (isReviewableQuestion(questionsById[doc.id], categoryId)) {
-      available += 1;
-    } else {
+    const question = questionsById[doc.id];
+    if (question === null) {
       removeIds.push(doc.id);
+    } else if (isReviewableQuestion(question, categoryId)) {
+      available += 1;
     }
   }
   const next = { ...(counts || {}) };
@@ -158,6 +162,7 @@ function reconcileCategoryIncorrectQuestions({
   else delete next[categoryId];
   return {
     removeIds,
+    available,
     counts: next,
     total: totalIncorrectQuestionCount(next),
     changed:

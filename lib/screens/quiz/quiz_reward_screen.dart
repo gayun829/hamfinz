@@ -27,7 +27,7 @@ class QuizRewardScreen extends StatelessWidget {
   final int totalCount;
   final int seedsEarned;
 
-  /// 세션 완료 보상 에너지. 최대치에 걸리면 실제로 채워진 만큼만 내려온다.
+  /// 세션 완료 보상 에너지.
   final int energyEarned;
 
   final VoidCallback onClaim;

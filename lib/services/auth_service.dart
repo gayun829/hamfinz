@@ -9,9 +9,11 @@ import '../data/learning_stages.dart';
 import '../data/quiz_data.dart';
 import '../models/user_profile.dart';
 import '../utils/date_helper.dart';
+import '../utils/energy_reset.dart';
 import '../utils/incorrect_questions.dart';
 import '../utils/learning_dates.dart';
 import 'incorrect_question_counts_backfill.dart';
+import 'quiz_functions_repository.dart';
 
 class AuthService {
   AuthService._();
@@ -38,7 +40,43 @@ class AuthService {
       data['incorrectQuestionCounts'] = counts;
       data['incorrectQuestionCount'] = totalIncorrectQuestionCount(counts);
     }
+    if (data['lastEnergyResetDate'] != DateHelper.todayKey()) {
+      final claimed = await _claimDailyEnergy(user.uid);
+      if (claimed != null) {
+        data['energy'] = claimed.energy;
+        data['lastEnergyResetDate'] = claimed.lastEnergyResetDate;
+      }
+    }
     return _profileFromJson(user.email ?? '', data);
+  }
+
+  /// 그날 첫 접속이면 에너지를 지급하고 저장한다. 접속하지 않은 날의 몫은
+  /// 쌓이지 않는다. 실패해도 프로필은 연다 — 에너지를 쓰는 트랜잭션이 같은
+  /// 지급을 반영한다.
+  Future<ResolvedEnergy?> _claimDailyEnergy(String uid) async {
+    try {
+      if (QuizBackendConfig.usesCloudFunctions) {
+        return await QuizFunctionsRepository.instance.claimDailyEnergy();
+      }
+      final ref = _users.doc(uid);
+      return await FirebaseFirestore.instance.runTransaction((tx) async {
+        final stored = (await tx.get(ref)).data();
+        if (stored == null) return null;
+        final resolved = resolveDailyEnergy(
+          storedEnergy: (stored['energy'] as num?)?.toInt(),
+          lastEnergyResetDate: stored['lastEnergyResetDate'] as String?,
+        );
+        if (stored['lastEnergyResetDate'] != resolved.lastEnergyResetDate) {
+          tx.update(ref, {
+            'energy': resolved.energy,
+            'lastEnergyResetDate': resolved.lastEnergyResetDate,
+          });
+        }
+        return resolved;
+      });
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 예전 계정은 오답 수가 전체 합계만 있다. 클라이언트 트랜잭션으로 제출하기
@@ -51,6 +89,15 @@ class AuthService {
       return;
     }
     await _incorrectCountsBackfill.run(uid);
+  }
+
+  /// 오답 정리 결과를 맵이 없는 예전 계정의 집계에도 반영한다.
+  void applyReconciledIncorrectCount(
+    String uid,
+    String categoryId,
+    int available,
+  ) {
+    _incorrectCountsBackfill.applyReconciled(uid, categoryId, available);
   }
 
   late final _incorrectCountsBackfill = IncorrectQuestionCountsBackfill(
@@ -694,7 +741,7 @@ class AuthService {
     'streak': 0,
     'lastQuizCompletedDate': null,
     'todayQuizCompleted': false,
-    'energy': QuizData.maxEnergy,
+    'energy': QuizData.dailyEnergyGrant,
     'lastEnergyResetDate': DateHelper.todayKey(),
     'selectedHamsterId': 'hamster_basic',
     'learningDates': <String>[],
@@ -743,13 +790,11 @@ class AuthService {
     }
 
     final today = DateHelper.todayKey();
-    var energy = data['energy'] as int? ?? QuizData.maxEnergy;
-    var lastEnergyResetDate = data['lastEnergyResetDate'] as String?;
-    // 날짜가 바뀌면 에너지를 최대로 회복한다.
-    if (lastEnergyResetDate != today) {
-      energy = QuizData.maxEnergy;
-      lastEnergyResetDate = today;
-    }
+    final energy = resolveDailyEnergy(
+      storedEnergy: (data['energy'] as num?)?.toInt(),
+      lastEnergyResetDate: data['lastEnergyResetDate'] as String?,
+      today: today,
+    );
 
     return UserProfile(
       email: email,
@@ -758,8 +803,8 @@ class AuthService {
       streak: streak,
       lastQuizCompletedDate: lastDate,
       todayQuizCompleted: todayCompleted,
-      energy: energy.clamp(0, QuizData.maxEnergy),
-      lastEnergyResetDate: lastEnergyResetDate,
+      energy: energy.energy,
+      lastEnergyResetDate: energy.lastEnergyResetDate,
 
       selectedHamsterId:
           data['selectedHamsterId'] as String? ?? 'hamster_basic',

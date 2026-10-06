@@ -105,7 +105,7 @@ class QuizSessionRepository {
 
   /// 활성 카테고리의 오답에서 최대 10문항을 다시 출제한다.
   ///
-  /// 삭제·비활성화되었거나 카테고리가 바뀐 문제는 건너뛰고 오답 목록에서 정리한다.
+  /// 삭제·비활성화되었거나 카테고리가 바뀐 문제는 건너뛰고 오답 수에서 뺀다.
   /// 복습할 문제가 하나도 없으면 일반 학습 세션을 연다 — 정리가 실패해도 사용자가
   /// 복습 홈에 갇히지 않게 한다.
   Future<QuizSession> startReviewSession({required UserProfile profile}) async {
@@ -152,6 +152,7 @@ class QuizSessionRepository {
       await _reconcileIncorrectQuestions(
         userRef: userRef,
         categoryId: categoryId,
+        profile: profile,
       );
     }
 
@@ -262,10 +263,7 @@ class QuizSessionRepository {
 
         final correctIndex = (q['correctIndex'] as num?)?.toInt() ?? 0;
         final isCorrect = selectedIndex == correctIndex;
-        energy = (energy - QuizData.energyCostPerQuestion).clamp(
-          0,
-          QuizData.maxEnergy,
-        );
+        energy = max(0, energy - QuizData.energyCostPerQuestion);
 
         tx.update(userRef, {
           'energy': energy,
@@ -317,7 +315,7 @@ class QuizSessionRepository {
   }
 
   /// 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션의 답은 정답·오답 목록에
-  /// 반영하지 않아 안 푼 문제로 남고, 쓴 에너지는 돌려준다.
+  /// 반영하지 않아 안 푼 문제로 남고, 오늘 시작한 세션이면 쓴 에너지를 돌려준다.
   /// 이미 닫힌 세션이면 그대로 둔다. 돌려준 뒤의 에너지를 반환한다.
   Future<int?> abandonSession({required String sessionId}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -336,26 +334,25 @@ class QuizSessionRepository {
         if (!sessionSnap.exists || user == null) return null;
 
         final resolved = _userEnergy(user);
-        if (sessionSnap.data()!['status'] != 'inProgress') {
+        final session = sessionSnap.data()!;
+        if (session['status'] != 'inProgress') {
           return {'energyRemaining': resolved.energy};
         }
 
-        final spent =
-            (sessionSnap.data()!['energySpent'] as num?)?.toInt() ?? 0;
-        final energyRemaining = (resolved.energy + spent).clamp(
-          0,
-          QuizData.maxEnergy,
+        final refund = abandonRefund(
+          energy: resolved.energy,
+          spent: (session['energySpent'] as num?)?.toInt() ?? 0,
         );
         tx.update(userRef, {
-          'energy': energyRemaining,
+          'energy': refund.energyRemaining,
           'lastEnergyResetDate': resolved.lastEnergyResetDate,
         });
         tx.update(sessionRef, {
           'status': 'abandoned',
-          'energyRefunded': energyRemaining - resolved.energy,
+          'energyRefunded': refund.energyRefunded,
           'abandonedAt': FieldValue.serverTimestamp(),
         });
-        return {'energyRemaining': energyRemaining};
+        return {'energyRemaining': refund.energyRemaining};
       });
       return (result?['energyRemaining'] as num?)?.toInt();
     } on FirebaseException catch (e) {
@@ -420,18 +417,19 @@ class QuizSessionRepository {
         final expectedCount =
             (session['questionCount'] as num?)?.toInt() ?? questionIds.length;
 
-        final answerDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
-        for (final qid in questionIds) {
-          final answerSnap = await tx.get(
-            sessionRef.collection('answers').doc(qid),
+        // 트랜잭션 안의 읽기는 한 번에 보내 왕복을 문제 수만큼 늘리지 않는다.
+        final answerSnaps = await Future.wait([
+          for (final qid in questionIds)
+            tx.get(sessionRef.collection('answers').doc(qid)),
+        ]);
+        final answerDocs = answerSnaps
+            .takeWhile((snap) => snap.exists)
+            .toList();
+        if (answerDocs.length < answerSnaps.length) {
+          txError.add(
+            '아직 풀지 않은 문제가 있어요. (${answerDocs.length}/$expectedCount)',
           );
-          if (!answerSnap.exists) {
-            txError.add(
-              '아직 풀지 않은 문제가 있어요. (${answerDocs.length}/$expectedCount)',
-            );
-            return null;
-          }
-          answerDocs.add(answerSnap);
+          return null;
         }
 
         if (answerDocs.length < expectedCount) {
@@ -446,11 +444,13 @@ class QuizSessionRepository {
         final user = userSnap.data()!;
 
         // 끝까지 푼 세션의 답만 정답·오답 목록에 반영한다.
-        final trackedById = <String, Map<String, dynamic>>{};
-        for (final doc in answers) {
-          final tracked = await tx.get(incorrectCol.doc(doc.id));
-          if (tracked.exists) trackedById[doc.id] = tracked.data()!;
-        }
+        final trackedSnaps = await Future.wait([
+          for (final doc in answers) tx.get(incorrectCol.doc(doc.id)),
+        ]);
+        final trackedById = {
+          for (final tracked in trackedSnaps)
+            if (tracked.exists) tracked.id: tracked.data()!,
+        };
         final counts = readIncorrectQuestionCounts(user);
         final incorrectPlan = planSessionIncorrectQuestions(
           counts: counts,
@@ -552,11 +552,8 @@ class QuizSessionRepository {
         final rewardCap = completionEnergyReward(energySpent);
         final resolvedEnergy = _userEnergy(user);
         final energyBefore = resolvedEnergy.energy;
-        final energyRemaining = (energyBefore + rewardCap).clamp(
-          0,
-          QuizData.maxEnergy,
-        );
-        final energyEarned = energyRemaining - energyBefore;
+        final energyRemaining = energyBefore + rewardCap;
+        final energyEarned = rewardCap;
 
         final userUpdate = <String, dynamic>{
           'energy': energyRemaining,
@@ -773,73 +770,102 @@ class QuizSessionRepository {
     }
   }
 
-  /// 활성 카테고리의 오답을 실제 출제 가능한 문제와 맞춘다.
+  /// 오답 정리용 문제 읽기. 문서가 없다고 확인된 경우만 [deleted]다. 규칙상 읽을
+  /// 수 없는 문제는 비활성일 수도 있어서 삭제로 보지 않는다 (data가 null).
+  Future<ReconcileQuestion> _readQuestionForReconcile(String id) async {
+    try {
+      final doc = await _firestore.collection('quizQuestions').doc(id).get();
+      return (deleted: !doc.exists, data: doc.data());
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') return (deleted: false, data: null);
+      if (e.code == 'not-found') return (deleted: true, data: null);
+      rethrow;
+    }
+  }
+
+  /// 활성 카테고리의 오답 수를 복습할 수 있는 문서 수로 다시 센다. 문제가 삭제된
+  /// 오답 문서만 지우고, 비활성·카테고리 변경 문제의 기록은 남겨 다시 복습할 수
+  /// 있게 되면 다음 정리 때 오답 수로 돌아오게 한다.
   /// 실패해도 복습 시작은 막지 않는다 — 다음 복습에서 다시 시도한다.
   Future<void> _reconcileIncorrectQuestions({
     required DocumentReference<Map<String, dynamic>> userRef,
     required String categoryId,
+    required UserProfile profile,
   }) async {
     try {
-      if (QuizBackendConfig.usesCloudFunctions) {
-        await QuizFunctionsRepository.instance.reconcileIncorrectQuestions(
-          categoryId: categoryId,
-        );
-        return;
-      }
-
-      // 개발: 모바일 SDK 트랜잭션은 쿼리를 못 하므로 문서 목록은 먼저 읽고,
-      // 트랜잭션에서는 각 문서가 아직 있는지만 다시 확인한다.
-      final ids = await _fetchIncorrectQuestionIds(
-        userRef: userRef,
-        categoryId: categoryId,
+      final available = QuizBackendConfig.usesCloudFunctions
+          ? await QuizFunctionsRepository.instance.reconcileIncorrectQuestions(
+              categoryId: categoryId,
+            )
+          : await _reconcileWithClientTransaction(
+              userRef: userRef,
+              categoryId: categoryId,
+            );
+      if (available == null) return;
+      // 맵이 없는 예전 계정은 서버에 맵을 쓰지 않으므로 기억해 둔 집계도 맞춘다.
+      AuthService.instance.applyReconciledIncorrectCount(
+        userRef.id,
+        categoryId,
+        available,
       );
-      final questions = await Future.wait(ids.map(_readQuestionIfReadable));
-      final removeIds = <String>[];
-      final keepIds = <String>[];
-      for (var i = 0; i < ids.length; i++) {
-        if (isReviewableQuestion(questions[i]?.data(), categoryId)) {
-          keepIds.add(ids[i]);
-        } else {
-          removeIds.add(ids[i]);
-        }
-      }
-
-      final incorrect = userRef.collection('incorrectQuestions');
-      await _firestore.runTransaction<Map<String, dynamic>?>((tx) async {
-        final user = (await tx.get(userRef)).data();
-        if (user == null) return null;
-        final removeSnaps = <DocumentSnapshot<Map<String, dynamic>>>[];
-        for (final id in removeIds) {
-          removeSnaps.add(await tx.get(incorrect.doc(id)));
-        }
-        var available = 0;
-        for (final id in keepIds) {
-          if ((await tx.get(incorrect.doc(id))).exists) available++;
-        }
-
-        for (final snap in removeSnaps) {
-          if (snap.exists) tx.delete(snap.reference);
-        }
-        // 맵이 없는 예전 계정은 문서만 지운다. 맵은 백필이 남은 문서로 센다.
-        if (user['incorrectQuestionCounts'] is Map) {
-          final counts = readIncorrectQuestionCounts(user);
-          final next = withCategoryIncorrectCount(
-            counts,
-            categoryId,
-            available,
-          );
-          if (!sameIncorrectQuestionCounts(counts, next)) {
-            tx.update(userRef, {
-              'incorrectQuestionCounts': next,
-              'incorrectQuestionCount': totalIncorrectQuestionCount(next),
-            });
-          }
-        }
-        return {};
-      });
+      profile.incorrectQuestionCounts = withCategoryIncorrectCount(
+        profile.incorrectQuestionCounts,
+        categoryId,
+        available,
+      );
+      profile.incorrectQuestionCount = totalIncorrectQuestionCount(
+        profile.incorrectQuestionCounts,
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Incorrect question reconcile failed: $e');
     }
+  }
+
+  /// 개발: 모바일 SDK 트랜잭션은 쿼리를 못 하므로 문서 목록은 먼저 읽고,
+  /// 트랜잭션에서는 각 문서가 아직 있는지만 다시 확인한다. 다시 센 수를 반환한다.
+  Future<int?> _reconcileWithClientTransaction({
+    required DocumentReference<Map<String, dynamic>> userRef,
+    required String categoryId,
+  }) async {
+    final ids = await _fetchIncorrectQuestionIds(
+      userRef: userRef,
+      categoryId: categoryId,
+    );
+    final questions = await Future.wait(ids.map(_readQuestionForReconcile));
+    final (:removeIds, countedIds: keepIds) = planIncorrectQuestionReconcile(
+      questionsById: Map.fromIterables(ids, questions),
+      categoryId: categoryId,
+    );
+
+    final incorrect = userRef.collection('incorrectQuestions');
+    final result = await _firestore.runTransaction<Map<String, dynamic>?>((
+      tx,
+    ) async {
+      final user = (await tx.get(userRef)).data();
+      if (user == null) return null;
+      final (removeSnaps, keepSnaps) = await (
+        Future.wait([for (final id in removeIds) tx.get(incorrect.doc(id))]),
+        Future.wait([for (final id in keepIds) tx.get(incorrect.doc(id))]),
+      ).wait;
+      final available = keepSnaps.where((snap) => snap.exists).length;
+
+      for (final snap in removeSnaps) {
+        if (snap.exists) tx.delete(snap.reference);
+      }
+      // 맵이 없는 예전 계정은 문서만 지운다. 맵은 백필이 남은 문서로 센다.
+      if (user['incorrectQuestionCounts'] is Map) {
+        final counts = readIncorrectQuestionCounts(user);
+        final next = withCategoryIncorrectCount(counts, categoryId, available);
+        if (!sameIncorrectQuestionCounts(counts, next)) {
+          tx.update(userRef, {
+            'incorrectQuestionCounts': next,
+            'incorrectQuestionCount': totalIncorrectQuestionCount(next),
+          });
+        }
+      }
+      return {'available': available};
+    });
+    return (result?['available'] as num?)?.toInt();
   }
 
   Future<Set<String>> _fetchMasteredIds(String uid) async {

@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
+import 'package:flutter/foundation.dart'
+    show kDebugMode, debugPrint, visibleForTesting;
 
 import '../config/quiz_backend_config.dart';
-import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
@@ -50,7 +50,7 @@ class QuizService {
         selectedIndex: selectedIndex,
       );
     }
-    profile.energy = result.energyRemaining.clamp(0, QuizData.maxEnergy);
+    profile.energy = result.energyRemaining;
     return result;
   }
 
@@ -68,21 +68,18 @@ class QuizService {
             sessionId: sessionId,
           );
     if (energy != null) {
-      profile.energy = energy.clamp(0, QuizData.maxEnergy);
+      profile.energy = energy;
     }
   }
 
   /// 앱이 종료돼 닫지 못한 세션을 닫고 에너지를 돌려받는다.
   /// 실패해도 학습 시작은 막지 않는다 — 다음 시작에서 다시 시도한다.
-  Future<void> abandonOpenSessions({required UserProfile profile}) async {
-    try {
-      final ids = await QuizSessionRepository.instance.openSessionIds();
-      for (final id in ids) {
-        await abandonSession(profile: profile, sessionId: id);
-      }
-    } catch (e) {
-      if (kDebugMode) debugPrint('Open session cleanup failed: $e');
-    }
+  Future<void> abandonOpenSessions({required UserProfile profile}) {
+    return closeOpenSessions(
+      // 저장소 생성(Firebase 초기화) 오류도 closeOpenSessions가 잡도록 호출을 미룬다.
+      openSessionIds: () => QuizSessionRepository.instance.openSessionIds(),
+      abandon: (id) => abandonSession(profile: profile, sessionId: id),
+    );
   }
 
   /// 씨앗 · streak · categoryStats · 세션 completed.
@@ -106,7 +103,7 @@ class QuizService {
     if (refreshed != null) {
       _syncProfile(profile, refreshed);
     } else if (result.energyRemaining != null) {
-      profile.energy = result.energyRemaining!.clamp(0, QuizData.maxEnergy);
+      profile.energy = result.energyRemaining!;
     }
 
     return result;
@@ -127,5 +124,27 @@ class QuizService {
     target.incorrectQuestionCount = source.incorrectQuestionCount;
     target.reviewArrivals = Map<String, int>.from(source.reviewArrivals);
     target.seeds = source.seeds;
+  }
+}
+
+/// 열린 세션을 모두 닫는다. 한 세션을 닫지 못해도 나머지는 계속 닫는다.
+@visibleForTesting
+Future<void> closeOpenSessions({
+  required Future<List<String>> Function() openSessionIds,
+  required Future<void> Function(String sessionId) abandon,
+}) async {
+  final List<String> ids;
+  try {
+    ids = await openSessionIds();
+  } catch (e) {
+    if (kDebugMode) debugPrint('Open session lookup failed: $e');
+    return;
+  }
+  for (final id in ids) {
+    try {
+      await abandon(id);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Open session cleanup failed ($id): $e');
+    }
   }
 }

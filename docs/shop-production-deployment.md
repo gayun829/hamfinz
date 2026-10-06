@@ -94,7 +94,7 @@ static const configuredBackend = ShopPurchaseBackend.cloudFunctions;
 - [ ] 씨앗 충분 → 코스메틱 구매 → 장착까지 정상 동작
 - [ ] 씨앗 부족 → `insufficientSeeds` 스낵바
 - [ ] 방어권 3개 보유 상태에서 추가 구매 시도 → `studyGuardMaxCapacity`
-- [ ] 에너지 가득 상태에서 에너지팩 구매 시도 → `energyAlreadyFull`
+- [ ] 에너지가 100 이상이어도 에너지팩 구매 → 한도 없이 +20
 - [ ] 두 기기/탭에서 거의 동시에 구매 → 씨앗이 두 번 차감되거나 유실되지 않는지 확인
 
 ### 6. (선택) Emulator 로컬 테스트

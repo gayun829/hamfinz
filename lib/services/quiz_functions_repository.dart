@@ -39,6 +39,17 @@ class QuizFunctionsRepository {
     }
   }
 
+  /// 그날 첫 접속 에너지를 받는다. 이미 받은 날이면 저장된 에너지를 그대로 준다.
+  Future<({int energy, String lastEnergyResetDate})> claimDailyEnergy() async {
+    final response = await _functions
+        .httpsCallable('claimDailyEnergy')
+        .call<Map<String, dynamic>>();
+    return (
+      energy: (response.data['energy'] as num).toInt(),
+      lastEnergyResetDate: response.data['lastEnergyResetDate'] as String,
+    );
+  }
+
   /// 끝까지 풀지 않고 나간 세션을 닫고 쓴 에너지를 돌려받는다.
   /// 돌려준 뒤의 에너지를 반환한다.
   Future<int?> abandonSession({required String sessionId}) async {
@@ -52,12 +63,14 @@ class QuizFunctionsRepository {
     }
   }
 
-  /// 복습할 수 없는 오답(삭제·비활성·카테고리 변경)을 정리하고 오답 수를 다시 센다.
+  /// 오답 수를 복습할 수 있는 문서 수로 다시 세고, 문제가 삭제된 오답 문서를
+  /// 지운다. 다시 센 오답 수를 반환한다.
   /// 오류는 그대로 던진다 — 호출하는 쪽이 복습 시작을 막지 않도록 처리한다.
-  Future<void> reconcileIncorrectQuestions({required String categoryId}) async {
-    await _functions.httpsCallable('reconcileIncorrectQuestions').call({
-      'categoryId': categoryId,
-    });
+  Future<int?> reconcileIncorrectQuestions({required String categoryId}) async {
+    final response = await _functions
+        .httpsCallable('reconcileIncorrectQuestions')
+        .call<Map<String, dynamic>>({'categoryId': categoryId});
+    return (response.data['available'] as num?)?.toInt();
   }
 
   Future<QuizSessionResult> completeSession({required String sessionId}) async {

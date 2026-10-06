@@ -88,6 +88,34 @@ void main() {
     expect(storeCalls, isEmpty);
   });
 
+  test('오답 정리 결과를 기억해 둔 집계에 반영한다', () async {
+    canWrite = false;
+    docs = [
+      for (var i = 0; i < 11; i++) {'categoryId': 'saving'},
+      {'categoryId': 'stock'},
+    ];
+    final subject = backfill();
+    expect(await subject.run('u1'), {'saving': 11, 'stock': 1});
+
+    // 11개 중 3개가 복습할 수 없어 8개로 다시 셌다.
+    subject.applyReconciled('u1', 'saving', 8);
+    expect(await subject.run('u1'), {'saving': 8, 'stock': 1});
+
+    subject.applyReconciled('u1', 'stock', 0);
+    expect(await subject.run('u1'), {'saving': 8});
+    expect(loadCalls, 1);
+  });
+
+  test('기억해 둔 집계가 없으면 오답 정리 결과를 무시한다', () async {
+    final subject = backfill();
+    subject.applyReconciled('u1', 'saving', 3);
+
+    docs = [
+      {'categoryId': 'saving'},
+    ];
+    expect(await subject.run('u1'), {'saving': 1});
+  });
+
   test('맵이 저장된 것을 확인하면 기억해 둔 집계를 버린다', () async {
     canWrite = false;
     docs = [

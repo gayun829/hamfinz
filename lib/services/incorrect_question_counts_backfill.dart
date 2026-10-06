@@ -37,6 +37,15 @@ class IncorrectQuestionCountsBackfill {
     _unsaved.remove(uid);
   }
 
+  /// 오답 정리가 [categoryId]를 복습할 수 있는 [available]개로 다시 셌을 때
+  /// 기억해 둔 집계도 맞춘다. 정리는 맵이 없는 계정의 맵을 쓰지 않아서, 그대로
+  /// 두면 다음 학습을 마칠 때까지 복습 홈이 정리 전 오답 수로 남는다.
+  void applyReconciled(String uid, String categoryId, int available) {
+    final unsaved = _unsaved[uid];
+    if (unsaved == null) return;
+    _unsaved[uid] = withCategoryIncorrectCount(unsaved, categoryId, available);
+  }
+
   Future<Map<String, int>> run(String uid) async {
     final unsaved = _unsaved[uid];
     if (unsaved != null) return Map.of(unsaved);

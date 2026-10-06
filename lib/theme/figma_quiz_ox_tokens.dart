@@ -82,8 +82,8 @@ abstract final class FigmaQuizOxTokens {
   /// 이 최소 높이에서 아래로 확장하며 카드·선택지·CTA를 함께 밀어낸다.
   static const questionLeft = 54.0;
   static const questionWidth = 284.0;
-  static const questionFontSize = 22.0;
-  static const questionLineHeight = 26 / 22;
+  static const questionFontSize = 18.0;
+  static const questionLineHeight = 1.2;
   static const questionHeight = 78.0;
   static const questionTop = 381.5;
 
@@ -116,7 +116,7 @@ abstract final class FigmaQuizOxTokens {
   static const explainTextTop = 510.0;
   static const explainTextWidth = 284.0;
   static const explainTextHeight = 149.0;
-  static const explainTextFontSize = 20.0;
+  static const explainTextFontSize = 18.0;
 
   // 문제/해설 토글 `137:5975` / `291:985`.
   static const toggleLeft = 250.0;

@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:testapp/constants/figma_assets.dart';
 import 'package:testapp/theme/figma_quiz_fonts.dart';
 import 'package:testapp/theme/figma_quiz_ox_tokens.dart';
 import 'package:testapp/theme/figma_quiz_question_tokens.dart';
+import 'package:testapp/widgets/figma/figma_asset_image.dart';
 import 'package:testapp/widgets/figma/figma_quiz_ox_view.dart';
 import 'package:testapp/widgets/figma/figma_quiz_question_view.dart';
 import 'package:testapp/widgets/figma/quiz_question_layout.dart';
@@ -25,6 +27,8 @@ void main() {
   const longQuestion =
       '향후 1~3년 지급액 2,000,000원, 2,500,000원, 3,000,000원, '
       '할인율 4%의 준비금 현재가치는 6,500,000원보다 크다.';
+  // 긴 질문 박스(여섯 줄)에도 다 들어가지 않아 박스가 늘어나는 질문.
+  const overflowingQuestion = '$longQuestion $longQuestion $longQuestion';
 
   double oxHeight(String text, {TextScaler scaler = TextScaler.noScaling}) {
     return QuizQuestionLayout.textHeight(
@@ -108,18 +112,162 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('객관식 긴 질문은 폭 $width에서 잘리지 않고 CTA가 내려간다', (tester) async {
+    testWidgets('객관식 짧은 질문은 폭 $width에서 말풍선과 햄핀이·코인을 쓴다', (tester) async {
       await _pumpQuiz(tester, width: width, child: _choiceView('금리는 돈의 가격이다.'));
-      final shortTop = tester.getTopLeft(find.text('다음으로')).dy;
 
+      expect(_svgCount(tester, FigmaAssets.quizSpeechBubble), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCharacter), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCoinStack), 1);
+      expect(_svgCount(tester, FigmaAssets.quizQuestionBox), 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 61자 이상 질문은 폭 $width에서 햄핀이 없는 박스에 18로 쓴다', (tester) async {
       await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
 
-      _expectQuestionNotClipped(tester, longQuestion);
+      expect(_svgCount(tester, FigmaAssets.quizQuestionBox), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCharacter), 0);
+      expect(_svgCount(tester, FigmaAssets.quizBoxCoinStack), 1);
+      // 코인은 박스 오른쪽 위가 아니라 박스 아래에 선다 (Figma `639:2721`).
       expect(
-        tester.getTopLeft(find.text('다음으로')).dy,
-        greaterThan(shortTop + 1),
+        tester.getTopLeft(_svgFinder(FigmaAssets.quizBoxCoinStack)).dy,
+        greaterThan(
+          tester.getBottomLeft(_svgFinder(FigmaAssets.quizQuestionBox)).dy,
+        ),
       );
+      final style = tester.widget<Text>(find.text(longQuestion)).style!;
+      expect(
+        style.fontSize! /
+            (math.min(
+              width / 393,
+              _viewportHeight / FigmaQuizQuestionTokens.contentHeight,
+            )),
+        closeTo(FigmaQuizQuestionTokens.longQuestionFontSize, 0.01),
+      );
+      _expectQuestionNotClipped(tester, longQuestion);
+      _expectCtaInDesignSlot(
+        tester,
+        width: width,
+        ctaTop: FigmaQuizQuestionTokens.ctaTop,
+        ctaHeight: FigmaQuizQuestionTokens.ctaHeight,
+        contentHeight: FigmaQuizQuestionTokens.contentHeight,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 박스에도 넘치는 질문은 폭 $width에서 잘리지 않고 CTA가 내려간다', (tester) async {
+      await _pumpQuiz(tester, width: width, child: _choiceView(longQuestion));
+      final boxTop = tester.getTopLeft(find.text('다음으로')).dy;
+
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(overflowingQuestion),
+      );
+
+      _expectQuestionNotClipped(tester, overflowingQuestion);
+      expect(tester.getTopLeft(find.text('다음으로')).dy, greaterThan(boxTop + 1));
       _expectFitsWithoutScroll(tester);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 박스가 늘어나도 폭 $width에서 모서리를 찌그러뜨리지 않는다', (tester) async {
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(overflowingQuestion),
+      );
+
+      final boxes = tester
+          .widgetList<FigmaSvg>(find.byType(FigmaSvg))
+          .where((svg) => svg.asset == FigmaAssets.quizQuestionBox)
+          .toList();
+      final undistorted = boxes.where(
+        (svg) =>
+            (svg.height! / svg.width! -
+                    FigmaQuizQuestionTokens.boxHeight /
+                        FigmaQuizQuestionTokens.boxWidth)
+                .abs() <
+            0.001,
+      );
+      // 위·아래 조각(모서리)은 원래 비율, 가운데 한 줄만 늘린다.
+      expect(boxes, hasLength(3));
+      expect(undistorted, hasLength(2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 긴 질문 정답·해설은 폭 $width에서 코인을 토글 왼쪽에 둔다', (tester) async {
+      for (final explain in [false, true]) {
+        await _pumpQuiz(
+          tester,
+          width: width,
+          child: _choiceView(
+            longQuestion,
+            showAnswer: true,
+            showExplanation: explain,
+            explanation: '해설',
+          ),
+        );
+
+        // Figma `639:2820`·`639:3380` — Group 630(코인 더미) 224,367 / 토글 270·272,368.
+        final scale = math.min(
+          width / 393,
+          _viewportHeight / FigmaQuizQuestionTokens.contentHeight,
+        );
+        final left = (width - 393 * scale) / 2;
+        final stack = tester.getTopLeft(
+          _svgFinder(FigmaAssets.quizBoxCoinStack),
+        );
+        expect(stack.dx, closeTo(left + 216.7 * scale, 1));
+        expect(stack.dy, closeTo(357.7 * scale, 1));
+        expect(tester.takeException(), isNull);
+      }
+    });
+
+    testWidgets('객관식 해설을 봐도 폭 $width에서 정답 보기 색이 남는다', (tester) async {
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(
+          '금리는 돈의 가격이다.',
+          showAnswer: true,
+          showExplanation: true,
+          explanation: '해설',
+        ),
+      );
+
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .ancestor(
+                          of: find.text('가'),
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
+      expect(decoration.color, FigmaQuizQuestionTokens.optionCorrectFill);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('객관식 해설은 폭 $width에서 노란 박스와 해설 토글을 쓴다', (tester) async {
+      await _pumpQuiz(
+        tester,
+        width: width,
+        child: _choiceView(
+          '금리는 돈의 가격이다.',
+          showAnswer: true,
+          showExplanation: true,
+          explanation: '돈을 빌리는 값이 금리다.',
+        ),
+      );
+
+      expect(_svgCount(tester, FigmaAssets.quizExplainBox), 1);
+      expect(_svgCount(tester, FigmaAssets.quizCharacter), 0);
+      expect(find.text('돈을 빌리는 값이 금리다.'), findsOneWidget);
+      expect(find.text('해설'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -219,8 +367,26 @@ Widget _oxView(String question) {
   );
 }
 
-Widget _choiceView(String question) {
+Finder _svgFinder(String asset) => find.byWidgetPredicate(
+  (widget) => widget is FigmaSvg && widget.asset == asset,
+);
+
+int _svgCount(WidgetTester tester, String asset) => tester
+    .widgetList<FigmaSvg>(find.byType(FigmaSvg))
+    .where((svg) => svg.asset == asset)
+    .length;
+
+Widget _choiceView(
+  String question, {
+  bool showAnswer = false,
+  bool showExplanation = false,
+  String explanation = '',
+}) {
   return FigmaQuizQuestionView(
+    showAnswer: showAnswer,
+    showExplanation: showExplanation,
+    explanation: explanation,
+    correctIndex: showAnswer ? 0 : null,
     questionNumber: 1,
     totalQuestions: 10,
     question: question,
