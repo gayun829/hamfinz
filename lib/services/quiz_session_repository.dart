@@ -1033,7 +1033,9 @@ class QuizSessionRepository {
     required int count,
   }) {
     final pool = List<_QuestionDoc>.from(candidates)..shuffle(_random);
-    return pool.take(count).toList();
+    // 원본에 같은 문장이 사례 번호만 바꿔 여러 번 들어 있다. 한 세션에선 한 번만.
+    final seen = <String>{};
+    return pool.where((q) => seen.add(q.question)).take(count).toList();
   }
 
   QuizSession _learningSession({
