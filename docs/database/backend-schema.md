@@ -527,7 +527,13 @@ friendships/{uidA}_{uidB}
 - ~~**기존 유저 마이그레이션**~~ 결정함 — lazy 백필. `AuthService`의 `login`/`signInWithGoogle`/`signInWithKakao` 성공 시마다 `_backfillSearchIndexes(user)`를 호출해서, 내 uid로 된 인덱스가 없으면 그때 만든다(있으면 조회 1번으로 끝나 저렴). 별도 1회성 스크립트는 필요 없음.
 - **이메일 검색 남용**: `emails/{emailLower}`는 로그인한 사용자면 누구나 특정 이메일의 가입 여부·닉네임을 확인할 수 있게 된다 (이메일 존재 확인/enumeration). 우선은 로그인 필요 조건만 걸어두고, 문제 되면 요청 빈도 제한 등을 나중에 추가한다.
 - **친구 삭제(unfriend)**: 결정함 — `friendships` 문서를 그냥 삭제한다 (`allow delete`는 이미 당사자 누구에게나 열려 있어서 별도 작업 불필요, `status: removed` 같은 이력은 안 남긴다).
-- 캘린더 "친구와의 경쟁" 랭킹처럼 진행률을 보여주려면 `users`의 일부 필드(streak 등) 노출이 필요 — §2 owner(Auth)와 범위 논의 필요
+- 캘린더 "친구와의 경쟁" 랭킹: Spark 요금제라 Function 대신 `streaks/{uid}` 인덱스를 둔다 (`nicknames`/`emails`와 같은 방식).
+  - 필드: `streak`(int), `lastQuizCompletedDate`(`YYYY-MM-DD` | null) 딱 두 개. 닉네임은 친구 목록(`friendships` 스냅샷)에서 가져온다.
+  - 읽기: 본인 + `friendships/{uidA}_{uidB}`가 `accepted`인 친구만.
+  - 쓰기: 본인만, 그리고 값이 본인 `users` 문서의 `streak`·`lastQuizCompletedDate`와 같을 때만 — 프로덕션에서 users의 streak은 Functions 전용이라 인덱스도 조작할 수 없다.
+  - 갱신 시점: 세션 완료 직후(`QuizService.completeSession`)와 로그인마다(`AuthService._backfillSearchIndexes`). 탈퇴 시 삭제.
+  - 앱은 마지막 학습일이 오늘·어제가 아니면 연속학습을 0으로 보고 순위를 매긴다(`rankFriendStreaks`).
+  - 노출 범위(친구에게 연속학습·마지막 학습일 공개)는 §2 owner(Auth) 리뷰 필요
 
 ---
 

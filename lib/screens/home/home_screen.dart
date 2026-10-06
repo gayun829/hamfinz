@@ -10,6 +10,7 @@ import '../../data/learning_steps.dart';
 import '../../data/quiz_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/friend_service.dart';
 import '../../services/news_service.dart';
 import '../../services/quiz_service.dart';
 import '../../utils/incorrect_questions.dart';
@@ -301,6 +302,7 @@ class _HomeScreenState extends State<HomeScreen>
           streak: profile.streak,
           studyGuardCount: profile.studyGuardCount,
           completedDates: profile.learningDates.toSet(),
+          loadFriendsRanking: FriendService.instance.getFriendsRanking,
         ),
       ),
     );

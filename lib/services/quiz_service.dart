@@ -6,6 +6,7 @@ import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
 import 'auth_service.dart';
+import 'friend_service.dart';
 import 'quiz_functions_repository.dart';
 import 'quiz_session_repository.dart';
 
@@ -104,6 +105,13 @@ class QuizService {
       _syncProfile(profile, refreshed);
     } else if (result.energyRemaining != null) {
       profile.energy = result.energyRemaining!;
+    }
+
+    // 친구 경쟁 순위에 오늘 학습이 바로 보이도록. 실패해도 결과 화면은 막지 않는다.
+    try {
+      await FriendService.instance.publishMyStreak();
+    } catch (e) {
+      if (kDebugMode) debugPrint('Streak publish failed: $e');
     }
 
     return result;
