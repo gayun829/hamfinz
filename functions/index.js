@@ -505,7 +505,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
 
 /**
  * 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션에서 푼 문제는 정답·오답 목록에
- * 반영되지 않은 채(안 푼 문제) 남고, 오늘 시작한 세션이면 쓴 에너지를 돌려준다.
+ * 반영되지 않은 채(안 푼 문제) 남고, 시작한 날과 상관없이 쓴 에너지를 돌려준다.
  * 이미 닫힌 세션이면 아무것도 하지 않는다.
  */
 exports.abandonSession = onCall({ region: 'asia-northeast3' }, async (request) => {

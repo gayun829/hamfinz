@@ -315,7 +315,7 @@ class QuizSessionRepository {
   }
 
   /// 끝까지 풀지 않고 나간 세션을 닫는다. 그 세션의 답은 정답·오답 목록에
-  /// 반영하지 않아 안 푼 문제로 남고, 오늘 시작한 세션이면 쓴 에너지를 돌려준다.
+  /// 반영하지 않아 안 푼 문제로 남고, 시작한 날과 상관없이 쓴 에너지를 돌려준다.
   /// 이미 닫힌 세션이면 그대로 둔다. 돌려준 뒤의 에너지를 반환한다.
   Future<int?> abandonSession({required String sessionId}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
