@@ -161,9 +161,12 @@ void main() {
     expect(lessons.map((t) => t.quiz!.answer).toSet().length, 3);
   });
 
-  test('설명이 없는 용어는 학습으로 안 이어진다', () {
-    final bare = kFinanceTerms.firstWhere((t) => t.quiz == null);
-    expect(bare.hasLesson, isFalse);
+  test('뉴스 목록에 오르는 용어는 모두 퀴즈가 있다', () {
+    // 필터에만 걸리고 퀴즈가 없으면 기사를 눌러도 아무것도 안 뜬다.
+    for (final term in kFinanceTerms) {
+      expect(term.hasLesson, isTrue, reason: term.term);
+    }
+    expect(const FinanceTerm(term: '빈칸', categoryId: 'saving').hasLesson, isFalse);
   });
 
   test('길이가 같으면 제목에서 먼저 나온 용어를 고른다', () {
