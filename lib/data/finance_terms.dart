@@ -928,6 +928,10 @@ const List<FinanceTerm> kFinanceTerms = [
   ),
 ];
 
+/// 용어를 품고 있지만 금융과 상관없는 단어. 퀴즈가 없어도 되니 [kFinanceTerms]에
+/// 넣어 막을 수 없다 — 「KBS 수신료」를 '수신'(예금)으로 가르치면 안 된다.
+const _kNonFinanceWords = ['수신료'];
+
 /// 제목에서 용어를 찾는다. 없으면 null.
 ///
 /// 규칙 두 개.
@@ -938,6 +942,10 @@ const List<FinanceTerm> kFinanceTerms = [
 /// 「미국 국채금리 급등」처럼 2글자끼리 붙은 제목을 전부 금리로 끌어갔다.
 /// 실측으로 연합뉴스 TOP 10 중 6건이 금리였고 그중 3건이 이 동점 탓이었다.
 FinanceTerm? matchFinanceTerm(String title) {
+  // 같은 길이의 공백으로 지워서 다른 용어의 위치(규칙 2)는 그대로 둔다.
+  for (final word in _kNonFinanceWords) {
+    title = title.replaceAll(word, ' ' * word.length);
+  }
   FinanceTerm? best;
   var bestAt = -1;
   for (final candidate in kFinanceTerms) {

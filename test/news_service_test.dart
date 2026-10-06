@@ -115,6 +115,9 @@ void main() {
     expect(matchFinanceTerm('완성차주 반등')?.term, '완성차주');
     expect(matchFinanceTerm('법정 최고금리 20%로 인하 검토')?.term, '최고금리');
     expect(matchFinanceTerm('카드사 최고금리 낮춘다')?.term, '최고금리');
+    // TV 수신료는 은행 수신(예금)이 아니다.
+    expect(matchFinanceTerm('KBS 수신료 분리징수 원상복구'), isNull);
+    expect(matchFinanceTerm('수신료 논란 속 은행 수신 잔액 증가')?.term, '수신');
   });
 
   test('용어마다 실재하는 관심 카테고리 id가 붙어 있다', () {
