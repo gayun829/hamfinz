@@ -2,14 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/quiz_session.dart';
 
-/// xlsx 원본 `[난이도 1·객관식·…]` 메타 접두사 제거 — UI에는 본문만 표시.
+/// xlsx 원본 메타 꼬리표 제거 — UI에는 본문만 표시.
+/// 앞에 붙은 `[난이도 1·객관식·…]`과 뒤에 붙은 `(난이도 7 사례 63)` 두 모양이 있다.
 String stripQuizMetadataPrefix(String raw) {
-  final trimmed = raw.trim();
-  if (!trimmed.startsWith('[')) return trimmed;
-  final close = trimmed.indexOf(']');
-  if (close <= 0) return trimmed;
-  return trimmed.substring(close + 1).trim();
+  var text = raw.trim().replaceFirst(_metadataSuffix, '');
+  if (!text.startsWith('[')) return text;
+  final close = text.indexOf(']');
+  if (close <= 0) return text;
+  return text.substring(close + 1).trim();
 }
+
+final _metadataSuffix = RegExp(r'\s*\(난이도 \d+ 사례 \d+\)$');
 
 bool isFirestorePermissionDenied(Object error) {
   if (error is FirebaseException) {
