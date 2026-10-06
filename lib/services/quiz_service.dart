@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart'
     show kDebugMode, debugPrint, visibleForTesting;
 
 import '../config/quiz_backend_config.dart';
-import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
 import '../models/quiz_session.dart';
 import '../models/user_profile.dart';
@@ -51,7 +50,7 @@ class QuizService {
         selectedIndex: selectedIndex,
       );
     }
-    profile.energy = result.energyRemaining.clamp(0, QuizData.maxEnergy);
+    profile.energy = result.energyRemaining;
     return result;
   }
 
@@ -69,7 +68,7 @@ class QuizService {
             sessionId: sessionId,
           );
     if (energy != null) {
-      profile.energy = energy.clamp(0, QuizData.maxEnergy);
+      profile.energy = energy;
     }
   }
 
@@ -104,7 +103,7 @@ class QuizService {
     if (refreshed != null) {
       _syncProfile(profile, refreshed);
     } else if (result.energyRemaining != null) {
-      profile.energy = result.energyRemaining!.clamp(0, QuizData.maxEnergy);
+      profile.energy = result.energyRemaining!;
     }
 
     return result;

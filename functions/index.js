@@ -3,7 +3,6 @@ const {
   abandonRefund,
   completionEnergyReward,
   kstDateKey,
-  sessionDateKey,
 } = require('./quiz_energy');
 const {
   hasIncorrectQuestionCounts,
@@ -29,7 +28,8 @@ const db = getFirestore();
 
 const ENERGY_PER_QUESTION = 5;
 const SEEDS_PER_CORRECT = 5;
-const MAX_ENERGY = 100;
+// 그날 처음 접속하면 지급하는 에너지. 에너지 한도는 없다.
+const DAILY_ENERGY_GRANT = 100;
 const MAX_STUDY_GUARD = 4;
 // 세션 완료 보상 에너지 — Dart `QuizData.sessionCompleteEnergyReward`와 같아야 한다.
 const ENERGY_SESSION_COMPLETE_REWARD = 20;
@@ -95,18 +95,38 @@ function yesterdayKey() {
 }
 
 
-// 날짜가 바뀌면 에너지를 최대로 회복한다 (Dart `AuthService._profileFromJson`과
-// 동일한 규칙). 서버가 항상 이 값을 기준으로 계산해야 클라이언트가 화면에만
-// 보여주고 저장은 안 하는 상황(리셋 유실)이 안 생긴다.
+// 그날 처음이면 남은 에너지에 DAILY_ENERGY_GRANT를 더한다 (Dart
+// `resolveDailyEnergy`와 같은 규칙). 접속할 때 claimDailyEnergy가 저장하지만,
+// 에너지를 쓰는 트랜잭션도 이 값으로 계산하고 날짜까지 저장해 한 날에 두 번
+// 지급되지 않게 한다.
 function resolveEnergy(user, today) {
-  let energy = user.energy ?? MAX_ENERGY;
-  let lastEnergyResetDate = user.lastEnergyResetDate ?? null;
-  if (lastEnergyResetDate !== today) {
-    energy = MAX_ENERGY;
-    lastEnergyResetDate = today;
+  const stored = Math.max(0, Number(user.energy ?? 0) || 0);
+  if (user.lastEnergyResetDate !== today) {
+    return { energy: stored + DAILY_ENERGY_GRANT, lastEnergyResetDate: today };
   }
-  return { energy, lastEnergyResetDate };
+  return { energy: stored, lastEnergyResetDate: today };
 }
+
+/** 그날 첫 접속 에너지를 지급하고 저장한다. 이미 받았으면 그대로 돌려준다. */
+exports.claimDailyEnergy = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', '로그인이 필요해요.');
+  }
+  const userRef = db.collection('users').doc(uid);
+  return db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists) {
+      throw new HttpsError('not-found', '유저 프로필을 찾을 수 없어요.');
+    }
+    const user = userSnap.data();
+    const resolved = resolveEnergy(user, todayKey());
+    if (user.lastEnergyResetDate !== resolved.lastEnergyResetDate) {
+      tx.update(userRef, resolved);
+    }
+    return resolved;
+  });
+});
 
 exports.submitAnswer = onCall({ region: 'asia-northeast3' }, async (request) => {
   const uid = request.auth?.uid;
@@ -403,7 +423,7 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
     const learningDates = learningDatesFromUser(user, today, true);
 
     // 짧은 복습 세션이 에너지 생성 수단이 되지 않도록 실제 소모량까지만
-    // 돌려준다. 날짜가 바뀐 경우 submitAnswer와 같은 회복 규칙을 적용한다.
+    // 돌려준다. 날짜가 바뀐 경우 submitAnswer와 같은 지급 규칙을 적용한다.
     const energySpent =
       session.energySpent ?? answers.length * ENERGY_PER_QUESTION;
     const rewardCap = completionEnergyReward(
@@ -414,11 +434,8 @@ exports.completeSession = onCall({ region: 'asia-northeast3' }, async (request) 
       energy: energyBefore,
       lastEnergyResetDate,
     } = resolveEnergy(user, today);
-    const energyRemaining = Math.min(
-      MAX_ENERGY,
-      energyBefore + rewardCap,
-    );
-    const energyEarned = energyRemaining - energyBefore;
+    const energyRemaining = energyBefore + rewardCap;
+    const energyEarned = rewardCap;
 
     const userUpdate = {
       energy: energyRemaining,
@@ -523,9 +540,6 @@ exports.abandonSession = onCall({ region: 'asia-northeast3' }, async (request) =
     const { energyRemaining, energyRefunded } = abandonRefund({
       energy,
       spent: Number(session.energySpent ?? 0),
-      sessionDate: sessionDateKey(session),
-      today,
-      maxEnergy: MAX_ENERGY,
     });
 
     tx.update(userRef, { energy: energyRemaining, lastEnergyResetDate });
@@ -603,13 +617,6 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
     if (kind === 'energyPack') {
       const today = todayKey();
       const { energy, lastEnergyResetDate } = resolveEnergy(user, today);
-      if (energy >= MAX_ENERGY) {
-        throw new HttpsError(
-          'failed-precondition',
-          '에너지가 이미 가득 차 있어요.',
-          { code: 'energyAlreadyFull' },
-        );
-      }
       if (seeds < price) {
         throw new HttpsError(
           'failed-precondition',
@@ -619,7 +626,7 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
       }
       const amount = Number(fallback?.amount ?? ENERGY_PACK_AMOUNT);
       const newSeeds = seeds - price;
-      const newEnergy = Math.min(MAX_ENERGY, energy + amount);
+      const newEnergy = energy + amount;
       tx.update(userRef, {
         seeds: newSeeds,
         energy: newEnergy,

@@ -10,6 +10,7 @@ abstract final class QuizQuestionLayout {
     required double lineHeight,
     FontWeight fontWeight = FontWeight.w400,
     Color color = Colors.black,
+    double letterSpacing = 0,
   }) {
     // 테마(M3 bodyMedium)의 자간 0.25가 화면에만 붙으면 잰 높이보다 줄이 늘어난다.
     return TextStyle(
@@ -17,7 +18,7 @@ abstract final class QuizQuestionLayout {
       fontSize: fontSize,
       fontWeight: fontWeight,
       height: lineHeight,
-      letterSpacing: 0,
+      letterSpacing: letterSpacing,
       color: color,
     );
   }
@@ -33,6 +34,7 @@ abstract final class QuizQuestionLayout {
     TextAlign textAlign = TextAlign.center,
     TextScaler textScaler = TextScaler.noScaling,
     double scale = 1,
+    double letterSpacing = 0,
   }) {
     final safeScale = scale.isFinite && scale > 0 ? scale : 1.0;
     final painter = TextPainter(
@@ -43,6 +45,7 @@ abstract final class QuizQuestionLayout {
           fontSize: fontSize * safeScale,
           lineHeight: lineHeight,
           fontWeight: fontWeight,
+          letterSpacing: letterSpacing * safeScale,
         ),
       ),
       textAlign: textAlign,

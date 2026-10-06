@@ -17,6 +17,7 @@ API 상세: [quiz-session-api.md](./quiz-session-api.md)
 | completeSession | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `completeSession` |
 | 복습 불가 오답 정리 | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `reconcileIncorrectQuestions` |
 | 중도 종료 (에너지 환불) | `QuizSessionRepository` (클라이언트 트랜잭션) | Callable `abandonSession` |
+| 매일 첫 접속 에너지 지급 | `AuthService` (클라이언트 트랜잭션) | Callable `claimDailyEnergy` |
 | mastered / answers write | 클라이언트 허용 | **Functions Admin SDK만** |
 | sessions update (completed) | 클라이언트 (`inProgress`일 때) | **Functions만** |
 | startSession | 클라이언트 (변경 없음) | 클라이언트 (변경 없음) |
@@ -39,7 +40,7 @@ cd ..
 firebase deploy --only functions
 ```
 
-- [ ] `submitAnswer`, `completeSession`, `abandonSession`, `reconcileIncorrectQuestions` 배포 확인 (region: `asia-northeast3`)
+- [ ] `submitAnswer`, `completeSession`, `abandonSession`, `reconcileIncorrectQuestions`, `claimDailyEnergy` 배포 확인 (region: `asia-northeast3`)
 - [ ] Firebase Console → Functions → 로그에서 cold start / 오류 없음 확인
 
 참고 구현: `functions/index.js` (Dart `QuizSessionRepository`와 동일 로직)

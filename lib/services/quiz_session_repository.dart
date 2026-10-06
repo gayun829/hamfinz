@@ -263,10 +263,7 @@ class QuizSessionRepository {
 
         final correctIndex = (q['correctIndex'] as num?)?.toInt() ?? 0;
         final isCorrect = selectedIndex == correctIndex;
-        energy = (energy - QuizData.energyCostPerQuestion).clamp(
-          0,
-          QuizData.maxEnergy,
-        );
+        energy = max(0, energy - QuizData.energyCostPerQuestion);
 
         tx.update(userRef, {
           'energy': energy,
@@ -345,8 +342,6 @@ class QuizSessionRepository {
         final refund = abandonRefund(
           energy: resolved.energy,
           spent: (session['energySpent'] as num?)?.toInt() ?? 0,
-          sessionDate: _sessionDateKey(session),
-          today: resolved.lastEnergyResetDate,
         );
         tx.update(userRef, {
           'energy': refund.energyRemaining,
@@ -557,11 +552,8 @@ class QuizSessionRepository {
         final rewardCap = completionEnergyReward(energySpent);
         final resolvedEnergy = _userEnergy(user);
         final energyBefore = resolvedEnergy.energy;
-        final energyRemaining = (energyBefore + rewardCap).clamp(
-          0,
-          QuizData.maxEnergy,
-        );
-        final energyEarned = energyRemaining - energyBefore;
+        final energyRemaining = energyBefore + rewardCap;
+        final energyEarned = rewardCap;
 
         final userUpdate = <String, dynamic>{
           'energy': energyRemaining,
@@ -690,16 +682,6 @@ class QuizSessionRepository {
     storedEnergy: (user['energy'] as num?)?.toInt(),
     lastEnergyResetDate: user['lastEnergyResetDate'] as String?,
   );
-
-  /// 세션을 시작한 날(KST). 시작할 때 기록한 seedDate, 없으면 startedAt으로 본다.
-  String? _sessionDateKey(Map<String, dynamic> session) {
-    final seedDate = session['seedDate'];
-    if (seedDate is String) return seedDate;
-    final startedAt = session['startedAt'];
-    return startedAt is Timestamp
-        ? DateHelper.todayKey(startedAt.toDate())
-        : null;
-  }
 
   SubmitAnswerResult _submitAnswerResultFromTx(Map<String, dynamic> data) {
     return SubmitAnswerResult(

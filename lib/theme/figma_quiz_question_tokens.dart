@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Figma `137:5521` 퀴즈._객_문제 (393×852) 좌표·색.
+/// Figma 퀴즈._객_문제 (393×852) 좌표·색.
+///
+/// 짧은 질문은 말풍선+햄핀이(`632:1982`), 긴 질문은 박스(`632:1090`),
+/// 정답은 `632:1288`·`632:1182`, 해설은 `632:1795`.
 abstract final class FigmaQuizQuestionTokens {
   static const background = Color(0xFFFBFBFB);
 
@@ -17,8 +20,7 @@ abstract final class FigmaQuizQuestionTokens {
   static const optionWrongBorder = Color(0xFFFF3C3C);
   static const cta = Color(0xFF3CC6FF);
 
-  static const toggleLeft = 270.0;
-  static const toggleTop = 257.0;
+  // 문제/해설 토글. 위치는 레이아웃마다 다르고 안쪽 배치는 같다.
   static const toggleWidth = 85.0;
   static const toggleHeight = 32.0;
   static const toggleRadius = 30.815;
@@ -28,34 +30,22 @@ abstract final class FigmaQuizQuestionTokens {
   static const toggleActive = Color(0xFF00AFF8);
   static const toggleExplainActive = Color(0xFFEE9841);
   static const toggleInactive = Color(0xFF8C8C8C);
-  static const explainNumber = Color(0xFFFFCB5A);
-
-  static const explainToggleLeft = 271.0;
-  static const explainToggleTop = 359.0;
-  static const explainToggleQuestionLeft = 282.72;
-  static const explainToggleQuestionTop = 366.0;
-  static const explainToggleExplainLeft = 321.48;
-  static const explainToggleExplainTop = 366.0;
-  static const explainToggleDividerLeft = 313.66;
-  static const explainToggleDividerTop = 370.0;
-
-  static const explainBubbleHeight = 223.0;
-  static const explainTextLeft = 52.0;
-  static const explainTextTop = 166.0;
-  static const explainTextWidth = 284.0;
-  static const explainTextHeight = 161.0;
   static const toggleFontSize = 14.0;
-  static const toggleQuestionLeft = 281.72;
-  static const toggleQuestionTop = 264.0;
+  static const toggleQuestionDx = 11.72;
   static const toggleQuestionWidth = 25.47;
-  static const toggleExplainLeft = 320.48;
-  static const toggleExplainTop = 264.0;
+  static const toggleExplainDx = 50.48;
   static const toggleExplainWidth = 26.63;
+  static const toggleLabelDy = 7.0;
   static const toggleLabelHeight = 15.0;
-  static const toggleDividerLeft = 312.66;
-  static const toggleDividerTop = 268.0;
+  static const toggleDividerDx = 42.66;
+  static const toggleDividerDy = 11.0;
   static const toggleDividerHeight = 10.0;
   static const toggleDividerWidth = 1.188;
+  static const bubbleToggle = Offset(270, 257);
+  static const boxToggle = Offset(270, 368);
+  static const explainToggle = Offset(272, 368);
+
+  static const explainNumber = Color(0xFFFFCB5A);
 
   static const backLeft = 27.0;
   static const backTop = 56.0;
@@ -88,17 +78,41 @@ abstract final class FigmaQuizQuestionTokens {
   static const numberWidth = 48.0;
   static const numberHeight = 42.0;
 
-  static const bubbleLeft = 32.0;
-  static const bubbleTop = 146.0;
-  static const bubbleWidth = 324.0;
-  static const bubbleHeight = 118.0;
-
-  static const questionLeft = 52.0;
-  static const questionTop = 168.0;
-  static const questionWidth = 284.0;
-  static const questionHeight = 62.0;
-  static const questionFontSize = 22.0;
   static const questionLineHeight = 1.2;
+
+  // 짧은 질문 — 꼬리 달린 말풍선. 60자 이하이면서 세 줄에 들어갈 때만 쓴다.
+  static const shortQuestionMaxLength = 60;
+  static const bubbleLeft = 32.0;
+  static const bubbleTop = 159.0;
+  static const bubbleWidth = 324.0;
+  static const bubbleHeight = 107.0;
+
+  /// 꼬리를 뺀 본체(159~247). 글은 두 줄이든 세 줄이든 이 안 세로 가운데에 둔다.
+  static const bubbleBodyHeight = 88.0;
+  static const bubbleTextLeft = 51.0;
+  static const bubbleTextWidth = 287.0;
+  static const bubbleTextMaxLines = 3;
+  static const bubbleFontSize = 18.0;
+  static const bubbleLetterSpacing = 0.54;
+
+  // 긴 질문·해설 — 꼬리 없는 박스. 글이 넘치면 박스가 아래로 늘어난다.
+  static const boxLeft = 34.0;
+  static const boxTop = 159.0;
+  static const boxWidth = 324.0;
+  static const boxHeight = 183.0;
+
+  /// 정답·해설 화면은 토글 자리까지 박스가 조금 더 길다.
+  static const boxAnswerHeight = 199.0;
+  static const boxTextLeft = 49.0;
+  static const boxTextTop = 175.0;
+  static const boxTextWidth = 294.0;
+  static const boxTextHeight = 147.0;
+
+  /// 61자 이상이면 20에서 18로 줄인다.
+  static const longQuestionMinLength = 61;
+  static const boxFontSize = 20.0;
+  static const longQuestionFontSize = 18.0;
+  static const explainFontSize = 18.0;
 
   static const characterLeft = 24.0;
   static const characterTop = 265.213;

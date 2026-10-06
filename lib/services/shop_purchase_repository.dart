@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../data/shop_data.dart';
 import '../models/shop_purchase_result.dart';
-import '../utils/date_helper.dart';
+import '../utils/energy_reset.dart';
 
 /// 개발용 — Blaze 없이 클라이언트 Firestore 트랜잭션으로 상점 구매를 처리한다.
 /// `functions/index.js`의 `purchaseShopItem`과 동일한 로직 (배포 시 그쪽으로 전환).
@@ -13,7 +13,6 @@ class ShopPurchaseRepository {
 
   static const maxStudyGuardCount = 4;
   static const energyPackAmount = 20;
-  static const maxEnergy = 100;
 
   Future<ShopPurchaseResult> purchaseItem(String itemId) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -89,29 +88,21 @@ class ShopPurchaseRepository {
         }
 
         if (itemId == 'energy_pack') {
-          final today = DateHelper.todayKey();
-          var energy = (userData['energy'] as num?)?.toInt() ?? maxEnergy;
-          var lastEnergyResetDate = userData['lastEnergyResetDate'] as String?;
-          if (lastEnergyResetDate != today) {
-            energy = maxEnergy;
-            lastEnergyResetDate = today;
-          }
-          if (energy >= maxEnergy) {
-            return const ShopPurchaseResult(
-              status: ShopPurchaseStatus.energyAlreadyFull,
-            );
-          }
+          final resolved = resolveDailyEnergy(
+            storedEnergy: (userData['energy'] as num?)?.toInt(),
+            lastEnergyResetDate: userData['lastEnergyResetDate'] as String?,
+          );
           if (seeds < price) {
             return const ShopPurchaseResult(
               status: ShopPurchaseStatus.insufficientSeeds,
             );
           }
           final newSeeds = seeds - price;
-          final newEnergy = (energy + energyPackAmount).clamp(0, maxEnergy);
+          final newEnergy = resolved.energy + energyPackAmount;
           tx.update(userRef, {
             'seeds': newSeeds,
             'energy': newEnergy,
-            'lastEnergyResetDate': lastEnergyResetDate,
+            'lastEnergyResetDate': resolved.lastEnergyResetDate,
           });
           return ShopPurchaseResult(
             status: ShopPurchaseStatus.success,

@@ -34,7 +34,7 @@ class UserProfile {
   String? lastQuizCompletedDate;
   bool todayQuizCompleted;
 
-  /// 학습에 쓰는 에너지. 문제 1개당 10 소모 (최대 100).
+  /// 학습에 쓰는 에너지. 한도 없이 매일 첫 접속에 100씩 쌓인다.
   int energy;
   String? lastEnergyResetDate;
 

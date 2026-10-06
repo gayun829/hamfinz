@@ -11,112 +11,82 @@ void main() {
   });
 
   group('중도 종료 환불', () {
-    const today = '2026-09-27';
-
-    test('오늘 시작한 세션은 쓴 에너지를 돌려준다', () {
-      final refund = abandonRefund(
-        energy: 60,
-        spent: 25,
-        sessionDate: today,
-        today: today,
-      );
-      expect(refund.energyRemaining, 85);
+    test('쓴 에너지를 한도 없이 그대로 돌려준다', () {
+      final refund = abandonRefund(energy: 190, spent: 25);
+      expect(refund.energyRemaining, 215);
       expect(refund.energyRefunded, 25);
     });
 
-    test('최대치를 넘겨 돌려주지 않는다', () {
-      final refund = abandonRefund(
-        energy: 90,
-        spent: 25,
-        sessionDate: today,
-        today: today,
-      );
-      expect(refund.energyRemaining, QuizData.maxEnergy);
-      expect(refund.energyRefunded, QuizData.maxEnergy - 90);
-    });
-
-    test('이전 날짜에 시작한 세션은 환불 없이 닫는다', () {
-      // 어제 쓴 에너지는 오늘 리셋으로 이미 사라졌다.
-      final refund = abandonRefund(
-        energy: QuizData.maxEnergy,
-        spent: 25,
-        sessionDate: '2026-09-26',
-        today: today,
-      );
-      expect(refund.energyRemaining, QuizData.maxEnergy);
-      expect(refund.energyRefunded, 0);
-    });
-
-    test('시작한 날을 모르면 돌려주지 않는다', () {
-      final refund = abandonRefund(
-        energy: 40,
-        spent: 25,
-        sessionDate: null,
-        today: today,
-      );
+    test('쓴 에너지가 없으면 그대로 둔다', () {
+      final refund = abandonRefund(energy: 40, spent: 0);
       expect(refund.energyRemaining, 40);
       expect(refund.energyRefunded, 0);
     });
   });
 
-  test('날짜가 바뀌면 저장값과 무관하게 최대치로 회복한다', () {
-    final resolved = resolveDailyEnergy(
-      storedEnergy: 0,
-      lastEnergyResetDate: '2026-09-12',
-      today: '2026-09-13',
-    );
+  group('매일 첫 접속 지급', () {
+    test('날짜가 바뀌면 남은 에너지에 100을 더한다', () {
+      final resolved = resolveDailyEnergy(
+        storedEnergy: 35,
+        lastEnergyResetDate: '2026-09-12',
+        today: '2026-09-13',
+      );
 
-    expect(resolved.energy, QuizData.maxEnergy);
-    expect(resolved.lastEnergyResetDate, '2026-09-13');
-  });
+      expect(resolved.energy, 35 + QuizData.dailyEnergyGrant);
+      expect(resolved.lastEnergyResetDate, '2026-09-13');
+    });
 
-  test('오늘 이미 리셋했으면 저장된 값을 그대로 쓴다', () {
-    final resolved = resolveDailyEnergy(
-      storedEnergy: 35,
-      lastEnergyResetDate: '2026-09-13',
-      today: '2026-09-13',
-    );
+    test('며칠 접속하지 않아도 한 번만 지급한다', () {
+      final resolved = resolveDailyEnergy(
+        storedEnergy: 10,
+        lastEnergyResetDate: '2026-09-01',
+        today: '2026-09-13',
+      );
 
-    expect(resolved.energy, 35);
-    expect(resolved.lastEnergyResetDate, '2026-09-13');
-  });
+      expect(resolved.energy, 10 + QuizData.dailyEnergyGrant);
+    });
 
-  test('리셋 날짜가 없으면 (신규·구버전 문서) 회복으로 본다', () {
-    final resolved = resolveDailyEnergy(
-      storedEnergy: 5,
-      lastEnergyResetDate: null,
-      today: '2026-09-13',
-    );
-
-    expect(resolved.energy, QuizData.maxEnergy);
-  });
-
-  test('energy 필드가 없으면 0이 아니라 최대치로 본다', () {
-    final resolved = resolveDailyEnergy(
-      storedEnergy: null,
-      lastEnergyResetDate: '2026-09-13',
-      today: '2026-09-13',
-    );
-
-    expect(resolved.energy, QuizData.maxEnergy);
-  });
-
-  test('저장값이 범위를 벗어나도 0~최대치로 맞춘다', () {
-    expect(
-      resolveDailyEnergy(
-        storedEnergy: 999,
+    test('오늘 이미 받았으면 저장된 값을 그대로 쓴다', () {
+      final resolved = resolveDailyEnergy(
+        storedEnergy: 35,
         lastEnergyResetDate: '2026-09-13',
         today: '2026-09-13',
-      ).energy,
-      QuizData.maxEnergy,
-    );
-    expect(
-      resolveDailyEnergy(
-        storedEnergy: -10,
-        lastEnergyResetDate: '2026-09-13',
+      );
+
+      expect(resolved.energy, 35);
+      expect(resolved.lastEnergyResetDate, '2026-09-13');
+    });
+
+    test('한도가 없어 100을 넘는 에너지도 그대로 둔다', () {
+      expect(
+        resolveDailyEnergy(
+          storedEnergy: 999,
+          lastEnergyResetDate: '2026-09-13',
+          today: '2026-09-13',
+        ).energy,
+        999,
+      );
+    });
+
+    test('지급 기록이 없는 문서도 첫 지급을 받는다', () {
+      final resolved = resolveDailyEnergy(
+        storedEnergy: null,
+        lastEnergyResetDate: null,
         today: '2026-09-13',
-      ).energy,
-      0,
-    );
+      );
+
+      expect(resolved.energy, QuizData.dailyEnergyGrant);
+    });
+
+    test('음수 저장값은 0으로 본다', () {
+      expect(
+        resolveDailyEnergy(
+          storedEnergy: -10,
+          lastEnergyResetDate: '2026-09-13',
+          today: '2026-09-13',
+        ).energy,
+        0,
+      );
+    });
   });
 }
