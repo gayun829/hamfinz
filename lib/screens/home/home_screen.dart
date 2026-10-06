@@ -177,13 +177,21 @@ class _HomeScreenState extends State<HomeScreen>
     final isReview = activeCategoryNeedsReview(profile);
 
     if (profile.energy < QuizData.sessionEnergyCost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('에너지가 부족해요'),
           content: Text(
-            '에너지가 부족해요. 학습 1회(${QuizData.dailyQuestionCount}문제)에 '
-            '${QuizData.sessionEnergyCost} 에너지가 필요해요. '
-            '(현재 ${profile.energy})',
+            '학습 1회(${QuizData.dailyQuestionCount}문제)에 '
+            '${QuizData.sessionEnergyCost} 에너지가 필요해요.\n'
+            '(지금 에너지: ${profile.energy})',
           ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('확인'),
+            ),
+          ],
         ),
       );
       return;
@@ -322,7 +330,6 @@ class _HomeScreenState extends State<HomeScreen>
       return const Scaffold(body: Center(child: Text('사용자 정보를 불러올 수 없습니다.')));
     }
 
-    final canStart = profile.energy >= QuizData.sessionEnergyCost;
     final homeTier =
         widget.tierOverride ?? HomeTierTheme.forStage(profile.learningStage);
     final reviewStage =
@@ -387,7 +394,6 @@ class _HomeScreenState extends State<HomeScreen>
                 child: _HomeLearningCta(
                   figma: figma,
                   tier: homeTier,
-                  canStartLearning: canStart,
                   onTap: _startQuiz,
                 ),
               ),
@@ -1724,13 +1730,11 @@ class _HomeLearningCta extends StatelessWidget {
   const _HomeLearningCta({
     required this.figma,
     required this.tier,
-    required this.canStartLearning,
     required this.onTap,
   });
 
   final FigmaScale figma;
   final HomeTierTheme tier;
-  final bool canStartLearning;
   final VoidCallback onTap;
 
   @override
@@ -1749,9 +1753,7 @@ class _HomeLearningCta extends StatelessWidget {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              color: canStartLearning
-                  ? tier.learningCtaColor
-                  : tier.learningCtaColor.withValues(alpha: 0.55),
+              color: tier.learningCtaColor,
               borderRadius: BorderRadius.circular(s(13)),
               boxShadow: tier.hasLearningCtaShadow
                   ? [
@@ -1799,7 +1801,7 @@ class _HomeLearningCta extends StatelessWidget {
             left: s(135 - originX),
             top: s((_homeLearningCtaHeight - textHeight) / 2),
             child: Text(
-              canStartLearning ? '오늘의 학습' : '에너지 부족',
+              '오늘의 학습',
               style: TextStyle(
                 fontFamily: FigmaHomeFonts.pretendard,
                 fontSize: s(26),
