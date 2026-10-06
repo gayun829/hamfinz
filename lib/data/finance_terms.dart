@@ -233,6 +233,8 @@ const List<FinanceTerm> kFinanceTerms = [
   FinanceTerm(term: '전세대출', categoryId: 'credit'),
   FinanceTerm(term: '가계대출', categoryId: 'credit'),
   FinanceTerm(term: '신용대출', categoryId: 'credit'),
+  // 「최고금리」는 법정 상한 얘기라 '고금리'로 가르치면 반대가 된다. 길이 우선으로 먼저 잡는다.
+  FinanceTerm(term: '최고금리', categoryId: 'credit'),
   FinanceTerm(
     term: '대출금리',
     categoryId: 'credit',
@@ -285,16 +287,16 @@ const List<FinanceTerm> kFinanceTerms = [
     term: '연체',
     categoryId: 'credit',
     summary: '갚기로 한 날짜를 넘겨 못 갚는 것.',
-    forMe: '며칠만 늦어도 기록이 남고, 다음 대출 금리가 올라간다.',
+    forMe: '하루만 늦어도 연체이자가 붙고, 길어지면 기록이 남아 다음 대출 금리가 올라간다.',
     quiz: TermQuiz(
       question: '카드값을 5일 늦게 냈다. 어떻게 될까?',
       options: [
         '아무 일도 없다',
-        '연체 기록이 남고 신용점수가 떨어진다',
+        '연체이자가 붙고, 길어지면 신용점수가 떨어진다',
         '다음 달에 몰아서 내면 된다',
       ],
       answer: 1,
-      why: '짧은 연체도 기록에 남고 연체이자가 붙는다. 점수가 떨어지면 다음에 빌릴 때 금리가 올라간다.',
+      why: '하루만 늦어도 연체이자가 붙는다. 10만 원 이상을 5영업일 넘게 못 갚으면 기록이 남아 점수가 떨어지고, 다음에 빌릴 때 금리가 올라간다.',
     ),
   ),
   FinanceTerm(
@@ -348,6 +350,9 @@ const List<FinanceTerm> kFinanceTerms = [
     ),
   ),
   FinanceTerm(term: '공모주', categoryId: 'stock'),
+  // 자동차 업종 주식. 없으면 부분 문자열 '차주'(돈 빌린 사람)로 잡힌다.
+  FinanceTerm(term: '자동차주', categoryId: 'stock'),
+  FinanceTerm(term: '완성차주', categoryId: 'stock'),
   FinanceTerm(
     term: '증시',
     categoryId: 'stock',

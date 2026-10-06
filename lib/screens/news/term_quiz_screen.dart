@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/finance_terms.dart';
@@ -67,6 +68,10 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   int _earned = 0;
 
   TermQuiz get _quiz => widget.term.quiz!;
+
+  /// 보기를 그리는 순서. 데이터의 정답 위치가 0·1번에 몰려 있어서 찍어도 맞힌다.
+  late final List<int> _order =
+      List.generate(_quiz.options.length, (i) => i)..shuffle();
   bool get _isCorrect => _picked == _quiz.answer;
 
   /// 이미 씨앗을 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
@@ -84,7 +89,11 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   Future<void> _reveal() async {
     if (_picked == null) return;
     setState(() => _stage = _Stage.graded);
-    if (!_isCorrect) return;
+    if (!_isCorrect) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+    HapticFeedback.lightImpact();
     final earned = await NewsQuizRepository.instance.rewardCorrect(
       widget.term.term,
     );
@@ -149,8 +158,13 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                               _buildLearn()
                             else if (_stage == _Stage.explain)
                               _buildExplain()
-                            else
+                            else ...[
+                              if (_stage == _Stage.graded) ...[
+                                _Verdict(correct: _isCorrect, earned: _earned),
+                                const SizedBox(height: 16),
+                              ],
                               _buildOptions(),
+                            ],
                             const SizedBox(height: 28),
                             _buildButton(),
                           ],
@@ -197,11 +211,12 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
     final options = _quiz.options;
     return Column(
       children: [
-        for (var i = 0; i < options.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
+        for (final i in _order) ...[
+          if (i != _order.first) const SizedBox(height: 12),
           _OptionBox(
             label: options[i],
             style: _styleFor(i),
+            mark: _markFor(i),
             onTap: _stage == _Stage.question ? () => _pick(i) : null,
           ),
         ],
@@ -224,6 +239,14 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
       case _Stage.explain:
         return _OptionStyle.answer;
     }
+  }
+
+  /// 정오답 장면에서 보기 오른쪽에 붙는 ✓/✗. 색만으로는 고른 보기와 정답이 헷갈린다.
+  IconData? _markFor(int index) {
+    if (_stage != _Stage.graded) return null;
+    if (index == _quiz.answer) return Icons.check_circle;
+    if (index == _picked) return Icons.cancel;
+    return null;
   }
 
   /// 해설 — 정답 보기 하나만 노랗게 남기고 그 아래에 해설 상자.
@@ -502,6 +525,68 @@ class _SeedBadge extends StatelessWidget {
   }
 }
 
+/// 정오답 판정 배너. 채점 직후 튀어나와서 맞았는지 틀렸는지 바로 보이게 한다.
+class _Verdict extends StatelessWidget {
+  const _Verdict({required this.correct, required this.earned});
+
+  final bool correct;
+
+  /// 받은 씨앗. 서버 응답 전이거나 이미 받은 용어면 0.
+  final int earned;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = correct ? _OptionStyle.correct : _OptionStyle.wrong;
+    final color = correct ? AppTheme.figmaTeal : _OptionStyle.wrong.border;
+    return TweenAnimationBuilder<double>(
+      // 정답만 통통 튄다. 오답까지 튀면 축하하는 것처럼 보인다.
+      tween: Tween(begin: correct ? 0.6 : 0.95, end: 1),
+      duration: Duration(milliseconds: correct ? 380 : 200),
+      curve: correct ? Curves.elasticOut : Curves.easeOut,
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: style.background,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: style.border, width: 1.6),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              correct ? Icons.check_circle : Icons.cancel,
+              color: color,
+              size: correct ? 30 : 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                correct ? '정답이에요!' : '아쉬워요, 틀렸어요',
+                // 정답은 크게 축하하고, 오답은 작고 담담하게 — 크게 띄우면 혼나는 느낌이 든다.
+                style: TextStyle(
+                  fontSize: correct ? 18 : 15,
+                  fontWeight: correct ? FontWeight.w800 : FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+            if (earned > 0)
+              Text(
+                '🌱 +$earned',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.figmaTeal,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 보기 상자의 색 조합. Figma 네 장면에서 쓰인 다섯 가지.
 enum _OptionStyle {
   idle(Colors.white, Color(0xFFDADADA)),
@@ -524,11 +609,15 @@ class _OptionBox extends StatelessWidget {
     required this.label,
     required this.style,
     required this.onTap,
+    this.mark,
   });
 
   final String label;
   final _OptionStyle style;
   final VoidCallback? onTap;
+
+  /// 오른쪽 끝 ✓/✗ 아이콘. 색은 [style] 테두리를 따른다.
+  final IconData? mark;
 
   @override
   Widget build(BuildContext context) {
@@ -548,15 +637,29 @@ class _OptionBox extends StatelessWidget {
             width: style == _OptionStyle.idle ? 1 : 1.6,
           ),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.35,
-            fontWeight: FontWeight.w500,
-            color: Colors.black,
-          ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Padding(
+              // 아이콘과 글자가 겹치지 않게 양쪽을 같이 비워 가운데 정렬을 지킨다.
+              padding: EdgeInsets.symmetric(horizontal: mark == null ? 0 : 26),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            if (mark != null)
+              Positioned(
+                right: 0,
+                child: Icon(mark, size: 22, color: style.border),
+              ),
+          ],
         ),
       ),
     );

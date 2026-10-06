@@ -109,6 +109,14 @@ void main() {
     expect(matchFinanceTerm('메디포스트, 신임 대표 영입'), isNull);
   });
 
+  test('부분 문자열로 엉뚱한 용어를 잡지 않는다', () {
+    // '차주'(돈 빌린 사람)·'고금리'가 더 긴 단어 안에 숨어 있는 제목들.
+    expect(matchFinanceTerm('자동차주 일제히 강세…현대차 3%↑')?.term, '자동차주');
+    expect(matchFinanceTerm('완성차주 반등')?.term, '완성차주');
+    expect(matchFinanceTerm('법정 최고금리 20%로 인하 검토')?.term, '최고금리');
+    expect(matchFinanceTerm('카드사 최고금리 낮춘다')?.term, '최고금리');
+  });
+
   test('용어마다 실재하는 관심 카테고리 id가 붙어 있다', () {
     const validIds = {
       'allowance',
