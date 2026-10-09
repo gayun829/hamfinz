@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
@@ -7,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/shop_catalog_service.dart';
 import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
+import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 import 'closet_screen.dart';
@@ -130,7 +133,7 @@ class _ShopScreenState extends State<ShopScreen> {
     );
 
     return Scaffold(
-      backgroundColor: FigmaShopTokens.background,
+      backgroundColor: const Color(0xFFFBFBFB),
       body: SafeArea(
         child: MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: clampedScaler),
@@ -143,9 +146,8 @@ class _ShopScreenState extends State<ShopScreen> {
               final s = figma.s;
               return Column(
                 children: [
-                  ShopHeader(
+                  _ItemShopHeader(
                     figma: figma,
-                    title: '아이템 상점',
                     seeds: _profile.seeds,
                     onBack: () => Navigator.of(context).pop(),
                   ),
@@ -153,31 +155,15 @@ class _ShopScreenState extends State<ShopScreen> {
                     child: ListView(
                       padding: EdgeInsets.fromLTRB(
                         s(FigmaShopTokens.pagePadding),
-                        s(26),
+                        s(27),
                         s(FigmaShopTokens.pagePadding),
                         s(24),
                       ),
                       children: [
-                        _ShopBanner(
-                          figma: figma,
-                          title: '햄핀이 옷장',
-                          eyebrow: '햄핀이 꾸미러 가기',
-                          subtitle: '내가 가진 아이템으로\n햄핀을 꾸며보세요!',
-                          color: const Color(0xFFCCEF96),
-                          asset: FigmaAssets.shopClosetBanner,
-                          fallbackAsset: FigmaAssets.hamsterAuth,
-                          onTap: _openCloset,
-                        ),
+                        _ClosetBanner(figma: figma, onTap: _openCloset),
                         SizedBox(height: s(23)),
-                        _ShopBanner(
+                        _ClothingShopBanner(
                           figma: figma,
-                          title: '햄핀이 옷 상점',
-                          eyebrow: '새로운 옷을 만나보세요!',
-                          subtitle: '보유한 옷과 구매 가능한\n옷을 한눈에 볼 수 있어요!',
-                          color: const Color(0xFFCAF5FF),
-                          bottomColor: const Color(0xFFF2C796),
-                          asset: FigmaAssets.shopClothingBanner,
-                          fallbackAsset: FigmaAssets.hamsterAuth,
                           onTap: _openClothingShop,
                         ),
                         SizedBox(height: s(23)),
@@ -223,119 +209,290 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 }
 
-class _ShopBanner extends StatelessWidget {
-  const _ShopBanner({
+/// Figma `675:454` 아이템 상점창 상단 바 (상태바 아래 57px).
+class _ItemShopHeader extends StatelessWidget {
+  const _ItemShopHeader({
     required this.figma,
-    required this.eyebrow,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    this.bottomColor,
-    required this.asset,
-    required this.fallbackAsset,
-    required this.onTap,
+    required this.seeds,
+    required this.onBack,
   });
   final FigmaScale figma;
-  final String eyebrow;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color? bottomColor;
-  final String asset;
-  final String fallbackAsset;
-  final VoidCallback onTap;
+  final int seeds;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    return InkWell(
+    return Container(
+      height: s(57),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 2)),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Text(
+            '아이템 상점',
+            style: TextStyle(
+              fontSize: 22 * figma.scale,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+          Positioned(
+            left: s(10),
+            child: Semantics(
+              button: true,
+              label: '뒤로',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onBack,
+                child: Padding(
+                  padding: EdgeInsets.all(s(16)),
+                  child: FigmaSvg(
+                    FigmaAssets.friendsBackChevron,
+                    width: s(10.644),
+                    height: s(21.069),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: s(14),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: s(100)),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: ShopSeedChip(
+                  figma: figma,
+                  seeds: seeds,
+                  iconSize: FigmaShopTokens.seedIconHeader,
+                  amountSize: 17.243,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 상점 배너 공통 카드: 그림자, 둥근 모서리, 바닥 나무판, 오른쪽 화살표.
+class _BannerCard extends StatelessWidget {
+  const _BannerCard({
+    required this.figma,
+    required this.height,
+    required this.decoration,
+    required this.chevronAsset,
+    required this.chevronTop,
+    required this.onTap,
+    required this.children,
+  });
+  final FigmaScale figma;
+  final double height;
+  final BoxDecoration decoration;
+  final String chevronAsset;
+  final double chevronTop;
+  final VoidCallback onTap;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    final radius = BorderRadius.circular(s(13));
+    return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: s(bottomColor == null ? 164 : 220),
-        clipBehavior: Clip.antiAlias,
+        height: s(height),
         decoration: BoxDecoration(
-          color: color,
+          borderRadius: radius,
           boxShadow: const [
-            BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 12,
-              offset: Offset(0, 3),
-            ),
+            BoxShadow(color: Color(0xFFE5E5E5), blurRadius: 12.2),
           ],
-          borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
         ),
-        child: Stack(
-          children: [
-            if (bottomColor != null)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: s(55),
-                child: ColoredBox(color: bottomColor!),
-              ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                s(19),
-                s(bottomColor == null ? 32 : 36),
-                s(145),
-                s(10),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    eyebrow,
-                    style: FigmaShopTokens.body(
-                      figma.scale,
-                    ).copyWith(fontSize: 13 * figma.scale),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: DecoratedBox(
+            decoration: decoration,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: s(-4),
+                  top: s(height - 46),
+                  width: s(361),
+                  height: s(46),
+                  child: Image.asset(
+                    FigmaAssets.shopBannerFloor,
+                    fit: BoxFit.fill,
                   ),
-                  SizedBox(height: s(3)),
-                  Text(
-                    title,
-                    style: FigmaShopTokens.cardTitle(
-                      figma.scale,
-                    ).copyWith(fontSize: 24 * figma.scale),
+                ),
+                ...children,
+                Positioned(
+                  left: s(326),
+                  top: s(chevronTop),
+                  child: Transform.flip(
+                    flipX: true,
+                    child: FigmaSvg(
+                      chevronAsset,
+                      width: s(10.644),
+                      height: s(21.069),
+                    ),
                   ),
-                  SizedBox(height: s(20)),
-                  Text(
-                    subtitle,
-                    style: FigmaShopTokens.body(
-                      figma.scale,
-                    ).copyWith(fontSize: 13 * figma.scale),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Positioned(
-              right: s(34),
-              bottom: s(bottomColor == null ? 12 : 35),
-              width: s(bottomColor == null ? 158 : 130),
-              height: s(bottomColor == null ? 140 : 145),
-              child: Image.asset(
-                asset,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                    Image.asset(fallbackAsset, fit: BoxFit.contain),
-              ),
-            ),
-            Positioned(
-              right: s(10),
-              top: s(bottomColor == null ? 65 : 92),
-              child: Icon(
-                Icons.chevron_right,
-                size: s(34),
-                color: bottomColor == null
-                    ? const Color(0xFFB1D981)
-                    : Colors.white,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
+
+/// Figma `675:479` 햄핀이 옷장 배너.
+class _ClosetBanner extends StatelessWidget {
+  const _ClosetBanner({required this.figma, required this.onTap});
+  final FigmaScale figma;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    return _BannerCard(
+      figma: figma,
+      height: 164,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFC7EE97), Color(0xFFFFF8EA)],
+          stops: [0, 0.95],
+        ),
+      ),
+      chevronAsset: FigmaAssets.shopBannerChevronGreen,
+      chevronTop: 72,
+      onTap: onTap,
+      children: [
+        Positioned(
+          left: s(188),
+          top: s(15),
+          width: s(110.7),
+          height: s(127.7),
+          child: Image.asset(FigmaAssets.shopBannerCloset, fit: BoxFit.fill),
+        ),
+        Positioned(
+          left: s(19),
+          top: s(33),
+          child: Text('햄핀이 옷장', style: _bannerTitle(figma.scale)),
+        ),
+        Positioned(
+          left: s(20),
+          top: s(77),
+          child: Text('햄핀이 꾸미러 가기', style: _bannerBody(figma.scale, 17)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Figma `675:491` 햄핀이 옷 상점 배너.
+class _ClothingShopBanner extends StatelessWidget {
+  const _ClothingShopBanner({required this.figma, required this.onTap});
+  final FigmaScale figma;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = figma.s;
+    return _BannerCard(
+      figma: figma,
+      height: 204,
+      decoration: const BoxDecoration(color: Color(0xFFFFF8D3)),
+      chevronAsset: FigmaAssets.shopBannerChevronWood,
+      chevronTop: 99,
+      onTap: onTap,
+      children: [
+        Positioned(
+          left: s(32),
+          top: s(28),
+          width: s(292),
+          height: s(148),
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: s(50),
+              sigmaY: s(50),
+              tileMode: TileMode.decal,
+            ),
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.all(Radius.elliptical(146, 74)),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: s(160),
+          top: s(119),
+          width: s(177),
+          height: s(106.3),
+          child: Image.asset(FigmaAssets.shopBannerStump, fit: BoxFit.fill),
+        ),
+        Positioned(
+          left: s(175),
+          top: s(12),
+          width: s(97.7),
+          height: s(116.3),
+          child: Image.asset(FigmaAssets.shopBannerPhotoPink, fit: BoxFit.fill),
+        ),
+        Positioned(
+          left: s(212),
+          top: s(47),
+          width: s(94.7),
+          height: s(114),
+          child: Image.asset(FigmaAssets.shopBannerPhotoBlue, fit: BoxFit.fill),
+        ),
+        Positioned(
+          left: s(19),
+          top: s(33),
+          child: Text('새로운 옷을 만나보세요!', style: _bannerBody(figma.scale, 14)),
+        ),
+        Positioned(
+          left: s(18),
+          top: s(52),
+          child: Text('햄핀이 옷 상점', style: _bannerTitle(figma.scale)),
+        ),
+        Positioned(
+          left: s(18),
+          top: s(103),
+          child: Text(
+            '보유한 옷과 구매 가능한\n옷을 한눈에 볼 수 있어요!',
+            style: _bannerBody(figma.scale, 12.7),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+TextStyle _bannerTitle(double scale) => TextStyle(
+  fontSize: 26 * scale,
+  fontWeight: FontWeight.w600,
+  color: const Color(0xFF1C1C1E),
+  height: 1.19,
+);
+
+TextStyle _bannerBody(double scale, double size) => TextStyle(
+  fontSize: size * scale,
+  fontWeight: FontWeight.w500,
+  color: const Color(0xFF1C1C1E),
+  height: 1.19,
+);
 
 class _ItemPurchaseTile extends StatelessWidget {
   const _ItemPurchaseTile({

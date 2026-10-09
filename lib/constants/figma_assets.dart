@@ -110,8 +110,14 @@ class FigmaAssets {
 
   // Shop
   static const shopSeedPouch = '$_shop/seed_pouch.svg';
-  static const shopClosetBanner = '$_shop/closet_banner_hamster.png';
-  static const shopClothingBanner = '$_shop/clothing_shop_hamster.png';
+  // Figma `675:454` 아이템 상점창 배너 일러스트.
+  static const shopBannerCloset = '$_shop/banner_closet.png';
+  static const shopBannerFloor = '$_shop/banner_floor.png';
+  static const shopBannerStump = '$_shop/banner_stump.png';
+  static const shopBannerPhotoPink = '$_shop/banner_photo_pink.png';
+  static const shopBannerPhotoBlue = '$_shop/banner_photo_blue.png';
+  static const shopBannerChevronGreen = '$_shop/banner_chevron_green.svg';
+  static const shopBannerChevronWood = '$_shop/banner_chevron_wood.svg';
 
   // Calendar
   static const calendarPeekHamster = '$_calendar/hamster_peek.png';
