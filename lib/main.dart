@@ -48,10 +48,15 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    if (_authenticated) {
-      return MainShell(onLogout: _onLogout);
-    }
-
-    return AuthGate(onAuthenticated: _onAuthenticated);
+    // 로그인 ↔ 홈은 Navigator를 안 거쳐서, 그냥 두면 화면이 툭 바뀐다.
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      child: _authenticated
+          ? MainShell(key: const ValueKey('main'), onLogout: _onLogout)
+          : AuthGate(
+              key: const ValueKey('auth'),
+              onAuthenticated: _onAuthenticated,
+            ),
+    );
   }
 }
