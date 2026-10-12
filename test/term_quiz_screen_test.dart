@@ -7,6 +7,10 @@ void main() {
   final term = kFinanceTerms.firstWhere((t) => t.hasLesson);
 
   Future<void> pump(WidgetTester tester) async {
+    // Figma 프레임(393x852). 기본 800x600은 폰보다 낮아서 버튼이 화면 밖으로 밀린다.
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(393, 852);
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         home: TermQuizScreen(term: term, headline: '테스트 기사 제목'),
@@ -62,7 +66,6 @@ void main() {
     // 틀렸다는 게 글로 바로 보인다.
     expect(find.text('아쉬워요, 틀렸어요'), findsOneWidget);
     expect(find.byIcon(Icons.cancel), findsWidgets);
-    await tester.ensureVisible(find.text('해설 보기'));
     await tester.tap(find.text('해설 보기'));
     await tester.pumpAndSettle();
 

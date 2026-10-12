@@ -115,13 +115,17 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                // Figma 뉴스_정오답: 내용 덩어리는 좌우 41씩 들여서 가운데에 둔다.
+                padding: const EdgeInsets.fromLTRB(41, 8, 41, 16),
                 child: Column(
-                  // Figma대로 머리·문제는 가운데. 뒤로 가기만 왼쪽에 붙는다.
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _BackChevron(onTap: _exit),
-                    const SizedBox(height: 28),
+                    // 뒤로 가기만 내용보다 바깥(화면 왼쪽 24)에 붙는다.
+                    Transform.translate(
+                      offset: const Offset(-17, 0),
+                      child: _BackChevron(onTap: _exit),
+                    ),
+                    const SizedBox(height: 70),
                     if (_stage == _Stage.learn)
                       _LearnHeader(
                         term: widget.term.term,
@@ -137,10 +141,9 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                             ? _OptionStyle.answer.border
                             : _OptionStyle.accent,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 18),
                       Text(
                         _quiz.question,
-                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 17,
                           height: 1.45,
@@ -149,7 +152,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 34),
+                    const SizedBox(height: 56),
                     // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
                     Expanded(
                       child: SingleChildScrollView(
@@ -167,7 +170,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                               ],
                               _buildOptions(),
                             ],
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 40),
                             _buildButton(),
                           ],
                         ),
@@ -214,7 +217,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
     return Column(
       children: [
         for (final i in _order) ...[
-          if (i != _order.first) const SizedBox(height: 12),
+          if (i != _order.first) const SizedBox(height: 14),
           _OptionBox(
             label: options[i],
             style: _styleFor(i),
@@ -376,9 +379,9 @@ class _LearnHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
               '오늘의 용어',
@@ -397,7 +400,6 @@ class _LearnHeader extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           term,
-          textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
@@ -473,7 +475,6 @@ class _QuestionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Q',
@@ -679,7 +680,7 @@ class _PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 49,
       width: double.infinity,
       child: FilledButton(
         onPressed: onPressed,
