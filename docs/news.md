@@ -134,7 +134,7 @@ Figma `뉴스_퀴즈창 → 뉴스_정오답 → 뉴스_해설` 세 장면을 �
 
 - 화면: `lib/screens/news/term_quiz_screen.dart` — 하단 탭을 그대로 두어 탭 안의 한 장면처럼 보인다
 - 내용: `finance_terms.dart`의 `summary` / `forMe` / `quiz`(`TermQuiz` — 문제 / 보기 3 / 정답 index / 해설)
-- 보상: 맞히면 **씨앗 +3** (`NewsQuizRepository`). 앱 실행당 용어별 1회. 개발은 클라이언트 트랜잭션이고, 배포 Rules는 seeds를 Functions만 쓰게 막아 두었으니 그때는 Callable로 옮긴다
+- 보상: 맞히면 **씨앗 +3** (홈 오른쪽 위) (`NewsQuizRepository`). 앱 실행당 용어별 1회. 개발은 클라이언트 트랜잭션이고, 배포 Rules는 seeds를 Functions만 쓰게 막아 두었으니 그때는 Callable로 옮긴다
 - **`hasLesson`이 true인 용어만** 퀴즈로 이어진다. 나머지는 필터로만 쓰인다 — 자주 걸리는 용어부터 채워 나가면 된다
 
 ### 홈 퀴즈와 왜 안 엮었나
