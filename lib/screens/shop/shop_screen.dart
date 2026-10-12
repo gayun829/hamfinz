@@ -185,6 +185,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                 title: '방어햄',
                                 price: _catalogItem('study_guard').price,
                                 item: _catalogItem('study_guard'),
+                                background: const Color(0xFFE2F6FF),
                                 onTap: _buyStudyGuard,
                               ),
                             ),
@@ -195,6 +196,12 @@ class _ShopScreenState extends State<ShopScreen> {
                                 title: '에너지햄',
                                 price: _catalogItem('energy_pack').price,
                                 item: _catalogItem('energy_pack'),
+                                background: const Color(0xFFFFF3D2),
+                                icon: FigmaSvg(
+                                  FigmaAssets.statEnergy,
+                                  width: s(84),
+                                  height: s(59),
+                                ),
                                 onTap: _buyEnergy,
                               ),
                             ),
@@ -259,6 +266,10 @@ class _ItemShopHeader extends StatelessWidget {
                     FigmaAssets.friendsBackChevron,
                     width: s(10.644),
                     height: s(21.069),
+                    colorFilter: const ColorFilter.mode(
+                      Color(0xFFD9D9D9),
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -504,12 +515,18 @@ class _ItemPurchaseTile extends StatelessWidget {
     required this.title,
     required this.price,
     required this.item,
+    required this.background,
+    this.icon,
     required this.onTap,
   });
   final FigmaScale figma;
   final String title;
   final int price;
   final ShopItem item;
+  final Color background;
+
+  /// 없으면 카탈로그 아이템 이미지를 쓴다.
+  final Widget? icon;
   final VoidCallback onTap;
 
   @override
@@ -536,8 +553,8 @@ class _ItemPurchaseTile extends StatelessWidget {
           children: [
             Expanded(
               child: Container(
-                color: FigmaShopTokens.previewBackground,
-                child: Center(child: ShopItemImage(item: item)),
+                color: background,
+                child: Center(child: icon ?? ShopItemImage(item: item)),
               ),
             ),
             Padding(
