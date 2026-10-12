@@ -346,14 +346,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               ],
               if (_earned > 0) ...[
                 const SizedBox(height: 12),
-                Text(
-                  '🌱 씨앗 +$_earned',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.figmaTeal,
-                  ),
-                ),
+                _SeedAmount(amount: _earned, size: 12, label: '씨앗 '),
               ],
             ],
           ),
@@ -550,25 +543,51 @@ class _SeedBadge extends StatelessWidget {
         color: AppTheme.figmaMintCard,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(
-            width: 12,
-            height: 12,
-            child: FigmaSvg(FigmaAssets.statCoin),
-          ),
-          const SizedBox(width: 3),
-          Text(
-            '+$reward',
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-        ],
+      child: _SeedAmount(
+        amount: reward,
+        size: 10,
+        color: AppTheme.textPrimary,
       ),
+    );
+  }
+}
+
+/// 홈 상단 씨앗 아이콘 + `+N`. 배지·판정 배너·해설이 같은 모양을 쓴다.
+class _SeedAmount extends StatelessWidget {
+  const _SeedAmount({
+    required this.amount,
+    required this.size,
+    this.label = '',
+    this.color = AppTheme.figmaTeal,
+  });
+
+  final int amount;
+  final double size;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox.square(
+          dimension: size * 1.3,
+          child: const FigmaSvg(
+            FigmaAssets.homeBeginnerStatCoin,
+            fit: BoxFit.contain,
+          ),
+        ),
+        SizedBox(width: size * 0.3),
+        Text(
+          '$label+$amount',
+          style: TextStyle(
+            fontSize: size,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -620,14 +639,7 @@ class _Verdict extends StatelessWidget {
               ),
             ),
             if (earned > 0)
-              Text(
-                '⚡ +$earned',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.figmaTeal,
-                ),
-              ),
+              _SeedAmount(amount: earned, size: 14),
           ],
         ),
       ),
