@@ -11,7 +11,7 @@ class NewsQuizRepository {
 
   static final instance = NewsQuizRepository._();
 
-  static const energyPerCorrect = 5;
+  static const energyPerCorrect = 3;
 
   /// 같은 용어를 다시 풀어 에너지를 반복해서 받지 못하게, 앱 실행당 용어별 1회만 준다.
   final _rewarded = <String>{};

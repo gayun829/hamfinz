@@ -70,14 +70,13 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   TermQuiz get _quiz => widget.term.quiz!;
 
   /// 보기를 그리는 순서. 데이터의 정답 위치가 0·1번에 몰려 있어서 찍어도 맞힌다.
-  late final List<int> _order =
-      List.generate(_quiz.options.length, (i) => i)..shuffle();
+  late final List<int> _order = List.generate(_quiz.options.length, (i) => i)
+    ..shuffle();
   bool get _isCorrect => _picked == _quiz.answer;
 
   /// 이미 에너지를 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
   bool get _showReward =>
-      _earned > 0 ||
-      !NewsQuizRepository.instance.isRewarded(widget.term.term);
+      _earned > 0 || !NewsQuizRepository.instance.isRewarded(widget.term.term);
 
   void _startQuiz() => setState(() => _stage = _Stage.question);
 
@@ -126,32 +125,39 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                       child: _BackChevron(onTap: _exit),
                     ),
                     const SizedBox(height: 70),
-                    if (_stage == _Stage.learn)
-                      _LearnHeader(
-                        term: widget.term.term,
-                        reward: NewsQuizRepository.energyPerCorrect,
-                        showReward: _showReward,
-                      )
-                    else ...[
-                      _QuestionHeader(
-                        reward: NewsQuizRepository.energyPerCorrect,
-                        showReward: _showReward,
-                        // 해설 장면에서는 Q도 정답 보기와 같은 노랑이 된다.
-                        color: _stage == _Stage.explain
-                            ? _OptionStyle.answer.border
-                            : _OptionStyle.accent,
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        _quiz.question,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          height: 1.45,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
+                    _StageSwitcher(
+                      child: _stage == _Stage.learn
+                          ? _LearnHeader(
+                              key: const ValueKey('learn'),
+                              term: widget.term.term,
+                              reward: NewsQuizRepository.energyPerCorrect,
+                              showReward: _showReward,
+                            )
+                          : Column(
+                              key: const ValueKey('question'),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _QuestionHeader(
+                                  reward: NewsQuizRepository.energyPerCorrect,
+                                  showReward: _showReward,
+                                  // 해설 장면에서는 Q도 정답 보기와 같은 노랑이 된다.
+                                  color: _stage == _Stage.explain
+                                      ? _OptionStyle.answer.border
+                                      : _OptionStyle.accent,
+                                ),
+                                const SizedBox(height: 18),
+                                Text(
+                                  _quiz.question,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    height: 1.45,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                     const SizedBox(height: 56),
                     // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
                     Expanded(
@@ -159,17 +165,46 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (_stage == _Stage.learn)
-                              _buildLearn()
-                            else if (_stage == _Stage.explain)
-                              _buildExplain()
-                            else ...[
-                              if (_stage == _Stage.graded) ...[
-                                _Verdict(correct: _isCorrect, earned: _earned),
-                                const SizedBox(height: 16),
-                              ],
-                              _buildOptions(),
-                            ],
+                            _StageSwitcher(
+                              child: switch (_stage) {
+                                _Stage.learn => KeyedSubtree(
+                                  key: const ValueKey('learn'),
+                                  child: _buildLearn(),
+                                ),
+                                _Stage.explain => KeyedSubtree(
+                                  key: const ValueKey('explain'),
+                                  child: _buildExplain(),
+                                ),
+                                _ => Column(
+                                  key: const ValueKey('options'),
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // 배너가 끼어들 때 보기가 툭 밀리지 않고 미끄러지게.
+                                    AnimatedSize(
+                                      duration: const Duration(
+                                        milliseconds: 220,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      child: _stage == _Stage.graded
+                                          ? Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 16,
+                                              ),
+                                              child: _Verdict(
+                                                correct: _isCorrect,
+                                                earned: _earned,
+                                              ),
+                                            )
+                                          : const SizedBox(
+                                              width: double.infinity,
+                                            ),
+                                    ),
+                                    _buildOptions(),
+                                  ],
+                                ),
+                              },
+                            ),
                             const SizedBox(height: 40),
                             _buildButton(),
                           ],
@@ -284,7 +319,9 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: _isCorrect ? AppTheme.figmaTeal : _OptionStyle.wrong.border,
+                  color: _isCorrect
+                      ? AppTheme.figmaTeal
+                      : _OptionStyle.wrong.border,
                 ),
               ),
               const SizedBox(height: 8),
@@ -357,7 +394,11 @@ class _BackChevron extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: const Padding(
           padding: EdgeInsets.all(8),
-          child: Icon(Icons.arrow_back_ios_new, size: 18, color: Color(0xFFB0B0B0)),
+          child: Icon(
+            Icons.arrow_back_ios_new,
+            size: 18,
+            color: Color(0xFFB0B0B0),
+          ),
         ),
       ),
     );
@@ -367,6 +408,7 @@ class _BackChevron extends StatelessWidget {
 /// 학습 단계 머리 — 용어 이름과 에너지 배지. `Q` 자리에 용어가 온다.
 class _LearnHeader extends StatelessWidget {
   const _LearnHeader({
+    super.key,
     required this.term,
     required this.reward,
     required this.showReward,
@@ -476,14 +518,15 @@ class _QuestionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          'Q',
+        AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 250),
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
             color: color,
             height: 1,
           ),
+          child: const Text('Q'),
         ),
         if (showReward) ...[
           const SizedBox(width: 8),
@@ -694,11 +737,48 @@ class _PrimaryButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(26),
           ),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(
+            label,
+            key: ValueKey(label),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// 단계가 바뀔 때 이전 장면은 사라지고 새 장면은 살짝 올라오며 나타난다.
+/// 자식 key가 바뀔 때만 움직이므로, 같은 key 안의 변화(보기 색)는 그대로 둔다.
+class _StageSwitcher extends StatelessWidget {
+  const _StageSwitcher({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 0.06),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      // 기본은 가운데 정렬이라 왼쪽 정렬 장면이 흔들린다.
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topLeft,
+        children: [...previous, ?current],
+      ),
+      child: child,
     );
   }
 }
