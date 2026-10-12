@@ -48,8 +48,11 @@ void main() {
       await tester.runAsync(() async {
         final context = tester.element(find.byType(Scaffold).first);
         for (final path in [
-          'assets/figma/shop/closet_banner_hamster.png',
-          'assets/figma/shop/clothing_shop_hamster.png',
+          'assets/figma/shop/banner_closet.png',
+          'assets/figma/shop/banner_floor.png',
+          'assets/figma/shop/banner_stump.png',
+          'assets/figma/shop/banner_photo_pink.png',
+          'assets/figma/shop/banner_photo_blue.png',
           'assets/figma/shop/tongnamu.png',
           'assets/figma/shop/gibonbaegyoung.png',
           ...ShopData.items
