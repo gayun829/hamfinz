@@ -23,7 +23,7 @@ import '../../widgets/home_bottom_nav.dart';
 ///
 /// 홈 퀴즈([QuizScreen])와 **일부러 안 엮었다.** 그쪽은 에너지를 쓰고 채점을
 /// 서버가 한다. 뉴스에서 들어오는 이 퀴즈는 기사를 읽다 곁다리로 보는
-/// 거라 그 자리에서 채점하고, 맞히면 씨앗 +3만 준다([NewsQuizRepository]).
+/// 거라 그 자리에서 채점하고, 맞히면 에너지를 조금 준다([NewsQuizRepository]).
 class TermQuizScreen extends StatefulWidget {
   const TermQuizScreen({super.key, required this.term, required this.headline});
 
@@ -64,7 +64,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   /// 고른 보기. null이면 아직 안 골랐다.
   int? _picked;
 
-  /// 이번에 실제로 받은 씨앗. 이미 받은 용어를 다시 풀면 0.
+  /// 이번에 실제로 받은 에너지. 이미 받은 용어를 다시 풀면 0.
   int _earned = 0;
 
   TermQuiz get _quiz => widget.term.quiz!;
@@ -74,7 +74,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
       List.generate(_quiz.options.length, (i) => i)..shuffle();
   bool get _isCorrect => _picked == _quiz.answer;
 
-  /// 이미 씨앗을 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
+  /// 이미 에너지를 받은 용어면 배지를 빼서 "또 주나?" 하는 오해를 막는다.
   bool get _showReward =>
       _earned > 0 ||
       !NewsQuizRepository.instance.isRewarded(widget.term.term);
@@ -117,19 +117,20 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  // Figma대로 머리·문제는 가운데. 뒤로 가기만 왼쪽에 붙는다.
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _BackChevron(onTap: _exit),
                     const SizedBox(height: 28),
                     if (_stage == _Stage.learn)
                       _LearnHeader(
                         term: widget.term.term,
-                        reward: NewsQuizRepository.seedsPerCorrect,
+                        reward: NewsQuizRepository.energyPerCorrect,
                         showReward: _showReward,
                       )
                     else ...[
                       _QuestionHeader(
-                        reward: NewsQuizRepository.seedsPerCorrect,
+                        reward: NewsQuizRepository.energyPerCorrect,
                         showReward: _showReward,
                         // 해설 장면에서는 Q도 정답 보기와 같은 노랑이 된다.
                         color: _stage == _Stage.explain
@@ -139,6 +140,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                       const SizedBox(height: 10),
                       Text(
                         _quiz.question,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 17,
                           height: 1.45,
@@ -305,7 +307,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               if (_earned > 0) ...[
                 const SizedBox(height: 12),
                 Text(
-                  '🌱 씨앗 +$_earned',
+                  '⚡ 에너지 +$_earned',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -359,7 +361,7 @@ class _BackChevron extends StatelessWidget {
   }
 }
 
-/// 학습 단계 머리 — 용어 이름과 씨앗 배지. `Q` 자리에 용어가 온다.
+/// 학습 단계 머리 — 용어 이름과 에너지 배지. `Q` 자리에 용어가 온다.
 class _LearnHeader extends StatelessWidget {
   const _LearnHeader({
     required this.term,
@@ -374,9 +376,9 @@ class _LearnHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
               '오늘의 용어',
@@ -388,13 +390,14 @@ class _LearnHeader extends StatelessWidget {
             ),
             if (showReward) ...[
               const SizedBox(width: 8),
-              _SeedBadge(reward: reward),
+              _EnergyBadge(reward: reward),
             ],
           ],
         ),
         const SizedBox(height: 6),
         Text(
           term,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
@@ -455,7 +458,7 @@ class _LearnBox extends StatelessWidget {
   }
 }
 
-/// `Q` 마크 + 씨앗 `+3` 배지.
+/// `Q` 마크 + 에너지 배지.
 class _QuestionHeader extends StatelessWidget {
   const _QuestionHeader({
     required this.reward,
@@ -470,6 +473,7 @@ class _QuestionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Q',
@@ -482,15 +486,15 @@ class _QuestionHeader extends StatelessWidget {
         ),
         if (showReward) ...[
           const SizedBox(width: 8),
-          _SeedBadge(reward: reward),
+          _EnergyBadge(reward: reward),
         ],
       ],
     );
   }
 }
 
-class _SeedBadge extends StatelessWidget {
-  const _SeedBadge({required this.reward});
+class _EnergyBadge extends StatelessWidget {
+  const _EnergyBadge({required this.reward});
 
   final int reward;
 
@@ -508,7 +512,7 @@ class _SeedBadge extends StatelessWidget {
           const SizedBox(
             width: 12,
             height: 12,
-            child: FigmaSvg(FigmaAssets.shopSeedPouch),
+            child: FigmaSvg(FigmaAssets.statEnergy),
           ),
           const SizedBox(width: 3),
           Text(
@@ -531,7 +535,7 @@ class _Verdict extends StatelessWidget {
 
   final bool correct;
 
-  /// 받은 씨앗. 서버 응답 전이거나 이미 받은 용어면 0.
+  /// 받은 에너지. 서버 응답 전이거나 이미 받은 용어면 0.
   final int earned;
 
   @override
@@ -573,7 +577,7 @@ class _Verdict extends StatelessWidget {
             ),
             if (earned > 0)
               Text(
-                '🌱 +$earned',
+                '⚡ +$earned',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
