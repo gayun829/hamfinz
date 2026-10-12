@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AppTheme {
@@ -40,6 +41,13 @@ class AppTheme {
         surface: background,
       ),
       scaffoldBackgroundColor: background,
+      // 화면 이동은 플랫폼과 상관없이 iOS처럼 옆으로 밀고, 왼쪽 끝을 밀어 뒤로 간다.
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const CupertinoPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: background,
         foregroundColor: textPrimary,
