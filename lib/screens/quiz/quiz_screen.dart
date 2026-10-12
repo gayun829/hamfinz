@@ -264,14 +264,14 @@ class _QuizScreenState extends State<QuizScreen> {
       },
       // 다음 문제로 넘어갈 때 화면이 통째로 바뀌니, 새 문제가 옆에서 밀려 들어오게 한다.
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 320),
+        duration: const Duration(milliseconds: 420),
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
         transitionBuilder: (child, animation) => FadeTransition(
           opacity: animation,
           child: SlideTransition(
             position: Tween(
-              begin: const Offset(0.08, 0),
+              begin: const Offset(0.3, 0),
               end: Offset.zero,
             ).animate(animation),
             child: child,

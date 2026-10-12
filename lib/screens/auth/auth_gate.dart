@@ -110,7 +110,7 @@ class _AuthGateState extends State<AuthGate> {
     // 스플래시·인트로·로그인도 Navigator 밖이라 직접 페이드로 잇는다.
     final screen = _buildScreen();
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 450),
       child: KeyedSubtree(key: ValueKey(screen.runtimeType), child: screen),
     );
   }
