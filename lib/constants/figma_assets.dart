@@ -140,6 +140,9 @@ class FigmaAssets {
   // Settings — 마이페이지 수정 (273:181)
   /// 흰 원 + 햄스터 + 카메라 배지 (Group 466, 161×161).
   static const settingsProfile = '$_settings/profile_group.svg';
+
+  /// [settingsProfile]에서 카메라 배지만 뗀 것. 같은 161×161 좌표에 얹는다.
+  static const settingsProfileBadge = '$_settings/profile_badge.svg';
   static const settingsChevron = '$_settings/chevron.svg';
   static const settingsChevronSmall = '$_settings/chevron_small.svg';
   static const settingsPlus = '$_settings/plus_small.svg';

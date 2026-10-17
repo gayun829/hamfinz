@@ -5,14 +5,17 @@ import 'package:flutter/services.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/learning_stages.dart';
+import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/shop_catalog_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../../widgets/learning_stage_sheet.dart';
+import '../../widgets/shop/shop_widgets.dart';
 import '../friends/add_friend_screen.dart';
 import '../legal/legal_document_screen.dart';
 
@@ -219,6 +222,7 @@ class SettingsScreen extends StatelessWidget {
             children: [
               _Header(
                 figma: figma,
+                profile: profile,
                 nickname: profile.nickname,
                 bio: profile.bio,
                 onSaveBio: (bio) => _saveBio(context, bio),
@@ -307,6 +311,7 @@ class SettingsScreen extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.figma,
+    required this.profile,
     required this.nickname,
     required this.bio,
     required this.onSaveBio,
@@ -314,6 +319,7 @@ class _Header extends StatelessWidget {
   });
 
   final FigmaScale figma;
+  final UserProfile profile;
   final String nickname;
   final String bio;
   final Future<bool> Function(String bio) onSaveBio;
@@ -362,10 +368,7 @@ class _Header extends StatelessWidget {
             top: 110,
             width: 161,
             height: 161,
-            child: const FigmaSvg(
-              FigmaAssets.settingsProfile,
-              fit: BoxFit.fill,
-            ),
+            child: _ProfileAvatar(figma: figma, profile: profile),
           ),
           // 카메라 배지 (Ellipse 210) 탭 영역
           FigmaBox(
@@ -401,6 +404,60 @@ class _Header extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 흰 원 프로필 사진(161×161). 스킨·무늬·악세서리를 바꿨으면 옷 입은 전신을,
+/// 아니면 Figma의 기본 얼굴 그림을 보여 준다. 카메라 배지는 항상 같은 자리다.
+class _ProfileAvatar extends StatefulWidget {
+  const _ProfileAvatar({required this.figma, required this.profile});
+
+  final FigmaScale figma;
+  final UserProfile profile;
+
+  @override
+  State<_ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<_ProfileAvatar> {
+  /// Firestore에만 있는 아이템은 불러온 뒤 반영한다.
+  List<ShopItem> _catalog = ShopData.items;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    try {
+      final items = await ShopCatalogService.instance.getItemsOrFallback();
+      if (!mounted) return;
+      setState(() => _catalog = items);
+    } catch (_) {
+      // 카탈로그를 못 불러와도 로컬 카탈로그로 그린다.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final look = EquippedLook.of(widget.profile, _catalog);
+    if (!look.isCustom) {
+      return const FigmaSvg(FigmaAssets.settingsProfile, fit: BoxFit.fill);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipOval(
+          // 전신이 원 테두리에 닿지 않게 살짝 줄인다.
+          child: ColoredBox(
+            color: Colors.white,
+            child: Transform.scale(scale: 0.92, child: look.avatar()),
+          ),
+        ),
+        const FigmaSvg(FigmaAssets.settingsProfileBadge, fit: BoxFit.fill),
+      ],
     );
   }
 }
