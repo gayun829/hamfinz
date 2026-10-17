@@ -134,10 +134,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  Future<void> _refreshHome() async {
-    await Future.wait([_loadProfile(), _loadNews()]);
-  }
-
   Future<void> _loadProfile() async {
     try {
       final profile = await AuthService.instance.getCurrentUser();
@@ -342,63 +338,66 @@ class _HomeScreenState extends State<HomeScreen>
           designWidth: FigmaScale.homeDesignWidth,
         );
 
-        return RefreshIndicator(
-          onRefresh: _refreshHome,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: _homeBackgroundGradient(homeTier),
+        // 스크롤하지 않는다. 화면이 디자인보다 낮으면 위쪽부터 보이고
+        // 아래쪽이 그대로 잘린다. CTA만 화면 바닥에 붙어 있어 항상 보인다.
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: _homeBackgroundGradient(homeTier),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: ClipRect(
+                child: FigmaCanvas(
+                  designWidth: FigmaScale.homeDesignWidth,
+                  designHeight: FigmaScale.homeContentHeight,
+                  backgroundColor: Colors.transparent,
+                  fit: FigmaCanvasFit.widthScroll,
+                  scrollable: false,
+                  clipContent: false,
+                  extraBottomPaddingDesign:
+                      FigmaScale.homeContentHeight -
+                      (homeTier.learningCtaTop +
+                          _homeLearningCtaDesignHeight -
+                          _homeLearningCtaHeight),
+                  builder: (context, figma) => _buildFigmaHomeLayers(
+                    figma: figma,
+                    tier: homeTier,
+                    energy: profile.energy,
+                    coin: profile.seeds,
+                    streak: profile.streak,
+                    currentStep: homeMapCurrentStep(profile),
+                    newsTitle: _newsTitle,
+                    reviewStage: reviewStage,
+                    dig: _dig,
+                    onMenu: _openCategorySwitcher,
+                    onNews: _openNews,
+                    onShop: _openShop,
+                    onStreakCalendar: _openStreakCalendar,
                   ),
                 ),
               ),
-              FigmaCanvas(
-                designWidth: FigmaScale.homeDesignWidth,
-                designHeight: FigmaScale.homeContentHeight,
-                backgroundColor: Colors.transparent,
-                fit: FigmaCanvasFit.widthScroll,
-                scrollable: true,
-                clipContent: false,
-                extraBottomPaddingDesign:
-                    FigmaScale.homeContentHeight -
-                    (homeTier.learningCtaTop +
-                        _homeLearningCtaDesignHeight -
-                        _homeLearningCtaHeight),
-                builder: (context, figma) => _buildFigmaHomeLayers(
-                  figma: figma,
-                  tier: homeTier,
-                  energy: profile.energy,
-                  coin: profile.seeds,
-                  streak: profile.streak,
-                  currentStep: homeMapCurrentStep(profile),
-                  newsTitle: _newsTitle,
-                  reviewStage: reviewStage,
-                  dig: _dig,
-                  onMenu: _openCategorySwitcher,
-                  onNews: _openNews,
-                  onShop: _openShop,
-                  onStreakCalendar: _openStreakCalendar,
-                ),
+            ),
+            Positioned(
+              left: figma.s(homeTier.learningCtaLeft),
+              bottom: figma.s(
+                FigmaScale.homeContentHeight -
+                    homeTier.learningCtaTop -
+                    _homeLearningCtaDesignHeight,
               ),
-              Positioned(
-                left: figma.s(homeTier.learningCtaLeft),
-                bottom: figma.s(
-                  FigmaScale.homeContentHeight -
-                      homeTier.learningCtaTop -
-                      _homeLearningCtaDesignHeight,
-                ),
-                width: figma.s(_homeLearningCtaWidth),
-                height: figma.s(_homeLearningCtaHeight),
-                child: _HomeLearningCta(
-                  figma: figma,
-                  tier: homeTier,
-                  onTap: _startQuiz,
-                ),
+              width: figma.s(_homeLearningCtaWidth),
+              height: figma.s(_homeLearningCtaHeight),
+              child: _HomeLearningCta(
+                figma: figma,
+                tier: homeTier,
+                onTap: _startQuiz,
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
