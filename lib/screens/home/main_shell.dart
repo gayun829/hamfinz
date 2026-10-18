@@ -4,6 +4,7 @@ import '../../data/learning_stages.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/fade_indexed_stack.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../news/news_screen.dart';
 import '../settings/settings_screen.dart';
@@ -86,7 +87,7 @@ class _MainShellState extends State<MainShell> {
       body: Column(
         children: [
           Expanded(
-            child: IndexedStack(
+            child: FadeIndexedStack(
               index: _currentIndex,
               children: [
                 const NewsScreen(),
@@ -109,3 +110,4 @@ class _MainShellState extends State<MainShell> {
     );
   }
 }
+
