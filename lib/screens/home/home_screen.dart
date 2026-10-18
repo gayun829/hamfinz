@@ -28,8 +28,7 @@ import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
 /// Figma `131:5342` / `137:1375` / `137:1489` 오늘의 학습 CTA.
-const _homeLearningCtaDesignHeight = 84.247;
-const _homeLearningCtaHeight = _homeLearningCtaDesignHeight * 0.75;
+const _homeLearningCtaHeight = 84.247;
 const _homeLearningCtaWidth = 328.0;
 
 /// 홈 맵의 복습 단계 — Figma 복습창!(`526:3093` 등) / 복습창2(`526:2131` 등).
@@ -360,10 +359,7 @@ class _HomeScreenState extends State<HomeScreen>
                   scrollable: false,
                   clipContent: false,
                   extraBottomPaddingDesign:
-                      FigmaScale.homeContentHeight -
-                      (homeTier.learningCtaTop +
-                          _homeLearningCtaDesignHeight -
-                          _homeLearningCtaHeight),
+                      FigmaScale.homeContentHeight - homeTier.learningCtaTop,
                   builder: (context, figma) => _buildFigmaHomeLayers(
                     figma: figma,
                     tier: homeTier,
@@ -387,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen>
               bottom: figma.s(
                 FigmaScale.homeContentHeight -
                     homeTier.learningCtaTop -
-                    _homeLearningCtaDesignHeight,
+                    _homeLearningCtaHeight,
               ),
               width: figma.s(_homeLearningCtaWidth),
               height: figma.s(_homeLearningCtaHeight),
@@ -851,12 +847,13 @@ List<Widget> _buildFigmaHomeLayers({
         },
       ),
     ),
+    // fi-rr-angle-small-right 16×16 아이콘에서 화살표 경로가 차지하는 영역만.
     FigmaBox(
       figma: figma,
-      left: 338,
-      top: 124,
-      width: 16,
-      height: 16,
+      left: 338 + 6.0694,
+      top: 124 + 3.3328,
+      width: 4.7821,
+      height: 9.3342,
       child: const FigmaSvg(
         FigmaAssets.homeBeginnerChevronNews,
         fit: BoxFit.fill,
@@ -1597,6 +1594,8 @@ Widget _stageShadow({
     width: width,
     height: height,
     child: OverflowBox(
+      minWidth: 0,
+      minHeight: 0,
       maxWidth: double.infinity,
       maxHeight: double.infinity,
       child: Transform.rotate(
@@ -1741,8 +1740,7 @@ class _HomeLearningCta extends StatelessWidget {
     final s = figma.s;
     final originX = tier.learningCtaLeft;
     const iconSize = 47.0;
-    const chevronDesignSize = 46.055;
-    const chevronSize = chevronDesignSize * 0.75;
+    const chevronSize = 46.055;
     const textHeight = 33.8;
     return GestureDetector(
       onTap: onTap,
@@ -1811,7 +1809,7 @@ class _HomeLearningCta extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: s(309 - originX + (chevronDesignSize - chevronSize) / 2),
+            left: s(309 - originX),
             top: s((_homeLearningCtaHeight - chevronSize) / 2),
             width: s(chevronSize),
             height: s(chevronSize),
@@ -1882,6 +1880,23 @@ class _HomeStagePentagon extends StatelessWidget {
       fontWeight: FontWeight.w100,
       height: 1,
     );
+    // Figma 외곽선은 글자 바깥쪽에만 붙는다. Flutter 외곽선은 선 중심 기준이라
+    // 두 배로 그리고 안쪽 절반은 채움 글자가 덮는다.
+    TextStyle outlined(Color color) => style.copyWith(
+      foreground: Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s(labelStroke * 2)
+        ..strokeJoin = StrokeJoin.round
+        ..color = color,
+    );
+    Widget shape(Color color) => Transform.rotate(
+      angle: _rotation,
+      child: _StagePentagonShape(
+        size: Size(s(shapeSize.width), s(shapeSize.height)),
+        color: color,
+        isLarge: isLarge,
+      ),
+    );
     return FigmaBox(
       figma: figma,
       left: left,
@@ -1892,37 +1907,19 @@ class _HomeStagePentagon extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          Transform.rotate(
-            angle: _rotation,
-            child: _StagePentagonShape(
-              size: Size(s(shapeSize.width), s(shapeSize.height)),
-              fill: fill,
-              extrusion: extrusion,
-              extrusionOffset: Offset(
-                s(extrusionOffset.dx),
-                s(extrusionOffset.dy),
-              ),
-              isLarge: isLarge,
-            ),
+          // Figma 그림자 효과는 레이어 회전과 무관하게 화면 기준으로 떨어진다.
+          Transform.translate(
+            offset: Offset(s(extrusionOffset.dx), s(extrusionOffset.dy)),
+            child: shape(extrusion),
           ),
-          Text(
-            label,
-            style: style.copyWith(
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = s(labelStroke)
-                ..color = Colors.white,
-              shadows: [
-                Shadow(
-                  offset: Offset(
-                    s(labelShadowOffset.dx),
-                    s(labelShadowOffset.dy),
-                  ),
-                  color: labelShadowColor,
-                ),
-              ],
-            ),
+          shape(fill),
+          // 글자 그림자는 외곽선까지 포함한 모양으로 떨어진다. Text.shadows는
+          // 얇은 Thin 글자 모양으로만 그려져 흰 외곽선에 가려서 따로 깐다.
+          Transform.translate(
+            offset: Offset(s(labelShadowOffset.dx), s(labelShadowOffset.dy)),
+            child: Text(label, style: outlined(labelShadowColor)),
           ),
+          Text(label, style: outlined(Colors.white)),
           Text(label, style: style.copyWith(color: Colors.white)),
         ],
       ),
@@ -1930,24 +1927,20 @@ class _HomeStagePentagon extends StatelessWidget {
   }
 }
 
-/// 홈 단계 오각형. 원본 SVG를 그림자 색·채움 색으로 두 번 그린다.
+/// 홈 단계 오각형 한 겹. 원본 SVG를 [color] 한 색으로 칠한다.
 ///
-/// flutter_svg는 SVG의 drop-shadow filter를 그리지 않아서, 그림자는 같은 모양을
-/// [extrusionOffset]만큼 옮겨 아래에 깐다. 티어마다 모양이 같고 색만 달라 SVG는
-/// 한 벌이고 색은 [HomeTierTheme]에서 받는다.
+/// flutter_svg는 SVG의 drop-shadow filter를 그리지 않아서, [_HomeStagePentagon]이
+/// 같은 모양을 그림자 색으로 한 번 더 옮겨 깐다. 티어마다 모양이 같고 색만 달라
+/// SVG는 한 벌이고 색은 [HomeTierTheme]에서 받는다.
 class _StagePentagonShape extends StatelessWidget {
   const _StagePentagonShape({
     required this.size,
-    required this.fill,
-    required this.extrusion,
-    required this.extrusionOffset,
+    required this.color,
     required this.isLarge,
   });
 
   final Size size;
-  final Color fill;
-  final Color extrusion;
-  final Offset extrusionOffset;
+  final Color color;
   final bool isLarge;
 
   // 박스는 경로가 차지하는 영역(Figma bounds)에 맞춘다. SVG viewBox는 그림자 필터
@@ -1970,23 +1963,23 @@ class _StagePentagonShape extends StatelessWidget {
     final sx = size.width / shapeSize.width;
     final sy = size.height / shapeSize.height;
 
-    Widget layer(Color color, Offset shift) => Positioned(
-      left: -shapeOrigin.dx * sx + shift.dx,
-      top: -shapeOrigin.dy * sy + shift.dy,
-      width: viewBox.width * sx,
-      height: viewBox.height * sy,
-      child: FigmaSvg(
-        asset,
-        fit: BoxFit.fill,
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      ),
-    );
-
     return SizedBox.fromSize(
       size: size,
       child: Stack(
         clipBehavior: Clip.none,
-        children: [layer(extrusion, extrusionOffset), layer(fill, Offset.zero)],
+        children: [
+          Positioned(
+            left: -shapeOrigin.dx * sx,
+            top: -shapeOrigin.dy * sy,
+            width: viewBox.width * sx,
+            height: viewBox.height * sy,
+            child: FigmaSvg(
+              asset,
+              fit: BoxFit.fill,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
+          ),
+        ],
       ),
     );
   }
