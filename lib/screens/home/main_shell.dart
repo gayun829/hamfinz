@@ -52,7 +52,10 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onNavTap(int index) {
+    if (index == _currentIndex) return;
     setState(() => _currentIndex = index);
+    // 뉴스 퀴즈 보상처럼 다른 탭에서 바뀐 씨앗·에너지를 홈·설정에 반영한다.
+    _loadProfile();
   }
 
   @override
