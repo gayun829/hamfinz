@@ -5,14 +5,17 @@ import 'package:flutter/services.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/learning_stages.dart';
+import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/shop_catalog_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../../widgets/learning_stage_sheet.dart';
+import '../../widgets/shop/shop_widgets.dart';
 import '../friends/add_friend_screen.dart';
 import '../legal/legal_document_screen.dart';
 
@@ -58,10 +61,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              '탈퇴',
-              style: TextStyle(color: AppTheme.error),
-            ),
+            child: const Text('탈퇴', style: TextStyle(color: AppTheme.error)),
           ),
         ],
       ),
@@ -78,7 +78,9 @@ class SettingsScreen extends StatelessWidget {
     final error = await AuthService.instance.withdraw(password: password);
     if (!context.mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     onLogout();
@@ -113,9 +115,9 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showComingSoon(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label 기능은 준비 중이에요.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label 기능은 준비 중이에요.')));
   }
 
   Future<void> _openLegal(BuildContext context) async {
@@ -175,9 +177,9 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _openFriends(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddFriendScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddFriendScreen()));
   }
 
   Future<bool> _saveBio(BuildContext context, String bio) async {
@@ -187,9 +189,9 @@ class SettingsScreen extends StatelessWidget {
       return true;
     } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('한줄소개를 저장하지 못했어요.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('한줄소개를 저장하지 못했어요.')));
       }
       return false;
     }
@@ -220,15 +222,17 @@ class SettingsScreen extends StatelessWidget {
             children: [
               _Header(
                 figma: figma,
-                nickname: profile.nickname,
-                bio: profile.bio,
+                profile: profile,
                 onSaveBio: (bio) => _saveBio(context, bio),
                 onCameraTap: () => _showComingSoon(context, '프로필 사진 변경'),
               ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   s(FigmaSettingsTokens.menuHorizontal),
-                  s(FigmaSettingsTokens.menuTop - FigmaSettingsTokens.headerHeight),
+                  s(
+                    FigmaSettingsTokens.menuTop -
+                        FigmaSettingsTokens.headerHeight,
+                  ),
                   s(FigmaSettingsTokens.menuHorizontal),
                   s(FigmaSettingsTokens.menuHorizontal),
                 ),
@@ -305,15 +309,13 @@ class SettingsScreen extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.figma,
-    required this.nickname,
-    required this.bio,
+    required this.profile,
     required this.onSaveBio,
     required this.onCameraTap,
   });
 
   final FigmaScale figma;
-  final String nickname;
-  final String bio;
+  final UserProfile profile;
   final Future<bool> Function(String bio) onSaveBio;
   final VoidCallback onCameraTap;
 
@@ -360,7 +362,7 @@ class _Header extends StatelessWidget {
             top: 110,
             width: 161,
             height: 161,
-            child: const FigmaSvg(FigmaAssets.settingsProfile, fit: BoxFit.fill),
+            child: _ProfileAvatar(figma: figma, profile: profile),
           ),
           // 카메라 배지 (Ellipse 210) 탭 영역
           FigmaBox(
@@ -380,7 +382,7 @@ class _Header extends StatelessWidget {
             top: 131,
             width: FigmaSettingsTokens.designWidth - 211 - 24,
             child: Text(
-              nickname,
+              profile.nickname,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: FigmaSettingsTokens.nicknameStyle(figma.scale),
@@ -392,7 +394,7 @@ class _Header extends StatelessWidget {
             top: 160,
             width: 122,
             height: 84,
-            child: _BioBox(figma: figma, bio: bio, onSave: onSaveBio),
+            child: _BioBox(figma: figma, bio: profile.bio, onSave: onSaveBio),
           ),
         ],
       ),
@@ -400,13 +402,64 @@ class _Header extends StatelessWidget {
   }
 }
 
+/// 흰 원 프로필 사진(161×161). 스킨·무늬·악세서리를 바꿨으면 옷 입은 전신을,
+/// 아니면 Figma의 기본 얼굴 그림을 보여 준다. 카메라 배지는 항상 같은 자리다.
+class _ProfileAvatar extends StatefulWidget {
+  const _ProfileAvatar({required this.figma, required this.profile});
+
+  final FigmaScale figma;
+  final UserProfile profile;
+
+  @override
+  State<_ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<_ProfileAvatar> {
+  /// 이미 불러온 카탈로그가 있으면 그것으로 바로 그린다. 없으면 로컬
+  /// 카탈로그로 먼저 그리고, Firestore에만 있는 아이템은 불러온 뒤 반영한다.
+  List<ShopItem> _catalog = ShopCatalogService.instance.cachedOrLocal;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    try {
+      final items = await ShopCatalogService.instance.getItemsOrFallback();
+      if (!mounted) return;
+      setState(() => _catalog = items);
+    } catch (_) {
+      // 카탈로그를 못 불러와도 로컬 카탈로그로 그린다.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final look = EquippedLook.of(widget.profile, _catalog);
+    if (!look.isCustom) {
+      return const FigmaSvg(FigmaAssets.settingsProfile, fit: BoxFit.fill);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipOval(
+          // 전신이 원 테두리에 닿지 않게 살짝 줄인다.
+          child: ColoredBox(
+            color: Colors.white,
+            child: Transform.scale(scale: 0.92, child: look.avatar()),
+          ),
+        ),
+        const FigmaSvg(FigmaAssets.settingsProfileBadge, fit: BoxFit.fill),
+      ],
+    );
+  }
+}
+
 /// 한줄소개 박스 — 탭하면 바로 입력, 포커스가 빠지거나 완료를 누르면 저장한다.
 class _BioBox extends StatefulWidget {
-  const _BioBox({
-    required this.figma,
-    required this.bio,
-    required this.onSave,
-  });
+  const _BioBox({required this.figma, required this.bio, required this.onSave});
 
   final FigmaScale figma;
   final String bio;
@@ -479,7 +532,9 @@ class _BioBoxState extends State<_BioBox> {
         decoration: BoxDecoration(
           // 편집 중에도 흰 박스를 덧씌우지 않고 하늘색 박스 안에서 바로 입력한다.
           color: FigmaSettingsTokens.bioBoxFill,
-          borderRadius: BorderRadius.circular(s(FigmaSettingsTokens.bioBoxRadius)),
+          borderRadius: BorderRadius.circular(
+            s(FigmaSettingsTokens.bioBoxRadius),
+          ),
         ),
         child: TextField(
           controller: _controller,
@@ -492,8 +547,9 @@ class _BioBoxState extends State<_BioBox> {
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.done,
           inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\n'))],
-          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-              null,
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  null,
           onSubmitted: (_) => _focusNode.unfocus(),
           onTapOutside: (_) => _focusNode.unfocus(),
           // 앱 전체 테마의 흰 배경·테두리 입력칸 스타일을 쓰지 않는다 —
@@ -728,7 +784,9 @@ class _LearningStageCard extends StatelessWidget {
                     child: Center(
                       child: Text(
                         '$current',
-                        style: FigmaSettingsTokens.stageNumberStyle(figma.scale),
+                        style: FigmaSettingsTokens.stageNumberStyle(
+                          figma.scale,
+                        ),
                       ),
                     ),
                   ),

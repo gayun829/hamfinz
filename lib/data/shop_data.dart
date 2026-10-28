@@ -58,6 +58,9 @@ class ShopItem {
 }
 
 abstract final class ShopData {
+  /// 아무것도 사지 않은 기본 햄핀이 스킨.
+  static const defaultSkinId = 'skin_default';
+
   static const retiredIds = {
     'headband',
     'cap',
@@ -73,7 +76,7 @@ abstract final class ShopData {
   /// 조용히 처리하므로) 가격·종류가 어긋난 채로 구매가 성사될 수 있다.
   static const items = <ShopItem>[
     ShopItem(
-      id: 'skin_default',
+      id: defaultSkinId,
       name: '기본 햄핀',
       description: '기본 햄핀으로 햄핀을 꾸며보세요.',
       price: 0,

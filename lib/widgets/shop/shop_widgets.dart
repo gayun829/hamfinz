@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
+import '../../models/user_profile.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../figma/figma_asset_image.dart';
 import '../figma/figma_scale.dart';
@@ -244,6 +245,58 @@ class ShopItemImage extends StatelessWidget {
   }
 }
 
+/// 프로필에 장착한 스킨·무늬·악세서리. 홈·마이페이지가 같은 판정을 쓴다.
+///
+/// 기본 모습(기본 스킨, 무늬·악세서리 없음)이면 [isCustom]이 false라
+/// 각 화면이 원래 Figma 햄핀이를 그대로 쓴다. 배경은 화면마다 따로 있어 뺀다.
+class EquippedLook {
+  const EquippedLook({
+    required this.catalog,
+    this.skinId,
+    this.patternId,
+    this.accessoryIds = const [],
+  });
+
+  /// [catalog]에서 그릴 수 있는 아이템만 남긴다. 스킨·무늬·악세서리 모두 같은
+  /// 기준이라, 카탈로그에 아직 없는 아이템(Firestore 전용)은 불러오기 전까지
+  /// 안 입은 것으로 보고 기본 햄핀이를 그린다.
+  factory EquippedLook.of(UserProfile profile, List<ShopItem> catalog) {
+    // 소모품(방어권·에너지)은 그릴 이미지가 없어 입은 것으로 치지 않는다.
+    final drawable = {
+      for (final item in catalog)
+        if (item.assetPath != null || item.imageUrl?.isNotEmpty == true)
+          item.id,
+    };
+    String? keep(String? id) => drawable.contains(id) ? id : null;
+    return EquippedLook(
+      catalog: catalog,
+      skinId: keep(profile.equippedSkinId),
+      patternId: keep(profile.equippedPatternId),
+      accessoryIds: [
+        for (final id in profile.equippedAccessoryIds)
+          if (drawable.contains(id)) id,
+      ],
+    );
+  }
+
+  final List<ShopItem> catalog;
+  final String? skinId;
+  final String? patternId;
+  final List<String> accessoryIds;
+
+  bool get isCustom =>
+      (skinId != null && skinId != ShopData.defaultSkinId) ||
+      patternId != null ||
+      accessoryIds.isNotEmpty;
+
+  Widget avatar() => ShopAvatar(
+    catalogItems: catalog,
+    skinId: skinId,
+    patternId: patternId,
+    accessoryIds: accessoryIds,
+  );
+}
+
 class ShopAvatar extends StatelessWidget {
   const ShopAvatar({
     super.key,
@@ -267,7 +320,7 @@ class ShopAvatar extends StatelessWidget {
 
     final skin =
         lookup(skinId) ??
-        ShopData.items.firstWhere((i) => i.id == 'skin_default');
+        ShopData.items.firstWhere((i) => i.id == ShopData.defaultSkinId);
     final layers = [
       lookup(backgroundId),
       skin,

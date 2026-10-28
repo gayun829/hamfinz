@@ -82,7 +82,8 @@ class _ClosetScreenState extends State<ClosetScreen> {
         .toList();
   }
 
-  String? _normalizedSkin(String? id) => id == 'skin_default' ? null : id;
+  String? _normalizedSkin(String? id) =>
+      id == ShopData.defaultSkinId ? null : id;
 
   bool get _hasChanges =>
       _normalizedSkin(_stagedSkinId) !=
