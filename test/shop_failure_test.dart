@@ -51,6 +51,9 @@ void main() {
         await tester.pump();
         await tester.tap(find.text('구매하기'));
         await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.widgetWithText(FilledButton, '구매하기').last,
+        );
         await tester.tap(find.widgetWithText(FilledButton, '구매하기').last);
         await tester.pumpAndSettle();
         expect(saveCalls, purchaseFails ? 0 : 1);

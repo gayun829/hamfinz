@@ -75,12 +75,14 @@ class ShopSeedChip extends StatelessWidget {
     required this.seeds,
     required this.iconSize,
     this.amountSize = 10,
+    this.amountColor,
   });
 
   final FigmaScale figma;
   final int seeds;
   final Size iconSize;
   final double amountSize;
+  final Color? amountColor;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +99,10 @@ class ShopSeedChip extends StatelessWidget {
         SizedBox(width: s(6)),
         Text(
           '$seeds',
-          style: FigmaShopTokens.seedAmount(figma.scale, size: amountSize),
+          style: FigmaShopTokens.seedAmount(
+            figma.scale,
+            size: amountSize,
+          ).copyWith(color: amountColor),
         ),
       ],
     );

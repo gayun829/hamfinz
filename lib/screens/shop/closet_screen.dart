@@ -1,3 +1,4 @@
+import 'shop_purchase_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/shop_data.dart';
@@ -214,24 +215,25 @@ class _ClosetScreenState extends State<ClosetScreen> {
     if (item == null || _saving) return;
     final owned = _owns(item);
     if (!owned) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('${item.name}을 구매할까요?'),
-          content: Text('${_price(item)}씨앗이 필요해요.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('취소'),
+      final completed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => ShopPurchaseScreen(
+            itemName: item.name,
+            price: _price(item),
+            balance: () => _profile.seeds,
+            avatar: ShopAvatar(
+              catalogItems: _catalogItems,
+              skinId: _stagedSkinId,
+              patternId: _stagedPatternId,
+              backgroundId: _stagedBackgroundId,
+              accessoryIds: List.of(_stagedAccessoryIds),
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('구매하기'),
-            ),
-          ],
+            onPurchase: () => _purchaseOrEquipFromPreview(item),
+          ),
         ),
       );
-      if (confirmed != true || !mounted) return;
+      if (completed == true && mounted) setState(() => _selectedItem = null);
+      return;
     }
     final success = await _purchaseOrEquipFromPreview(item);
     if (success && mounted) {
@@ -386,10 +388,10 @@ class _ClosetScreenState extends State<ClosetScreen> {
                         bottom: BorderSide(color: Color(0xFFE3E3E3), width: 2),
                       ),
                     ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                    child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: s(20)),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _tabLabel(figma, _ClosetTab.my, 'my'),
                           _tabLabel(figma, _ClosetTab.bundle, '세트'),
@@ -512,10 +514,13 @@ class _ClosetScreenState extends State<ClosetScreen> {
               }
             }),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: figma.s(12)),
-        child: Text(
-          label,
-          style: FigmaShopTokens.tab(figma.scale, selected: _tab == tab),
+        padding: EdgeInsets.symmetric(horizontal: figma.s(8)),
+        child: Center(
+          widthFactor: 1,
+          child: Text(
+            label,
+            style: FigmaShopTokens.tab(figma.scale, selected: _tab == tab),
+          ),
         ),
       ),
     );
