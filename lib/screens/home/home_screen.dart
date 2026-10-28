@@ -1015,9 +1015,10 @@ Widget _customHamster(FigmaScale figma, EquippedLook look) {
   );
 }
 
-/// 복습 집에 도착한 홈. 집·모자·곰 로고는 기존 디자인 그대로 두고 햄핀이만
-/// 옷 입은 모습으로 바꾼다. 레이어 순서는 [_reviewArrivalHamsterLayers]와 같다:
-/// 햄핀이 → 모자 → 집 앞면 → 곰 로고. 햄핀이 몸 아랫부분은 집 앞면이 가린다.
+/// 복습 집에 도착한 홈. 집·곰 로고는 기존 디자인 그대로 두고 햄핀이만
+/// 옷 입은 모습으로 바꾼다. 복습 모자는 기본 햄핀이에게만 씌우므로 여기서는
+/// 그리지 않는다. 레이어 순서는 [_reviewArrivalHamsterLayers]와 같다:
+/// 햄핀이 → 집 앞면 → 곰 로고. 햄핀이 몸 아랫부분은 집 앞면이 가린다.
 List<Widget> _customArrivalLayers(
   FigmaScale figma,
   HomeTierTheme tier,
@@ -1041,15 +1042,6 @@ List<Widget> _customArrivalLayers(
         clipper: _CutBelowClipper(figma.s(cutY - top)),
         child: look.avatar(),
       ),
-    ),
-    FigmaBox(
-      figma: figma,
-      left: 101.76271057128906,
-      // 모자 밑단이 머리 윗부분을 덮어 씌워진 모양이 되게 한다.
-      top: 276,
-      width: 80.72356414794922,
-      height: 59.397308349609375,
-      child: FigmaSvg(tier.reviewArrivalHat, fit: BoxFit.fill),
     ),
     FigmaBox(
       key: ValueKey('home-review-arrival-${tier.tier.name}'),

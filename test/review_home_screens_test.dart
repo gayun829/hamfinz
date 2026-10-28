@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testapp/models/user_profile.dart';
 import 'package:testapp/screens/home/home_screen.dart';
 import 'package:testapp/screens/home/review_home_screens.dart';
+import 'package:testapp/widgets/figma/figma_asset_image.dart';
 
 void main() {
   final profile = UserProfile(
@@ -136,6 +137,48 @@ void main() {
       find.byKey(const ValueKey('home-review-arrival-beginner')),
       findsNothing,
     );
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('review hat only on the default hamster at the review house', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(393, 852));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    Finder hat() => find.byWidgetPredicate(
+      (w) => w is FigmaSvg && w.asset.endsWith('review_arrival_hat.svg'),
+    );
+
+    Future<void> pumpHome(String key, {String? skinId}) {
+      return tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(
+            key: ValueKey(key),
+            profile: UserProfile(
+              email: 'hat@test.dev',
+              nickname: '모자',
+              interestCategories: const ['saving'],
+              categoryStats: {'저축': CategoryStat(completedSessions: 4)},
+              reviewArrivals: const {'saving': 4},
+              equippedSkinId: skinId,
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpHome('default');
+    expect(hat(), findsOneWidget);
+
+    await pumpHome('skin', skinId: 'skin_bee');
+    expect(
+      find.byKey(const ValueKey('home-review-arrival-beginner')),
+      findsOneWidget,
+    );
+    expect(hat(), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox.shrink());
