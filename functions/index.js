@@ -37,43 +37,7 @@ const ENERGY_PACK_AMOUNT = 20;
 
 // Dart `ShopData.items`와 값을 맞춰야 한다 (lib/data/shop_data.dart).
 // 앱에 포함된 상품은 이 가격을 사용하고, 추가 상품은 Firestore에서 읽는다.
-const SHOP_CATALOG = {
-  skin_black: { price: 579, kind: 'cosmetic' },
-  skin_dinosaur: { price: 579, kind: 'cosmetic' },
-  skin_ninja: { price: 579, kind: 'cosmetic' },
-  skin_pirate: { price: 579, kind: 'cosmetic' },
-  skin_genie_blue: { price: 579, kind: 'cosmetic' },
-  skin_genie_tail: { price: 579, kind: 'cosmetic' },
-  skin_crewcut: { price: 579, kind: 'cosmetic' },
-  skin_grandma: { price: 579, kind: 'cosmetic' },
-  skin_kindergarten: { price: 579, kind: 'cosmetic' },
-  skin_perm: { price: 579, kind: 'cosmetic' },
-  skin_genie: { price: 579, kind: 'cosmetic' },
-  skin_business: { price: 579, kind: 'cosmetic' },
-  skin_bee: { price: 579, kind: 'cosmetic' },
-  skin_bee_duckbill: { price: 579, kind: 'cosmetic' },
-  skin_default: { price: 0, kind: 'cosmetic' },
-  skin_bearded_cream: { price: 579, kind: 'cosmetic' },
-  skin_bearded_gray: { price: 579, kind: 'cosmetic' },
-  skin_caveman: { price: 579, kind: 'cosmetic' },
-  skin_caveman_bearded: { price: 579, kind: 'cosmetic' },
-  accessory_perm: { price: 579, kind: 'cosmetic' },
-  accessory_kindergarten_hair: { price: 579, kind: 'cosmetic' },
-  accessory_kindergarten: { price: 579, kind: 'cosmetic' },
-  accessory_propeller_hat: { price: 579, kind: 'cosmetic' },
-  accessory_genie_set: { price: 579, kind: 'cosmetic' },
-  accessory_grandma: { price: 579, kind: 'cosmetic' },
-  accessory_painter_set: { price: 579, kind: 'cosmetic' },
-
-  headband: { price: 579, kind: 'cosmetic' },
-  cap: { price: 579, kind: 'cosmetic' },
-  hoodie: { price: 579, kind: 'cosmetic' },
-  glasses: { price: 579, kind: 'cosmetic' },
-  bow: { price: 579, kind: 'cosmetic' },
-  coconut: { price: 579, kind: 'cosmetic' },
-  study_guard: { price: 123, kind: 'studyGuard' },
-  energy_pack: { price: 123, kind: 'energyPack', amount: ENERGY_PACK_AMOUNT },
-};
+const { SHOP_CATALOG, quotePurchase } = require('./shop_catalog');
 
 const CATEGORY_LABELS = {
   allowance: '용돈 관리',
@@ -569,21 +533,17 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
   }
 
   const userRef = db.collection('users').doc(uid);
-  const shopItemRef = db.collection('shopItems').doc(itemId);
+  const fallback = SHOP_CATALOG[itemId];
+  if (!fallback) throw new HttpsError('not-found', '존재하지 않는 상품이에요.');
 
   return db.runTransaction(async (tx) => {
-    const [userSnap, shopItemSnap] = await Promise.all([
-      tx.get(userRef),
-      tx.get(shopItemRef),
-    ]);
+    const userSnap = await tx.get(userRef);
 
     if (!userSnap.exists) {
       throw new HttpsError('not-found', '유저 프로필을 찾을 수 없어요.');
     }
 
-    const fallback = SHOP_CATALOG[itemId];
-    const remote = shopItemSnap.exists ? shopItemSnap.data() : null;
-    const price = Number(fallback?.price ?? remote?.price);
+    let price = fallback.price;
     if (!Number.isFinite(price)) {
       throw new HttpsError('not-found', '존재하지 않는 상품이에요.');
     }
@@ -637,7 +597,9 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
 
     // 코스메틱 (스킨/무늬/배경/악세서리) — 이미 소유했으면 재구매 없이 그대로 성공.
     const ownedShopItemIds = user.ownedShopItemIds || [];
-    if (ownedShopItemIds.includes(itemId)) {
+    const quote = fallback ? quotePurchase(itemId, ownedShopItemIds) : null;
+    if (quote) price = quote.price;
+    if (quote ? quote.owned : ownedShopItemIds.includes(itemId)) {
       return { seeds, ownedShopItemIds };
     }
     if (seeds < price) {
@@ -650,9 +612,9 @@ exports.purchaseShopItem = onCall({ region: 'asia-northeast3' }, async (request)
     const newSeeds = seeds - price;
     tx.update(userRef, {
       seeds: newSeeds,
-      ownedShopItemIds: FieldValue.arrayUnion(itemId),
+      ownedShopItemIds: quote ? quote.granted : [...ownedShopItemIds, itemId],
     });
-    return { seeds: newSeeds, ownedShopItemIds: [...ownedShopItemIds, itemId] };
+    return { seeds: newSeeds, ownedShopItemIds: quote ? quote.granted : [...ownedShopItemIds, itemId] };
   });
 });
 

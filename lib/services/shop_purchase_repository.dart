@@ -23,9 +23,6 @@ class ShopPurchaseRepository {
     final userRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid);
-    final shopItemRef = FirebaseFirestore.instance
-        .collection('shopItems')
-        .doc(itemId);
 
     try {
       return await FirebaseFirestore.instance.runTransaction((tx) async {
@@ -37,26 +34,14 @@ class ShopPurchaseRepository {
           );
         }
 
-        ShopItem? fallback;
-        try {
-          fallback = ShopData.items.firstWhere((item) => item.id == itemId);
-        } catch (_) {
-          fallback = null;
-        }
-        // Bundled products do not require a Firestore catalog document.
-        // Reading a missing document is denied by the active-item read rules.
-        final shopItemSnap = fallback == null
-            ? await tx.get(shopItemRef)
-            : null;
-        final price =
-            fallback?.price ??
-            (shopItemSnap?.data()?['price'] as num?)?.toInt();
-        if (price == null) {
+        final fallback = ShopData.find(itemId);
+        if (fallback == null) {
           return const ShopPurchaseResult(
             status: ShopPurchaseStatus.failed,
             errorMessage: '존재하지 않는 상품이에요.',
           );
         }
+        var price = fallback.price;
 
         final userData = userSnap.data()!;
         final seeds = (userData['seeds'] as num?)?.toInt() ?? 0;
@@ -115,7 +100,9 @@ class ShopPurchaseRepository {
         final ownedShopItemIds = List<String>.from(
           userData['ownedShopItemIds'] as List? ?? [],
         );
-        if (ownedShopItemIds.contains(itemId)) {
+        price = ShopData.purchasePrice(fallback, ownedShopItemIds);
+        final expanded = ShopData.expandedOwned(ownedShopItemIds);
+        if (ShopData.owns(fallback, ownedShopItemIds)) {
           return ShopPurchaseResult(
             status: ShopPurchaseStatus.alreadyOwned,
             seeds: seeds,
@@ -128,7 +115,11 @@ class ShopPurchaseRepository {
           );
         }
         final newSeeds = seeds - price;
-        final newOwnedShopItemIds = [...ownedShopItemIds, itemId];
+        final newOwnedShopItemIds = {
+          ...expanded,
+          itemId,
+          ...fallback.componentIds,
+        }.toList();
         tx.update(userRef, {
           'seeds': newSeeds,
           'ownedShopItemIds': newOwnedShopItemIds,

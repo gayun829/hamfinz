@@ -1,0 +1,408 @@
+{
+  "items": [
+    {
+      "id": "skin_default",
+      "name": "기본 햄핀",
+      "description": "기본 햄핀으로 햄핀을 꾸며보세요.",
+      "price": 0,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_default.svg",
+      "included": true,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_bearded_cream",
+      "name": "수염 햄핀",
+      "description": "수염 햄핀으로 햄핀을 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_bearded_cream.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_bearded_gray",
+      "name": "회색 수염 햄핀",
+      "description": "회색 수염 햄핀으로 햄핀을 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_bearded_gray.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_caveman",
+      "name": "원시인 햄핀",
+      "description": "원시인 햄핀으로 햄핀을 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_caveman.png",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_caveman_bearded",
+      "name": "수염 원시인 햄핀",
+      "description": "수염 원시인 햄핀으로 햄핀을 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_caveman_bearded.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_bee",
+      "name": "꿀벌 햄핀",
+      "description": "귀여운 날개와 줄무늬를 가진 꿀벌 햄핀이에요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_bee.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_bee_duckbill",
+      "name": "오리입 꿀벌 햄핀",
+      "description": "오리입이 매력적인 꿀벌 햄핀이에요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_bee_duckbill.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_black",
+      "name": "검정 햄핀",
+      "description": "검정 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_black.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_dinosaur",
+      "name": "공룡 햄핀",
+      "description": "공룡 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_dinosaur.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_ninja",
+      "name": "닌자 햄핀 세트",
+      "description": "닌자 햄핀 스킨으로 꾸며보세요.",
+      "price": 200,
+      "category": "bundle",
+      "assetPath": "assets/figma/shop/skins/skin_ninja.svg",
+      "included": false,
+      "hideFromCloset": false,
+      "componentIds": [
+        "clothing_ninja",
+        "accessory_ninja"
+      ]
+    },
+    {
+      "id": "skin_pirate",
+      "name": "안대 햄핀",
+      "description": "안대 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_pirate.svg",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "skin_genie_blue",
+      "name": "파란 지니 햄핀",
+      "description": "파란 지니 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_genie_blue.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_genie_tail",
+      "name": "지니 꼬리 햄핀",
+      "description": "지니 꼬리 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_genie_tail.svg",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "skin_crewcut",
+      "name": "군필 햄핀",
+      "description": "군필 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_crewcut.svg",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "skin_grandma",
+      "name": "할머니 햄핀",
+      "description": "할머니 햄핀 스킨으로 꾸며보세요.",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_grandma.svg",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "skin_kindergarten",
+      "name": "유치원생 햄핀 세트",
+      "description": "유치원생 햄핀 스킨으로 꾸며보세요.",
+      "price": 200,
+      "category": "bundle",
+      "assetPath": "assets/figma/shop/skins/skin_kindergarten.svg",
+      "included": false,
+      "hideFromCloset": false,
+      "componentIds": [
+        "clothing_kindergarten",
+        "accessory_kindergarten_hat"
+      ]
+    },
+    {
+      "id": "skin_perm",
+      "name": "파마 햄핀 세트",
+      "description": "파마 햄핀 스킨으로 꾸며보세요.",
+      "price": 160,
+      "category": "bundle",
+      "assetPath": "assets/figma/shop/skins/skin_perm.svg",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "skin_genie",
+      "name": "지니 햄핀 세트",
+      "description": "지니 햄핀 스킨으로 꾸며보세요.",
+      "price": 200,
+      "category": "bundle",
+      "assetPath": "assets/figma/shop/skins/skin_genie.svg",
+      "included": false,
+      "hideFromCloset": false,
+      "componentIds": [
+        "clothing_genie",
+        "accessory_genie_hair"
+      ]
+    },
+    {
+      "id": "skin_business",
+      "name": "넥타이 햄핀 세트",
+      "description": "넥타이 햄핀 스킨으로 꾸며보세요.",
+      "price": 560,
+      "category": "bundle",
+      "assetPath": "assets/figma/shop/skins/skin_business.svg",
+      "included": false,
+      "hideFromCloset": false,
+      "componentIds": [
+        "skin_business_base",
+        "accessory_tie"
+      ]
+    },
+    {
+      "id": "accessory_grandma",
+      "name": "할머니 장식",
+      "description": "할머니 장식으로 햄핀을 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_grandma.png",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "accessory_painter_set",
+      "name": "화가 세트",
+      "description": "베레모와 앞치마를 함께 착용해요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_painter_set.png",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "accessory_perm",
+      "name": "파마 머리",
+      "description": "동글동글한 파마 머리로 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_perm.png",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "accessory_kindergarten_hair",
+      "name": "유치원생 세트 (머리 있음)",
+      "description": "머리카락이 있는 모자와 유치원복 세트예요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_kindergarten_hair.png",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "accessory_kindergarten",
+      "name": "유치원생 세트 (머리 없음)",
+      "description": "모자와 유치원복을 함께 착용해요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_kindergarten.png",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "accessory_propeller_hat",
+      "name": "헬리콥터 모자",
+      "description": "프로펠러 모자로 햄핀을 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_propeller_hat.png",
+      "included": false,
+      "hideFromCloset": false
+    },
+    {
+      "id": "accessory_genie_set",
+      "name": "요술지니 세트",
+      "description": "지니 머리와 수염, 장식을 함께 착용해요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_genie_set.png",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "study_guard",
+      "name": "연속 학습 방어권",
+      "description": "연속 학습을 지켜주는 보호 아이템",
+      "price": 300,
+      "category": "accessory",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "energy_pack",
+      "name": "에너지 20",
+      "description": "에너지를 20 회복하는 아이템",
+      "price": 60,
+      "category": "accessory",
+      "included": false,
+      "hideFromCloset": true
+    },
+    {
+      "id": "clothing_ninja",
+      "name": "닌자 옷",
+      "description": "닌자 옷으로 꾸며보세요.",
+      "price": 150,
+      "category": "clothing",
+      "assetPath": "assets/figma/shop/accessories/clothing_ninja.png"
+    },
+    {
+      "id": "accessory_ninja",
+      "name": "닌자 머리 장식",
+      "description": "닌자 머리 장식으로 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_ninja.png"
+    },
+    {
+      "id": "clothing_kindergarten",
+      "name": "유치원복",
+      "description": "유치원복으로 꾸며보세요.",
+      "price": 150,
+      "category": "clothing",
+      "assetPath": "assets/figma/shop/accessories/clothing_kindergarten.png"
+    },
+    {
+      "id": "accessory_kindergarten_hat",
+      "name": "유치원 모자",
+      "description": "유치원 모자으로 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_kindergarten_hat.png"
+    },
+    {
+      "id": "clothing_genie",
+      "name": "지니 옷",
+      "description": "지니 옷으로 꾸며보세요.",
+      "price": 150,
+      "category": "clothing",
+      "assetPath": "assets/figma/shop/accessories/clothing_genie.png"
+    },
+    {
+      "id": "accessory_genie_hair",
+      "name": "지니 머리와 수염",
+      "description": "지니 머리와 수염으로 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_genie_hair.png"
+    },
+    {
+      "id": "accessory_tie",
+      "name": "넥타이",
+      "description": "넥타이으로 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_tie.png"
+    },
+    {
+      "id": "accessory_red_glasses",
+      "name": "빨간 안경",
+      "description": "빨간 안경으로 꾸며보세요.",
+      "price": 100,
+      "category": "accessory",
+      "assetPath": "assets/figma/shop/accessories/accessory_red_glasses.png",
+      "hideFromCloset": true
+    },
+    {
+      "id": "skin_business_base",
+      "name": "회색 햄핀",
+      "description": "넥타이 세트의 회색 몸 스킨",
+      "price": 600,
+      "category": "skin",
+      "assetPath": "assets/figma/shop/skins/skin_business_base.svg"
+    },
+    {
+      "id": "accessory_perm_glasses",
+      "name": "파마 머리와 빨간 안경",
+      "description": "머리와 안경을 함께 착용하는 악세서리예요.",
+      "price": 100,
+      "category": "accessory",
+      "imageLayers": [
+        "assets/figma/shop/accessories/accessory_perm.png",
+        "assets/figma/shop/accessories/accessory_red_glasses.png"
+      ]
+    }
+  ],
+  "legacy": {
+    "accessory_kindergarten": [
+      "clothing_kindergarten",
+      "accessory_kindergarten_hat"
+    ],
+    "accessory_kindergarten_hair": [
+      "clothing_kindergarten",
+      "accessory_kindergarten_hat"
+    ],
+    "accessory_genie_set": [
+      "clothing_genie",
+      "accessory_genie_hair"
+    ],
+    "skin_grandma": [
+      "accessory_grandma"
+    ],
+    "skin_perm": [
+      "accessory_perm_glasses"
+    ],
+    "accessory_perm": [
+      "accessory_perm_glasses"
+    ],
+    "accessory_red_glasses": [
+      "accessory_perm_glasses"
+    ]
+  }
+}

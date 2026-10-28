@@ -272,6 +272,9 @@ class AuthService {
 
     final nicknameRef = _nicknames.doc(trimmedNickname.toLowerCase());
     final taken = await FirebaseFirestore.instance.runTransaction((tx) async {
+      // A repeated signup completion must never reset seeds or refill the starter guard.
+      final existingProfile = await tx.get(_users.doc(user.uid));
+      if (existingProfile.exists) return false;
       final reservation = await tx.get(nicknameRef);
       final available = nicknameAvailableFor(
         reserved: reservation.exists,
@@ -554,7 +557,7 @@ class AuthService {
       'equippedSkinId': skinId,
       'equippedPatternId': patternId,
       'equippedBackgroundId': backgroundId,
-      'equippedAccessoryIds': accessoryIds,
+      'equippedAccessoryIds': accessoryIds.take(1).toList(),
     });
   }
 
@@ -771,6 +774,7 @@ class AuthService {
     'incorrectQuestionCounts': <String, int>{},
     'incorrectQuestionCount': 0,
     'seeds': 0,
+    'studyGuardCount': 1,
     'ownedShopItemIds': <String>[],
     'consents': {
       'termsVersion': LegalDocuments.version,

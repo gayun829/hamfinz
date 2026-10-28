@@ -2,25 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
+import '../../models/shop_purchase_result.dart';
 import '../../services/auth_service.dart';
-import '../../services/shop_catalog_service.dart';
 import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 import '../../widgets/shop/closet_stage.dart';
 
-enum _ClosetTab { my, skin, pattern, accessory, background }
+enum _ClosetTab { my, bundle, skin, clothing, accessory }
 
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({
     super.key,
     required this.profile,
     this.showCatalog = false,
+    this.purchaseItem,
+    this.saveEquipment,
   });
 
   final UserProfile profile;
   final bool showCatalog;
+  final Future<ShopPurchaseResult> Function(String itemId)? purchaseItem;
+  final Future<void> Function({
+    required String? skinId,
+    required String? patternId,
+    required String? backgroundId,
+    required List<String> accessoryIds,
+  })?
+  saveEquipment;
 
   @override
   State<ClosetScreen> createState() => _ClosetScreenState();
@@ -35,7 +45,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   String? _stagedPatternId;
   String? _stagedBackgroundId;
   final List<String> _stagedAccessoryIds = [];
-  List<ShopItem> _catalogItems = ShopData.items;
+  final List<ShopItem> _catalogItems = ShopData.items;
 
   @override
   void initState() {
@@ -46,17 +56,26 @@ class _ClosetScreenState extends State<ClosetScreen> {
     _stagedBackgroundId = _profile.equippedBackgroundId;
     _stagedAccessoryIds.clear();
     _stagedAccessoryIds.addAll(_profile.equippedAccessoryIds);
-    _loadCatalog();
+    final legacySkin = ShopData.find(_stagedSkinId);
+    if (legacySkin != null &&
+        (legacySkin.componentIds.isNotEmpty ||
+            ShopData.legacyComponents.containsKey(legacySkin.id))) {
+      _stagedSkinId = null;
+      _applyItem(legacySkin);
+    }
+    final legacyAccessories = List<String>.of(_stagedAccessoryIds);
+    for (final id in legacyAccessories) {
+      for (final partId in ShopData.legacyComponents[id] ?? <String>[]) {
+        final part = ShopData.find(partId);
+        if (part != null) _applyItem(part);
+      }
+    }
+    if (_stagedAccessoryIds.length > 1) {
+      _stagedAccessoryIds.removeRange(1, _stagedAccessoryIds.length);
+    }
   }
 
-  Future<void> _loadCatalog() async {
-    final items = await ShopCatalogService.instance.getItemsOrFallback();
-    if (!mounted) return;
-    setState(() => _catalogItems = items);
-  }
-
-  bool _owns(ShopItem item) =>
-      item.included || _profile.ownedShopItemIds.contains(item.id);
+  bool _owns(ShopItem item) => ShopData.owns(item, _profile.ownedShopItemIds);
 
   List<ShopItem> get _visibleItems {
     final items = _filteredItems;
@@ -67,16 +86,20 @@ class _ClosetScreenState extends State<ClosetScreen> {
   List<ShopItem> get _filteredItems {
     final category = switch (_tab) {
       _ClosetTab.skin => ShopCategory.skin,
-      _ClosetTab.pattern => ShopCategory.pattern,
+      _ClosetTab.clothing => ShopCategory.clothing,
       _ClosetTab.accessory => ShopCategory.accessory,
-      _ClosetTab.background => ShopCategory.background,
+      _ClosetTab.bundle => ShopCategory.bundle,
       _ClosetTab.my => null,
     };
     return _catalogItems
         .where(
           (item) =>
-              !item.hideFromCloset &&
-              (widget.showCatalog || _owns(item)) &&
+              (!item.hideFromCloset ||
+                  (_tab == _ClosetTab.my &&
+                      _owns(item) &&
+                      item.id != 'study_guard' &&
+                      item.id != 'energy_pack')) &&
+              ((widget.showCatalog && _tab != _ClosetTab.my) || _owns(item)) &&
               (category == null || item.category == category),
         )
         .toList();
@@ -93,36 +116,60 @@ class _ClosetScreenState extends State<ClosetScreen> {
       !_stagedAccessoryIds.every(_profile.equippedAccessoryIds.contains);
 
   bool _isEquipped(ShopItem item) =>
+      (item.componentIds.isNotEmpty &&
+          item.componentIds.every((id) => _isEquipped(ShopData.find(id)!))) ||
       (item.included && _normalizedSkin(_stagedSkinId) == null) ||
       _stagedSkinId == item.id ||
       _stagedPatternId == item.id ||
       _stagedBackgroundId == item.id ||
       _stagedAccessoryIds.contains(item.id);
 
+  int _price(ShopItem item) =>
+      ShopData.purchasePrice(item, _profile.ownedShopItemIds);
+
+  void _applyItem(ShopItem item, {bool removing = false}) {
+    final legacy = ShopData.legacyComponents[item.id];
+    if (legacy != null) {
+      for (final id in legacy) {
+        final part = ShopData.find(id);
+        if (part != null) _applyItem(part, removing: removing);
+      }
+      return;
+    }
+    if (item.componentIds.isNotEmpty) {
+      for (final id in item.componentIds) {
+        final part = ShopData.find(id);
+        if (part != null) _applyItem(part, removing: removing);
+      }
+      return;
+    }
+    switch (item.category) {
+      case ShopCategory.skin:
+        _stagedSkinId = removing ? null : item.id;
+      case ShopCategory.clothing:
+      case ShopCategory.pattern:
+        _stagedPatternId = removing ? null : item.id;
+      case ShopCategory.background:
+        _stagedBackgroundId = removing ? null : item.id;
+      case ShopCategory.accessory:
+        _stagedAccessoryIds
+          ..clear()
+          ..addAll(removing ? <String>[] : [item.id]);
+      case ShopCategory.bundle:
+        break;
+    }
+  }
+
   void _stageItem(ShopItem item) {
     if (_saving || !_owns(item)) return;
-    final removing = _isEquipped(item);
-    setState(() {
-      switch (item.category) {
-        case ShopCategory.skin:
-          _stagedSkinId = removing ? null : item.id;
-        case ShopCategory.pattern:
-          _stagedPatternId = removing ? null : item.id;
-        case ShopCategory.background:
-          _stagedBackgroundId = removing ? null : item.id;
-        case ShopCategory.accessory:
-          _stagedAccessoryIds
-            ..clear()
-            ..addAll(removing ? <String>[] : [item.id]);
-      }
-    });
+    setState(() => _applyItem(item, removing: _isEquipped(item)));
   }
 
   Future<void> _saveOutfit() async {
     if (_saving || !_hasChanges) return;
     setState(() => _saving = true);
     try {
-      await AuthService.instance.updateShopEquipment(
+      await (widget.saveEquipment ?? AuthService.instance.updateShopEquipment)(
         skinId: _stagedSkinId,
         patternId: _stagedPatternId,
         backgroundId: _stagedBackgroundId,
@@ -136,7 +183,8 @@ class _ClosetScreenState extends State<ClosetScreen> {
         _profile.equippedAccessoryIds = List.of(_stagedAccessoryIds);
       });
       _showSnackBar('착용 정보를 저장했어요.');
-    } catch (_) {
+    } catch (error, stack) {
+      debugPrint('Shop equipment error: $error\n$stack');
       _showSnackBar('저장하지 못했어요. 다시 시도해주세요.');
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -151,22 +199,13 @@ class _ClosetScreenState extends State<ClosetScreen> {
     }
     setState(() {
       _selectedItem = item;
-      _stagedSkinId = item.category == ShopCategory.skin
-          ? item.id
-          : _profile.equippedSkinId;
-      _stagedPatternId = item.category == ShopCategory.pattern
-          ? item.id
-          : _profile.equippedPatternId;
-      _stagedBackgroundId = item.category == ShopCategory.background
-          ? item.id
-          : _profile.equippedBackgroundId;
+      _stagedSkinId = _profile.equippedSkinId;
+      _stagedPatternId = _profile.equippedPatternId;
+      _stagedBackgroundId = _profile.equippedBackgroundId;
       _stagedAccessoryIds
         ..clear()
-        ..addAll(
-          item.category == ShopCategory.accessory
-              ? [item.id]
-              : _profile.equippedAccessoryIds,
-        );
+        ..addAll(_profile.equippedAccessoryIds.take(1));
+      _applyItem(item);
     });
   }
 
@@ -179,7 +218,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text('${item.name}을 구매할까요?'),
-          content: Text('${item.price}씨앗이 필요해요.'),
+          content: Text('${_price(item)}씨앗이 필요해요.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -202,26 +241,14 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }
 
   Future<bool> _purchaseOrEquipFromPreview(ShopItem item) async {
-    final owned =
-        (item.included || _profile.ownedShopItemIds.contains(item.id));
-    var skinId = _profile.equippedSkinId;
-    var patternId = _profile.equippedPatternId;
-    var backgroundId = _profile.equippedBackgroundId;
-    var accessoryIds = List<String>.from(_profile.equippedAccessoryIds);
+    final owned = _owns(item);
+    final skinId = _stagedSkinId;
+    final patternId = _stagedPatternId;
+    final backgroundId = _stagedBackgroundId;
+    final accessoryIds = List<String>.of(_stagedAccessoryIds);
 
-    switch (item.category) {
-      case ShopCategory.skin:
-        skinId = item.id;
-      case ShopCategory.pattern:
-        patternId = item.id;
-      case ShopCategory.accessory:
-        accessoryIds = [item.id];
-      case ShopCategory.background:
-        backgroundId = item.id;
-    }
-
-    if (!owned && _profile.seeds < item.price) {
-      _showSnackBar(_seedShortageMessage(item.price));
+    if (!owned && _profile.seeds < _price(item)) {
+      _showSnackBar(_seedShortageMessage(_price(item)));
       return false;
     }
     return _equipOrBuyItem(
@@ -242,21 +269,26 @@ class _ClosetScreenState extends State<ClosetScreen> {
   }) async {
     if (_saving) return false;
     setState(() => _saving = true);
+    var purchaseCompleted = false;
+    var savingEquipment = false;
     try {
-      final owned =
-          item.included || _profile.ownedShopItemIds.contains(item.id);
+      final owned = _owns(item);
       if (!owned) {
-        final result = await ShopService.instance.purchaseItem(
-          profile: _profile,
-          itemId: item.id,
-        );
+        final result = widget.purchaseItem != null
+            ? await widget.purchaseItem!(item.id)
+            : await ShopService.instance.purchaseItem(
+                profile: _profile,
+                itemId: item.id,
+              );
         if (!mounted) return false;
         if (!result.isSuccess) {
           _showSnackBar(result.message ?? '구매에 실패했어요.');
           return false;
         }
+        purchaseCompleted = true;
       }
-      await AuthService.instance.updateShopEquipment(
+      savingEquipment = true;
+      await (widget.saveEquipment ?? AuthService.instance.updateShopEquipment)(
         skinId: skinId,
         patternId: patternId,
         backgroundId: backgroundId,
@@ -273,8 +305,17 @@ class _ClosetScreenState extends State<ClosetScreen> {
           ..addAll(accessoryIds);
       });
       return true;
-    } catch (_) {
-      _showSnackBar('착용을 저장하지 못했어요. 구매한 아이템은 옷장에서 다시 착용할 수 있어요.');
+    } catch (error, stack) {
+      debugPrint(
+        'Shop ${savingEquipment ? "equipment" : "purchase"} error: $error\n$stack',
+      );
+      _showSnackBar(
+        purchaseCompleted
+            ? '구매는 완료됐지만 착용을 저장하지 못했어요. 옷장에서 다시 착용해주세요.'
+            : savingEquipment
+            ? '착용을 저장하지 못했어요. 다시 시도해주세요.'
+            : '구매하지 못했어요. 다시 시도해주세요.',
+      );
       return false;
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -350,11 +391,11 @@ class _ClosetScreenState extends State<ClosetScreen> {
                       padding: EdgeInsets.symmetric(horizontal: s(20)),
                       child: Row(
                         children: [
+                          _tabLabel(figma, _ClosetTab.my, 'my'),
+                          _tabLabel(figma, _ClosetTab.bundle, '세트'),
                           _tabLabel(figma, _ClosetTab.skin, '스킨'),
-                          _tabLabel(figma, _ClosetTab.pattern, '무늬'),
+                          _tabLabel(figma, _ClosetTab.clothing, '옷'),
                           _tabLabel(figma, _ClosetTab.accessory, '악세서리'),
-                          _tabLabel(figma, _ClosetTab.background, '배경'),
-                          _tabLabel(figma, _ClosetTab.my, '전체'),
                         ],
                       ),
                     ),
@@ -394,6 +435,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                 figma: figma,
                                 item: item,
                                 owned: _owns(item),
+                                displayPrice: _price(item),
                                 actionLabel: widget.showCatalog
                                     ? null
                                     : (_isEquipped(item) ? '착용 중' : '착용하기'),
