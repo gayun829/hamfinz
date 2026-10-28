@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
+
+/// Supplies a result even when the OS back action or iOS swipe pops without one.
+class ShopPurchaseRoute extends MaterialPageRoute<bool> {
+  ShopPurchaseRoute({required super.builder, required this.isCompleted});
+  final bool Function() isCompleted;
+
+  @override
+  bool get currentResult => isCompleted();
+}
 
 /// Purchase confirmation and receipt share the exact selected outfit.
 class ShopPurchaseScreen extends StatefulWidget {
@@ -70,12 +80,17 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: _complete ? null : const Color(0xFFBEBEBE),
+                        color: _complete
+                            ? null
+                            : FigmaShopTokens.purchaseBackground,
                         gradient: _complete
                             ? const RadialGradient(
                                 center: Alignment(0, -.35),
                                 radius: .95,
-                                colors: [Colors.white, Color(0xFFCFF2FC)],
+                                colors: [
+                                  Colors.white,
+                                  FigmaShopTokens.receiptBackground,
+                                ],
                               )
                             : null,
                       ),
@@ -103,9 +118,13 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
                                           Text(
                                             '구매 완료',
                                             style: TextStyle(
-                                              fontSize: s(28),
+                                              fontSize: s(
+                                                FigmaShopTokens
+                                                    .receiptTitleSize,
+                                              ),
                                               fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF00AFF0),
+                                              color:
+                                                  FigmaShopTokens.receiptTitle,
                                             ),
                                           ),
                                           SizedBox(height: h(.025)),
@@ -119,7 +138,10 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
                                             _receiptMessage,
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
-                                              fontSize: s(23),
+                                              fontSize: s(
+                                                FigmaShopTokens
+                                                    .receiptMessageSize,
+                                              ),
                                               color: Colors.black,
                                             ),
                                           ),
@@ -163,7 +185,10 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
                                                   widget.itemName,
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                    fontSize: s(26),
+                                                    fontSize: s(
+                                                      FigmaShopTokens
+                                                          .purchaseNameSize,
+                                                    ),
                                                     fontWeight: FontWeight.w700,
                                                     color: Colors.black,
                                                   ),
@@ -246,8 +271,8 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         backgroundColor: cancel
-            ? const Color(0xFFD9D9D9)
-            : const Color(0xFF38C5F5),
+            ? FigmaShopTokens.previewBackground
+            : FigmaShopTokens.purchaseAction,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(s(14)),
@@ -255,7 +280,10 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: s(20), fontWeight: FontWeight.w700),
+        style: TextStyle(
+          fontSize: s(FigmaShopTokens.purchaseButtonSize),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
   );

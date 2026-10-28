@@ -1,4 +1,3 @@
-import 'shop_purchase_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/shop_data.dart';
@@ -10,6 +9,7 @@ import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
 import '../../widgets/shop/closet_stage.dart';
+import 'shop_purchase_screen.dart';
 
 enum _ClosetTab { my, bundle, skin, clothing, accessory }
 
@@ -216,8 +216,10 @@ class _ClosetScreenState extends State<ClosetScreen> {
     if (item == null || _saving) return;
     final owned = _owns(item);
     if (!owned) {
+      var purchaseCompleted = false;
       final completed = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
+        ShopPurchaseRoute(
+          isCompleted: () => purchaseCompleted,
           builder: (_) => ShopPurchaseScreen(
             itemName: item.name,
             price: _price(item),
@@ -229,7 +231,10 @@ class _ClosetScreenState extends State<ClosetScreen> {
               backgroundId: _stagedBackgroundId,
               accessoryIds: List.of(_stagedAccessoryIds),
             ),
-            onPurchase: () => _purchaseOrEquipFromPreview(item),
+            onPurchase: () async {
+              purchaseCompleted = await _purchaseOrEquipFromPreview(item);
+              return purchaseCompleted;
+            },
           ),
         ),
       );
@@ -391,15 +396,31 @@ class _ClosetScreenState extends State<ClosetScreen> {
                     ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: s(20)),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _tabLabel(figma, _ClosetTab.my, 'my'),
-                          _tabLabel(figma, _ClosetTab.bundle, '세트'),
-                          _tabLabel(figma, _ClosetTab.skin, '스킨'),
-                          _tabLabel(figma, _ClosetTab.clothing, '옷'),
-                          _tabLabel(figma, _ClosetTab.accessory, '악세서리'),
-                        ],
+                      child: LayoutBuilder(
+                        builder: (context, constraints) =>
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: constraints.maxWidth,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _tabLabel(figma, _ClosetTab.my, 'my'),
+                                    _tabLabel(figma, _ClosetTab.bundle, '세트'),
+                                    _tabLabel(figma, _ClosetTab.skin, '스킨'),
+                                    _tabLabel(figma, _ClosetTab.clothing, '옷'),
+                                    _tabLabel(
+                                      figma,
+                                      _ClosetTab.accessory,
+                                      '악세서리',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                       ),
                     ),
                   ),

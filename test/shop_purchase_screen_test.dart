@@ -10,6 +10,32 @@ import 'package:testapp/theme/app_theme.dart';
 import 'package:testapp/widgets/shop/shop_widgets.dart';
 
 void main() {
+  testWidgets('system back returns completed purchase result', (tester) async {
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(navigatorKey: navigator, home: const Scaffold()),
+    );
+    var completed = false;
+    final result = navigator.currentState!.push(
+      ShopPurchaseRoute(
+        isCompleted: () => completed,
+        builder: (_) => ShopPurchaseScreen(
+          itemName: '모자',
+          price: 100,
+          balance: () => 1000,
+          avatar: const SizedBox(),
+          onPurchase: () async => completed = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('구매하기'));
+    await tester.tap(find.text('구매하기'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(await result, isTrue);
+  });
   for (final size in [const Size(360, 640), const Size(393, 852)]) {
     testWidgets(
       'purchase and receipt fit $size and prevent duplicate purchases',

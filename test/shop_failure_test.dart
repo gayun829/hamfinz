@@ -6,6 +6,31 @@ import 'package:testapp/screens/shop/closet_screen.dart';
 import 'package:testapp/widgets/shop/shop_widgets.dart';
 
 void main() {
+  testWidgets('category tabs scroll at 360 width with large text', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: ClosetScreen(
+          profile: UserProfile(email: 'test@test.com', nickname: 'test'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text('악세서리'));
+    await tester.tap(find.text('악세서리'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
   for (final purchaseFails in [true, false]) {
     testWidgets(
       purchaseFails

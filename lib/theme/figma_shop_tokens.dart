@@ -11,6 +11,14 @@ abstract final class FigmaShopTokens {
   static const chip = Color(0xFFD6FAFF);
   static const seed = Color(0xFFFFC94D);
   static const title = Colors.black;
+  static const purchaseBackground = Color(0xFFBEBEBE);
+  static const receiptBackground = Color(0xFFCFF2FC);
+  static const receiptTitle = Color(0xFF00AFF0);
+  static const purchaseAction = Color(0xFF38C5F5);
+  static const receiptTitleSize = 28.0;
+  static const receiptMessageSize = 23.0;
+  static const purchaseNameSize = 26.0;
+  static const purchaseButtonSize = 20.0;
 
   static const pagePadding = 20.0;
   static const cardRadius = 16.0;
