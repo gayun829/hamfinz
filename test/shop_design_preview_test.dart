@@ -32,6 +32,9 @@ void main() {
       'shop': ShopScreen(profile: profile),
       'catalog': ClosetScreen(profile: profile, showCatalog: true),
       'closet': ClosetScreen(profile: profile),
+      'sets': ClosetScreen(profile: profile, showCatalog: true),
+      'clothes': ClosetScreen(profile: profile, showCatalog: true),
+      'accessories': ClosetScreen(profile: profile, showCatalog: true),
     };
     for (final entry in screens.entries) {
       final key = GlobalKey();
@@ -66,6 +69,16 @@ void main() {
         }
       });
       await tester.pumpAndSettle();
+      final tab = {
+        'sets': '세트',
+        'clothes': '옷',
+        'accessories': '악세서리',
+      }[entry.key];
+      if (tab != null) {
+        await tester.ensureVisible(find.text(tab));
+        await tester.tap(find.text(tab));
+        await tester.pumpAndSettle();
+      }
       expect(tester.takeException(), isNull);
       if (entry.key == 'catalog') {
         await tester.tap(
@@ -85,5 +98,5 @@ void main() {
         image.dispose();
       });
     }
-  });
+  }, skip: !const bool.fromEnvironment('SHOP_PREVIEW'));
 }

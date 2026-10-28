@@ -113,6 +113,7 @@ class ShopItemCard extends StatelessWidget {
     required this.owned,
     required this.onTap,
     this.actionLabel,
+    this.displayPrice,
     this.selected = false,
   });
 
@@ -120,6 +121,7 @@ class ShopItemCard extends StatelessWidget {
   final ShopItem item;
   final bool owned;
   final String? actionLabel;
+  final int? displayPrice;
   final bool selected;
   final VoidCallback onTap;
 
@@ -151,16 +153,19 @@ class ShopItemCard extends StatelessWidget {
                 child: item.usesSharedCanvas
                     ? ShopAvatar(
                         catalogItems: [
-                          ...ShopData.items.where((i) => i.id != item.id),
                           item,
+                          ...item.componentIds
+                              .map(ShopData.find)
+                              .whereType<ShopItem>(),
                         ],
-                        skinId: item.category == ShopCategory.skin
+                        skinId:
+                            item.category == ShopCategory.skin ||
+                                item.category == ShopCategory.bundle
                             ? item.id
                             : null,
-                        patternId: item.category == ShopCategory.pattern
-                            ? item.id
-                            : null,
-                        backgroundId: item.category == ShopCategory.background
+                        patternId:
+                            item.category == ShopCategory.clothing ||
+                                item.category == ShopCategory.pattern
                             ? item.id
                             : null,
                         accessoryIds: item.category == ShopCategory.accessory
@@ -177,6 +182,14 @@ class ShopItemCard extends StatelessWidget {
               style: FigmaShopTokens.body(figma.scale),
             ),
             SizedBox(height: s(6)),
+            if (item.componentIds.isNotEmpty && !owned)
+              Text(
+                '미보유 구성품 20% 할인',
+                style: TextStyle(
+                  fontSize: s(9),
+                  color: const Color(0xFFF99832),
+                ),
+              ),
             Padding(
               padding: EdgeInsets.fromLTRB(s(9), 0, s(9), s(13)),
               child: Container(
@@ -200,7 +213,7 @@ class ShopItemCard extends StatelessWidget {
                       )
                     : ShopSeedChip(
                         figma: figma,
-                        seeds: item.price,
+                        seeds: displayPrice ?? item.price,
                         iconSize: const Size(17, 17),
                         amountSize: 14,
                       ),
@@ -219,19 +232,20 @@ class ShopItemImage extends StatelessWidget {
   final ShopItem item;
   @override
   Widget build(BuildContext context) {
+    if (item.imageLayers.isNotEmpty) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          for (final path in item.imageLayers)
+            Image.asset(path, fit: BoxFit.contain),
+        ],
+      );
+    }
     if (item.assetPath != null) {
       if (item.assetPath!.toLowerCase().endsWith('.svg')) {
         return SvgPicture.asset(item.assetPath!, fit: BoxFit.contain);
       }
       return Image.asset(item.assetPath!, fit: BoxFit.contain);
-    }
-    if (item.imageUrl?.isNotEmpty == true) {
-      return Image.network(
-        item.imageUrl!,
-        fit: BoxFit.contain,
-        errorBuilder: (_, error, stack) =>
-            const Icon(Icons.broken_image_outlined),
-      );
     }
     return Icon(
       item.id == 'study_guard'
@@ -258,13 +272,12 @@ class EquippedLook {
   });
 
   /// [catalog]에서 그릴 수 있는 아이템만 남긴다. 스킨·무늬·악세서리 모두 같은
-  /// 기준이라, 카탈로그에 아직 없는 아이템(Firestore 전용)은 불러오기 전까지
-  /// 안 입은 것으로 보고 기본 햄핀이를 그린다.
+  /// 기준이라, 카탈로그에 없는 아이템은 안 입은 것으로 보고 기본 햄핀이를 그린다.
   factory EquippedLook.of(UserProfile profile, List<ShopItem> catalog) {
     // 소모품(방어권·에너지)은 그릴 이미지가 없어 입은 것으로 치지 않는다.
     final drawable = {
       for (final item in catalog)
-        if (item.assetPath != null || item.imageUrl?.isNotEmpty == true)
+        if (item.assetPath != null || item.imageLayers.isNotEmpty)
           item.id,
     };
     String? keep(String? id) => drawable.contains(id) ? id : null;
@@ -318,14 +331,27 @@ class ShopAvatar extends StatelessWidget {
       return null;
     }
 
-    final skin =
-        lookup(skinId) ??
-        ShopData.items.firstWhere((i) => i.id == ShopData.defaultSkinId);
+    ShopItem? resolve(String? id) => lookup(id) ?? ShopData.find(id);
+    var skin = resolve(skinId);
+    ShopItem? clothes = resolve(patternId);
+    ShopItem? accessory = accessoryIds.isEmpty
+        ? null
+        : resolve(accessoryIds.last);
+    if (skin?.componentIds.isNotEmpty == true) {
+      final bundle = skin!;
+      skin = null;
+      for (final id in bundle.componentIds) {
+        final part = resolve(id);
+        if (part?.category == ShopCategory.skin) skin = part;
+        if (part?.category == ShopCategory.clothing) clothes = part;
+        if (part?.category == ShopCategory.accessory) accessory = part;
+      }
+    }
     final layers = [
-      lookup(backgroundId),
-      skin,
-      lookup(patternId),
-      ...accessoryIds.map(lookup),
+      resolve(backgroundId),
+      skin ?? ShopData.find(ShopData.defaultSkinId),
+      clothes,
+      accessory,
     ].whereType<ShopItem>();
     return Center(
       child: AspectRatio(

@@ -15,7 +15,6 @@ import '../../services/auth_service.dart';
 import '../../services/friend_service.dart';
 import '../../services/news_service.dart';
 import '../../services/quiz_service.dart';
-import '../../services/shop_catalog_service.dart';
 import '../../utils/incorrect_questions.dart';
 import '../../theme/home_tier_theme.dart';
 import '../../theme/figma_home_fonts.dart';
@@ -90,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 착용 아이템을 그릴 카탈로그. 이미 불러온 카탈로그가 있으면 그것으로,
   /// 없으면 로컬 카탈로그로 먼저 그리고 불러온 뒤 반영한다.
-  List<ShopItem> _catalogItems = ShopCatalogService.instance.cachedOrLocal;
+  final List<ShopItem> _catalogItems = ShopData.items;
 
   @override
   void initState() {
@@ -100,7 +99,6 @@ class _HomeScreenState extends State<HomeScreen>
       _loading = false;
     }
     _loadNews();
-    _loadCatalog();
     _newsTimer = Timer.periodic(_newsSlideInterval, (_) => _rotateNews());
     if (widget.profile == null) {
       _loadProfile();
@@ -140,16 +138,6 @@ class _HomeScreenState extends State<HomeScreen>
     _newsTimer?.cancel();
     _newsTitle.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadCatalog() async {
-    try {
-      final items = await ShopCatalogService.instance.getItemsOrFallback();
-      if (!mounted) return;
-      setState(() => _catalogItems = items);
-    } catch (_) {
-      // 카탈로그를 못 불러와도 로컬 카탈로그로 그린다.
-    }
   }
 
   Future<void> _loadProfile() async {

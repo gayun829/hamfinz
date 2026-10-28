@@ -1,3 +1,5 @@
+> 과거 설계 검토 문서입니다. 현재 상품 목록은 로컬 전용이며 shopItems 조회/가격 참조는 제거했습니다. 최신 규칙은 [shop-assets-and-catalog.md](shop-assets-and-catalog.md)를 따릅니다.
+
 # 씨앗 상점 · 에너지 구매 (설계 초안)
 
 관련 코드: `lib/data/shop_data.dart`, `lib/services/shop_catalog_service.dart`, `lib/services/quiz_service.dart`, `lib/services/auth_service.dart`, `lib/models/user_profile.dart`, `lib/screens/shop/`, `lib/widgets/shop/shop_widgets.dart`

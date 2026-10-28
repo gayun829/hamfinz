@@ -41,29 +41,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('parses a Firebase-only item without changing local items', () {
-    final item = ShopItem.fromFirestore('new_hat', {
-      'name': '테스트 모자',
-      'description': 'Firebase 테스트 아이템',
-      'price': 123,
-      'category': 'accessory',
-      'spriteCol': 2,
-      'spriteRow': 0,
-      'featured': false,
-      'hideFromCloset': false,
-      'isActive': true,
-      'sortOrder': 10,
-      'imageUrl': 'https://example.com/new_hat.png',
-    });
-
-    expect(item.id, 'new_hat');
-    expect(item.name, '테스트 모자');
-    expect(item.price, 123);
-    expect(item.category, ShopCategory.accessory);
-    expect(item.imageUrl, 'https://example.com/new_hat.png');
-    expect(
-      ShopData.items.map((localItem) => localItem.id),
-      contains('skin_default'),
-    );
+  test('only bundled items are accepted', () {
+    expect(ShopData.find('test_remote_hat'), isNull);
+    expect(ShopData.find('skin_default')!.included, isTrue);
   });
 }

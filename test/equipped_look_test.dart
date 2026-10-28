@@ -47,7 +47,7 @@ void main() {
   test('ids missing from the catalog are treated as not worn', () {
     final result = look(
       profile(
-        skin: 'skin_from_firestore',
+        skin: 'skin_extra',
         pattern: 'pattern_from_firestore',
         accessories: ['accessory_from_firestore'],
       ),
@@ -58,16 +58,14 @@ void main() {
     expect(result.isCustom, isFalse);
   });
 
-  test('an item appears once the catalog that has it is loaded', () {
+  test('an item appears only when the catalog has it', () {
     const remote = ShopItem(
-      id: 'skin_from_firestore',
-      name: '원격 스킨',
+      id: 'skin_extra',
+      name: '추가 스킨',
       description: '',
       price: 0,
       category: ShopCategory.skin,
-      spriteCol: 0,
-      spriteRow: 0,
-      imageUrl: 'https://example.com/skin.png',
+      assetPath: 'assets/figma/shop/skins/skin_bee.svg',
     );
     final result = EquippedLook.of(profile(skin: remote.id), [
       ...ShopData.items,

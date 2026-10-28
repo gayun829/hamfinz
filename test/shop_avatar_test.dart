@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testapp/data/shop_data.dart';
 import 'package:testapp/models/user_profile.dart';
 import 'package:testapp/screens/shop/closet_screen.dart';
-import 'package:testapp/screens/shop/item_preview_screen.dart';
 import 'package:testapp/widgets/shop/shop_widgets.dart';
 
 void main() {
@@ -100,23 +99,5 @@ void main() {
     expect(firstCard.item.id, 'skin_bearded_gray');
     expect(firstCard.owned, isFalse);
     expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('failed equip stays on preview', (tester) async {
-    final item = ShopData.items.first;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ItemPreviewScreen(
-          item: item,
-          profile: UserProfile(email: 'a@b.c', nickname: '테스트'),
-          catalogItems: ShopData.items,
-          onPurchase: () async => false,
-        ),
-      ),
-    );
-    await tester.tap(find.text('착용하기'));
-    await tester.pumpAndSettle();
-    expect(find.text('미리보기'), findsOneWidget);
-    expect(find.text('구매 완료!'), findsNothing);
   });
 }

@@ -8,7 +8,6 @@ import '../../data/learning_stages.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
-import '../../services/shop_catalog_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
@@ -415,25 +414,7 @@ class _ProfileAvatar extends StatefulWidget {
 }
 
 class _ProfileAvatarState extends State<_ProfileAvatar> {
-  /// 이미 불러온 카탈로그가 있으면 그것으로 바로 그린다. 없으면 로컬
-  /// 카탈로그로 먼저 그리고, Firestore에만 있는 아이템은 불러온 뒤 반영한다.
-  List<ShopItem> _catalog = ShopCatalogService.instance.cachedOrLocal;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCatalog();
-  }
-
-  Future<void> _loadCatalog() async {
-    try {
-      final items = await ShopCatalogService.instance.getItemsOrFallback();
-      if (!mounted) return;
-      setState(() => _catalog = items);
-    } catch (_) {
-      // 카탈로그를 못 불러와도 로컬 카탈로그로 그린다.
-    }
-  }
+  final List<ShopItem> _catalog = ShopData.items;
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,6 @@ import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
-import '../../services/shop_catalog_service.dart';
 import '../../services/shop_service.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
@@ -28,19 +27,12 @@ class _ShopScreenState extends State<ShopScreen> {
   static const _energyPackAmount = 20;
 
   late UserProfile _profile;
-  List<ShopItem> _catalogItems = ShopData.items;
+  final List<ShopItem> _catalogItems = ShopData.items;
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
-    _loadCatalog();
-  }
-
-  Future<void> _loadCatalog() async {
-    final items = await ShopCatalogService.instance.getItemsOrFallback();
-    if (!mounted) return;
-    setState(() => _catalogItems = items);
   }
 
   ShopItem _catalogItem(String id) => _catalogItems.firstWhere(
