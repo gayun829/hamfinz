@@ -24,6 +24,7 @@ abstract final class FigmaOnboardingTokens {
   static const splashBackground = Color(0xFFCAF3FF);
   static const placeholder = Color(0xFFBBBBBB);
   static const timer = Color(0xFFFF3C3C);
+  static const error = Color(0xFFFF3C3C); // 입력·로그인 실패 문구
   static const kakaoFill = Color(0xFFFFE300);
   static const clearCircle = Color(0xFFBABDCC);
   static const checkOff = Color(0xFFD9D9D9);
@@ -128,6 +129,8 @@ abstract final class FigmaOnboardingTokens {
 
   // 로그인 화면 (579:1606) — 좌표는 화면 상단 기준 절대값
   // 뒤로가기 박스 top 60. SVG가 박스보다 위아래로 2.236씩 넘친다.
+  static const loginDesignHeight = 852.0;
+  static const loginStatusBarHeight = 54.0; // 프레임 안 상태바 영역
   static const loginBackTop = 57.764; // 60 − (25.541 − 21.069) / 2
   static const loginTitleLeft = 163.824;
   static const loginTitleTop = 65.632;

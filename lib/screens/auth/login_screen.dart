@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../services/auth_service.dart';
@@ -16,7 +19,8 @@ typedef _T = FigmaOnboardingTokens;
 /// 이메일 로그인 화면 (Figma `579:1606` 로그인 화면).
 ///
 /// 디자인 프레임(393×852)은 상태바를 포함한 좌표라 위쪽 요소는 y 값을 그대로
-/// 쓰고, 맨 아래 「회원가입하기」만 화면 아래 기준으로 둔다.
+/// 쓰되, 기기 상단 여백이 프레임 상태바보다 크면 그만큼 내려서 겹치지 않게 한다.
+/// 맨 아래 「회원가입하기」만 화면 아래 기준으로 두고, 화면이 모자라면 스크롤한다.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
@@ -71,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+    TextInput.finishAutofillContext();
 
     // 인증까지 마치고 약관 전에 그만둔 이메일 가입자는 프로필 없이 로그인된다.
     // 그대로 홈에 보내면 프로필을 못 찾아 멈추므로 닉네임·약관부터 받는다.
@@ -147,22 +152,26 @@ class _LoginScreenState extends State<LoginScreen> {
     final figma = FigmaScale.ofContext(context, designWidth: _T.designWidth);
     final s = figma.s;
     final onBack = _onBack;
+    // 프레임 상태바보다 기기 상단 여백(노치·다이내믹 아일랜드)이 크면 그만큼 내린다.
+    final topShift = math.max(
+      0.0,
+      MediaQuery.paddingOf(context).top - s(_T.loginStatusBarHeight),
+    );
 
     /// 디자인 중심 y [centerY]에 한 줄 글자를 세로 가운데로 놓는 칸.
+    /// 글꼴을 키우면 칸도 같이 커지도록 높이는 최소값만 둔다.
     Widget line({
       required double centerY,
-      double? left,
+      required double left,
       required Widget child,
     }) {
       const half = 16.0;
       return Positioned(
-        left: left == null ? 0 : s(left),
-        right: left == null ? 0 : null,
-        top: s(centerY - half),
-        height: s(half * 2),
-        child: Align(
-          alignment: left == null ? Alignment.center : Alignment.centerLeft,
-          child: child,
+        left: s(left),
+        top: s(centerY - half) + topShift,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: s(half * 2)),
+          child: Align(alignment: Alignment.centerLeft, child: child),
         ),
       );
     }
@@ -174,115 +183,129 @@ class _LoginScreenState extends State<LoginScreen> {
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
-        child: Stack(
-          children: [
-            if (onBack != null)
-              Positioned(
-                left: 0,
-                top: s(_T.loginBackTop),
-                child: OnboardingBackButton(onPressed: onBack),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: SizedBox(
+              width: constraints.maxWidth,
+              height: math.max(
+                constraints.maxHeight,
+                s(_T.loginDesignHeight) + topShift,
               ),
-            Positioned(
-              left: s(_T.loginTitleLeft),
-              top: s(_T.loginTitleTop),
-              child: FigmaSvg(
-                FigmaAssets.loginTitle,
-                width: s(_T.loginTitleWidth),
-                height: s(_T.loginTitleHeight),
-              ),
-            ),
-            Positioned(
-              left: s(_T.loginFieldLeft),
-              top: s(_T.loginEmailTop),
-              width: s(_T.loginFieldWidth),
-              height: s(_T.loginFieldHeight),
-              child: _LoginField(
-                figma: figma,
-                controller: _emailController,
-                hint: '이메일을 입력해주세요',
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                onSubmitted: (_) => _passwordFocus.requestFocus(),
-              ),
-            ),
-            Positioned(
-              left: s(_T.loginFieldLeft),
-              top: s(_T.loginPasswordTop),
-              width: s(_T.loginFieldWidth),
-              height: s(_T.loginFieldHeight),
-              child: _LoginField(
-                figma: figma,
-                controller: _passwordController,
-                focusNode: _passwordFocus,
-                hint: '비밀번호를 입력해주세요',
-                obscureText: true,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-              ),
-            ),
-            Positioned(
-              left: s(_T.loginFieldLeft),
-              top: s(_T.loginButtonTop),
-              width: s(_T.loginFieldWidth),
-              height: s(_T.loginButtonHeight),
-              child: _LoginButton(
-                figma: figma,
-                loading: _loading,
-                onPressed: _submit,
-              ),
-            ),
-            line(
-              centerY: _T.loginLinksCenterY,
-              left: _T.loginFindIdLeft,
-              child: _TextLink(
-                label: '아이디 찾기',
-                style: _T.loginLinkStyle(figma.scale),
-                onTap: _openFindId,
-              ),
-            ),
-            line(
-              centerY: _T.loginLinksCenterY,
-              left: _T.loginDividerLeft,
-              child: Text(
-                '|',
-                style: _T.loginLinkStyle(figma.scale, weight: FontWeight.w400),
-              ),
-            ),
-            line(
-              centerY: _T.loginLinksCenterY,
-              left: _T.loginFindPasswordLeft,
-              child: _TextLink(
-                label: '비밀번호 찾기',
-                style: _T.loginLinkStyle(figma.scale),
-                onTap: _openForgotPassword,
-              ),
-            ),
-            // 디자인에는 없지만 로그인 실패 이유는 보여야 한다. 링크 바로 아래에 둔다.
-            if (_error != null)
-              Positioned(
-                left: s(_T.loginFieldLeft),
-                width: s(_T.loginFieldWidth),
-                top: s(_T.loginLinksCenterY + 24),
-                child: Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: _T.helperStyle(figma.scale, color: _T.timer),
+              child: AutofillGroup(
+                child: Stack(
+                  children: [
+                    if (onBack != null)
+                      Positioned(
+                        left: 0,
+                        top: s(_T.loginBackTop) + topShift,
+                        child: OnboardingBackButton(onPressed: onBack),
+                      ),
+                    Positioned(
+                      left: s(_T.loginTitleLeft),
+                      top: s(_T.loginTitleTop) + topShift,
+                      child: FigmaSvg(
+                        FigmaAssets.loginTitle,
+                        width: s(_T.loginTitleWidth),
+                        height: s(_T.loginTitleHeight),
+                      ),
+                    ),
+                    Positioned(
+                      left: s(_T.loginFieldLeft),
+                      top: s(_T.loginEmailTop) + topShift,
+                      width: s(_T.loginFieldWidth),
+                      child: _LoginField(
+                        figma: figma,
+                        controller: _emailController,
+                        hint: '이메일을 입력해주세요',
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => _passwordFocus.requestFocus(),
+                      ),
+                    ),
+                    Positioned(
+                      left: s(_T.loginFieldLeft),
+                      top: s(_T.loginPasswordTop) + topShift,
+                      width: s(_T.loginFieldWidth),
+                      child: _LoginField(
+                        figma: figma,
+                        controller: _passwordController,
+                        focusNode: _passwordFocus,
+                        hint: '비밀번호를 입력해주세요',
+                        obscureText: true,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _submit(),
+                      ),
+                    ),
+                    Positioned(
+                      left: s(_T.loginFieldLeft),
+                      top: s(_T.loginButtonTop) + topShift,
+                      width: s(_T.loginFieldWidth),
+                      child: _LoginButton(
+                        figma: figma,
+                        loading: _loading,
+                        onPressed: _submit,
+                      ),
+                    ),
+                    line(
+                      centerY: _T.loginLinksCenterY,
+                      left: _T.loginFindIdLeft,
+                      child: _TextLink(
+                        label: '아이디 찾기',
+                        style: _T.loginLinkStyle(figma.scale),
+                        onTap: _openFindId,
+                      ),
+                    ),
+                    line(
+                      centerY: _T.loginLinksCenterY,
+                      left: _T.loginDividerLeft,
+                      child: Text(
+                        '|',
+                        style: _T.loginLinkStyle(
+                          figma.scale,
+                          weight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    line(
+                      centerY: _T.loginLinksCenterY,
+                      left: _T.loginFindPasswordLeft,
+                      child: _TextLink(
+                        label: '비밀번호 찾기',
+                        style: _T.loginLinkStyle(figma.scale),
+                        onTap: _openForgotPassword,
+                      ),
+                    ),
+                    // 디자인에는 없지만 로그인 실패 이유는 보여야 한다. 링크 바로 아래에 둔다.
+                    if (_error != null)
+                      Positioned(
+                        left: s(_T.loginFieldLeft),
+                        width: s(_T.loginFieldWidth),
+                        top: s(_T.loginLinksCenterY + 24) + topShift,
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: _T.helperStyle(figma.scale, color: _T.error),
+                        ),
+                      ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: s(_T.loginSignupCenterFromBottom - 16),
+                      child: Center(
+                        child: _TextLink(
+                          label: '계정이 없으신가요? 회원가입하기',
+                          style: _T.loginSignupStyle(figma.scale),
+                          onTap: _openSignup,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: s(_T.loginSignupCenterFromBottom - 16),
-              height: s(32),
-              child: Center(
-                child: _TextLink(
-                  label: '계정이 없으신가요? 회원가입하기',
-                  style: _T.loginSignupStyle(figma.scale),
-                  onTap: _openSignup,
-                ),
-              ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -297,6 +320,7 @@ class _LoginField extends StatelessWidget {
     required this.hint,
     this.focusNode,
     this.keyboardType,
+    this.autofillHints,
     this.obscureText = false,
     this.textInputAction,
     this.onSubmitted,
@@ -307,6 +331,7 @@ class _LoginField extends StatelessWidget {
   final String hint;
   final FocusNode? focusNode;
   final TextInputType? keyboardType;
+  final Iterable<String>? autofillHints;
   final bool obscureText;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -314,36 +339,46 @@ class _LoginField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(s(_T.loginFieldRadius)),
-        border: Border.all(color: _T.loginFieldBorder),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: s(_T.loginFieldTextInset)),
-        child: Center(
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            keyboardType: keyboardType,
-            obscureText: obscureText,
-            autocorrect: false,
-            enableSuggestions: !obscureText,
-            textInputAction: textInputAction,
-            onSubmitted: onSubmitted,
-            cursorColor: _T.accent,
-            style: _T.loginFieldStyle(figma.scale, color: Colors.black),
-            // 앱 테마의 입력칸 테두리·채우기를 끄고 바깥 상자만 보이게 한다.
-            decoration: InputDecoration(
-              isCollapsed: true,
-              filled: false,
-              contentPadding: EdgeInsets.zero,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              hintText: hint,
-              hintStyle: _T.loginFieldStyle(figma.scale, color: _T.placeholder),
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: s(_T.loginFieldHeight)),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(s(_T.loginFieldRadius)),
+          border: Border.all(color: _T.loginFieldBorder),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: s(_T.loginFieldTextInset),
+            vertical: s(8),
+          ),
+          child: Center(
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              keyboardType: keyboardType,
+              autofillHints: autofillHints,
+              obscureText: obscureText,
+              autocorrect: false,
+              enableSuggestions: !obscureText,
+              textInputAction: textInputAction,
+              onSubmitted: onSubmitted,
+              cursorColor: _T.accent,
+              style: _T.loginFieldStyle(figma.scale, color: Colors.black),
+              // 앱 테마의 입력칸 테두리·채우기를 끄고 바깥 상자만 보이게 한다.
+              decoration: InputDecoration(
+                isCollapsed: true,
+                filled: false,
+                contentPadding: EdgeInsets.zero,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                hintText: hint,
+                hintStyle: _T.loginFieldStyle(
+                  figma.scale,
+                  color: _T.placeholder,
+                ),
+              ),
             ),
           ),
         ),
@@ -368,23 +403,26 @@ class _LoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = figma.s;
     final radius = BorderRadius.circular(s(_T.loginFieldRadius));
-    return Material(
-      color: _T.accent,
-      borderRadius: radius,
-      child: InkWell(
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: s(_T.loginButtonHeight)),
+      child: Material(
+        color: _T.accent,
         borderRadius: radius,
-        onTap: loading ? null : onPressed,
-        child: Center(
-          child: loading
-              ? SizedBox(
-                  width: s(20),
-                  height: s(20),
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text('로그인', style: _T.loginButtonStyle(figma.scale)),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: loading ? null : onPressed,
+          child: Center(
+            child: loading
+                ? SizedBox(
+                    width: s(20),
+                    height: s(20),
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text('로그인', style: _T.loginButtonStyle(figma.scale)),
+          ),
         ),
       ),
     );
@@ -404,10 +442,17 @@ class _TextLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Text(label, style: style),
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        // 글자 높이만큼만 눌리면 좁으니 위아래로 눌림 영역을 넓힌다.
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(label, style: style),
+        ),
+      ),
     );
   }
 }
