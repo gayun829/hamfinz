@@ -612,6 +612,7 @@ class _FriendsCard extends StatelessWidget {
               '이번 달 친구와의 경쟁!',
               style: TextStyle(
                 fontFamily: FigmaHomeFonts.inter,
+                fontFamilyFallback: const [FigmaHomeFonts.pretendard],
                 fontSize: s(16),
                 color: Colors.black,
               ),
@@ -623,6 +624,7 @@ class _FriendsCard extends StatelessWidget {
                 message,
                 style: TextStyle(
                   fontFamily: FigmaHomeFonts.inter,
+                  fontFamilyFallback: const [FigmaHomeFonts.pretendard],
                   fontSize: s(16),
                   color: Colors.black,
                 ),
@@ -718,6 +720,7 @@ class _Rank extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: FigmaHomeFonts.inter,
+                  fontFamilyFallback: const [FigmaHomeFonts.pretendard],
                   fontSize: s(15),
                 ),
               ),

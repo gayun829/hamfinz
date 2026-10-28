@@ -5,4 +5,7 @@
 class FigmaHomeFonts {
   static const inter = 'Inter';
   static const pretendard = 'Pretendard';
+
+  /// 햄뉴스 제목의 Cafe24 써라운드 Bold. `pubspec.yaml`의 family 이름과 같아야 한다.
+  static const cafe24Ssurround = 'Cafe24 Ssurround';
 }

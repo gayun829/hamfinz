@@ -6,6 +6,7 @@ import '../../data/finance_terms.dart';
 import '../../data/interest_categories.dart';
 import '../../services/news_service.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/figma_home_fonts.dart';
 import 'article_screen.dart';
 import 'term_quiz_screen.dart';
 
@@ -294,7 +295,7 @@ class _NewsHeader extends StatelessWidget {
       child: const Text(
         '햄뉴스',
         style: TextStyle(
-          fontFamily: 'Cafe24 Ssurround',
+          fontFamily: FigmaHomeFonts.cafe24Ssurround,
           fontSize: 22,
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -554,7 +555,10 @@ class _NewsRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _pagePad, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: _pagePad,
+          vertical: 14,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

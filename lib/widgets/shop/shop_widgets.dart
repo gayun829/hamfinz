@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
+import '../../theme/figma_home_fonts.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../figma/figma_asset_image.dart';
 import '../figma/figma_scale.dart';
@@ -207,7 +208,8 @@ class ShopItemCard extends StatelessWidget {
                     ? Text(
                         actionLabel ?? '보유',
                         style: FigmaShopTokens.body(figma.scale).copyWith(
-                          fontFamily: 'Inter',
+                          fontFamily: FigmaHomeFonts.inter,
+                          fontFamilyFallback: const [FigmaHomeFonts.pretendard],
                           fontWeight: FontWeight.w600,
                           fontSize: 12 * figma.scale,
                           color: const Color(0xFFF99832),
@@ -279,7 +281,8 @@ class EquippedLook {
     // 소모품(방어권·에너지)은 그릴 이미지가 없어 입은 것으로 치지 않는다.
     final drawable = {
       for (final item in catalog)
-        if (item.assetPath != null || item.imageLayers.isNotEmpty) item.id,
+        if (item.assetPath != null || item.imageLayers.isNotEmpty)
+          item.id,
     };
     String? keep(String? id) => drawable.contains(id) ? id : null;
     return EquippedLook(

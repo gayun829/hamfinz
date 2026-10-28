@@ -123,6 +123,8 @@ flutter:
           weight: 800
         - asset: assets/fonts/Pretendard-Black.otf
           weight: 900
+    # 카페24 써라운드 Bold (SIL OFL 1.1, 고지는 assets/fonts/OFL.txt).
+    # https://fonts.cafe24.com 배포본(woff)을 fontTools로 ttf로만 바꿨다(글리프 수정 없음).
     - family: Cafe24 Ssurround
       fonts:
         - asset: assets/fonts/Cafe24Ssurround-Bold.ttf

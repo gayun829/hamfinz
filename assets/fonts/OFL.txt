@@ -11,6 +11,9 @@ with Reserved Font Name 'Inter'.
 Copyright 2021 The M+ FONTS Project Authors (https://github.com/coz-m/MPLUS_FONTS),
 with Reserved Font Name 'M PLUS 1'.
 
+Copyright (c) Cafe24 Corp. All Rights Reserved. (https://fonts.cafe24.com)
+"Cafe24 Ssurround" (카페24 써라운드).
+
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
 https://scripts.sil.org/OFL
