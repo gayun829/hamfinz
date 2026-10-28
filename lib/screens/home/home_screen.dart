@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import '../../constants/figma_assets.dart';
 import '../../data/interest_categories.dart';
 import '../../data/learning_steps.dart';
 import '../../data/quiz_data.dart';
+import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/friend_service.dart';
@@ -21,6 +23,7 @@ import '../../widgets/category_switcher_sheet.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_canvas.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/shop/shop_widgets.dart';
 import '../calendar/streak_calendar_screen.dart';
 import '../news/article_screen.dart';
 import '../news/term_quiz_screen.dart';
@@ -28,8 +31,7 @@ import '../quiz/quiz_screen.dart';
 import '../shop/shop_screen.dart';
 
 /// Figma `131:5342` / `137:1375` / `137:1489` 오늘의 학습 CTA.
-const _homeLearningCtaDesignHeight = 84.247;
-const _homeLearningCtaHeight = _homeLearningCtaDesignHeight * 0.75;
+const _homeLearningCtaHeight = 84.247;
 const _homeLearningCtaWidth = 328.0;
 
 /// 홈 맵의 복습 단계 — Figma 복습창!(`526:3093` 등) / 복습창2(`526:2131` 등).
@@ -85,6 +87,10 @@ class _HomeScreenState extends State<HomeScreen>
   UserProfile? _profile;
   bool _loading = true;
 
+  /// 착용 아이템을 그릴 카탈로그. 이미 불러온 카탈로그가 있으면 그것으로,
+  /// 없으면 로컬 카탈로그로 먼저 그리고 불러온 뒤 반영한다.
+  final List<ShopItem> _catalogItems = ShopData.items;
+
   @override
   void initState() {
     super.initState();
@@ -132,10 +138,6 @@ class _HomeScreenState extends State<HomeScreen>
     _newsTimer?.cancel();
     _newsTitle.dispose();
     super.dispose();
-  }
-
-  Future<void> _refreshHome() async {
-    await Future.wait([_loadProfile(), _loadNews()]);
   }
 
   Future<void> _loadProfile() async {
@@ -342,63 +344,64 @@ class _HomeScreenState extends State<HomeScreen>
           designWidth: FigmaScale.homeDesignWidth,
         );
 
-        return RefreshIndicator(
-          onRefresh: _refreshHome,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: _homeBackgroundGradient(homeTier),
+        // 스크롤하지 않는다. 화면이 디자인보다 낮으면 위쪽부터 보이고
+        // 아래쪽이 그대로 잘린다. CTA만 화면 바닥에 붙어 있어 항상 보인다.
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: _homeBackgroundGradient(homeTier),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: ClipRect(
+                child: FigmaCanvas(
+                  designWidth: FigmaScale.homeDesignWidth,
+                  designHeight: FigmaScale.homeContentHeight,
+                  backgroundColor: Colors.transparent,
+                  fit: FigmaCanvasFit.widthScroll,
+                  scrollable: false,
+                  clipContent: false,
+                  extraBottomPaddingDesign:
+                      FigmaScale.homeContentHeight - homeTier.learningCtaTop,
+                  builder: (context, figma) => _buildFigmaHomeLayers(
+                    figma: figma,
+                    tier: homeTier,
+                    energy: profile.energy,
+                    coin: profile.seeds,
+                    streak: profile.streak,
+                    currentStep: homeMapCurrentStep(profile),
+                    newsTitle: _newsTitle,
+                    reviewStage: reviewStage,
+                    look: EquippedLook.of(profile, _catalogItems),
+                    dig: _dig,
+                    onMenu: _openCategorySwitcher,
+                    onNews: _openNews,
+                    onShop: _openShop,
+                    onStreakCalendar: _openStreakCalendar,
                   ),
                 ),
               ),
-              FigmaCanvas(
-                designWidth: FigmaScale.homeDesignWidth,
-                designHeight: FigmaScale.homeContentHeight,
-                backgroundColor: Colors.transparent,
-                fit: FigmaCanvasFit.widthScroll,
-                scrollable: true,
-                clipContent: false,
-                extraBottomPaddingDesign:
-                    FigmaScale.homeContentHeight -
-                    (homeTier.learningCtaTop +
-                        _homeLearningCtaDesignHeight -
-                        _homeLearningCtaHeight),
-                builder: (context, figma) => _buildFigmaHomeLayers(
-                  figma: figma,
-                  tier: homeTier,
-                  energy: profile.energy,
-                  coin: profile.seeds,
-                  streak: profile.streak,
-                  currentStep: homeMapCurrentStep(profile),
-                  newsTitle: _newsTitle,
-                  reviewStage: reviewStage,
-                  dig: _dig,
-                  onMenu: _openCategorySwitcher,
-                  onNews: _openNews,
-                  onShop: _openShop,
-                  onStreakCalendar: _openStreakCalendar,
-                ),
+            ),
+            Positioned(
+              left: figma.s(homeTier.learningCtaLeft),
+              bottom: figma.s(
+                FigmaScale.homeContentHeight -
+                    homeTier.learningCtaTop -
+                    _homeLearningCtaHeight,
               ),
-              Positioned(
-                left: figma.s(homeTier.learningCtaLeft),
-                bottom: figma.s(
-                  FigmaScale.homeContentHeight -
-                      homeTier.learningCtaTop -
-                      _homeLearningCtaDesignHeight,
-                ),
-                width: figma.s(_homeLearningCtaWidth),
-                height: figma.s(_homeLearningCtaHeight),
-                child: _HomeLearningCta(
-                  figma: figma,
-                  tier: homeTier,
-                  onTap: _startQuiz,
-                ),
+              width: figma.s(_homeLearningCtaWidth),
+              height: figma.s(_homeLearningCtaHeight),
+              child: _HomeLearningCta(
+                figma: figma,
+                tier: homeTier,
+                onTap: _startQuiz,
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
@@ -437,6 +440,7 @@ List<Widget> _buildFigmaHomeLayers({
   required int currentStep,
   required ValueListenable<String> newsTitle,
   required HomeReviewStage reviewStage,
+  required EquippedLook look,
   required Animation<double> dig,
   required VoidCallback onMenu,
   required VoidCallback onNews,
@@ -517,17 +521,17 @@ List<Widget> _buildFigmaHomeLayers({
       // Ellipse 100 + Subtract 크레센트 — 햄스터 자리 3D (CSS 45,373 / 166×95·53).
       _homeEllipse(
         figma: figma,
-        left: 45,
-        top: 373,
-        width: 166,
-        height: 95,
+        left: _hamsterHole.left,
+        top: _hamsterHole.top,
+        width: _hamsterHole.width,
+        height: _hamsterHole.height,
         color: tier.hamsterSeat,
       ),
       FigmaBox(
         figma: figma,
-        left: 45,
-        top: 373,
-        width: 166,
+        left: _hamsterHole.left,
+        top: _hamsterHole.top,
+        width: _hamsterHole.width,
         height: 52.994,
         child: CustomPaint(
           painter: _HamsterSeatCrescentPainter(color: tier.hamsterSeatTop),
@@ -540,7 +544,11 @@ List<Widget> _buildFigmaHomeLayers({
       dig: dig,
       ground: arrived ? _DigGround.house : _DigGround.hole,
       dirtColor: tier.hamsterSeat,
-      layers: arrived
+      layers: look.isCustom
+          ? arrived
+                ? _customArrivalLayers(figma, tier, look)
+                : [_customHamster(figma, look)]
+          : arrived
           ? _reviewArrivalHamsterLayers(figma, tier)
           : tier.usesPeekHamster
           ? _peekHamsterLayers(figma)
@@ -852,12 +860,13 @@ List<Widget> _buildFigmaHomeLayers({
         },
       ),
     ),
+    // fi-rr-angle-small-right 16×16 아이콘에서 화살표 경로가 차지하는 영역만.
     FigmaBox(
       figma: figma,
-      left: 338,
-      top: 124,
-      width: 16,
-      height: 16,
+      left: 338 + 6.0694,
+      top: 124 + 3.3328,
+      width: 4.7821,
+      height: 9.3342,
       child: const FigmaSvg(
         FigmaAssets.homeBeginnerChevronNews,
         fit: BoxFit.fill,
@@ -977,6 +986,139 @@ Widget _homeEllipse({
     height: height,
     child: ClipOval(child: ColoredBox(color: color)),
   );
+}
+
+/// 옷을 입은 햄핀이. 땅 위로 올라온 부분만 보이도록 아래를 자른다.
+///
+/// [ShopAvatar]는 서 있는 전신이라 Figma 홈의 엎드린 포즈와 모양이 다르다.
+/// 구멍(복습 집)에 몸이 반쯤 묻힌 모습으로 맞춘다. 배경은 홈 티어 배경이
+/// 따로 있어 적용하지 않는다.
+Widget _customHamster(FigmaScale figma, EquippedLook look) {
+  // 디자인 px. 햄핀이 칸의 한가운데(x)다.
+  const size = 240.0;
+  const left = 128.0 - size / 2;
+  const top = 275.0;
+  return FigmaBox(
+    figma: figma,
+    left: left,
+    top: top,
+    width: size,
+    height: size,
+    child: ClipPath(
+      // 구멍은 둥글어서 일자로 자르면 어색하다. 햄핀이도 구멍 테두리를 따라 자른다.
+      clipper: _HoleClipper(
+        origin: const Offset(left, top),
+        scale: figma.scale,
+      ),
+      child: look.avatar(),
+    ),
+  );
+}
+
+/// 복습 집에 도착한 홈. 집·모자·곰 로고는 기존 디자인 그대로 두고 햄핀이만
+/// 옷 입은 모습으로 바꾼다. 레이어 순서는 [_reviewArrivalHamsterLayers]와 같다:
+/// 햄핀이 → 모자 → 집 앞면 → 곰 로고. 햄핀이 몸 아랫부분은 집 앞면이 가린다.
+List<Widget> _customArrivalLayers(
+  FigmaScale figma,
+  HomeTierTheme tier,
+  EquippedLook look,
+) {
+  // 디자인 px. 기본 햄핀이 머리(89~222, 313~419)와 크기·중심을 맞춘다.
+  const size = 185.0;
+  const left = 155.0 - size / 2;
+  // 기본 햄핀이보다 14px 올려 팔이 집 윗선 위에 걸치게 한다.
+  const top = 287.0;
+  // 집 앞면 윗선(425) 조금 아래에서 자른다. 집이 그 아래를 덮는다.
+  const cutY = 440.0;
+  return [
+    FigmaBox(
+      figma: figma,
+      left: left,
+      top: top,
+      width: size,
+      height: size,
+      child: ClipPath(
+        clipper: _CutBelowClipper(figma.s(cutY - top)),
+        child: look.avatar(),
+      ),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 101.76271057128906,
+      // 모자 밑단이 머리 윗부분을 덮어 씌워진 모양이 되게 한다.
+      top: 276,
+      width: 80.72356414794922,
+      height: 59.397308349609375,
+      child: FigmaSvg(tier.reviewArrivalHat, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      key: ValueKey('home-review-arrival-${tier.tier.name}'),
+      figma: figma,
+      left: 94.2090072631836,
+      top: 425.18121337890625,
+      width: 122.49980926513672,
+      height: 52.8189582824707,
+      child: FigmaSvg(tier.reviewArrivalHouse, fit: BoxFit.fill),
+    ),
+    FigmaBox(
+      figma: figma,
+      left: 132.93344116210938,
+      top: 441.14312744140625,
+      width: 44.86116409301758,
+      height: 27.560375213623047,
+      child: FigmaSvg(FigmaAssets.homeReviewArrivalLayer(28), fit: BoxFit.fill),
+    ),
+  ];
+}
+
+/// [bottom] 아래만 자른다. 위·좌우는 모자 같은 장식이 삐져나와도 둔다.
+class _CutBelowClipper extends CustomClipper<Path> {
+  const _CutBelowClipper(this.bottom);
+
+  final double bottom;
+
+  @override
+  Path getClip(Size size) => Path()
+    ..addRect(Rect.fromLTRB(-size.width, -size.height, size.width * 2, bottom));
+
+  @override
+  bool shouldReclip(covariant _CutBelowClipper oldClipper) =>
+      oldClipper.bottom != bottom;
+}
+
+/// 햄핀이가 들어가는 구멍(Ellipse 100) — 디자인 px. 발판 그림과 두 클리퍼가
+/// 같은 값을 써야 테두리가 어긋나지 않는다.
+const _hamsterHole = Rect.fromLTWH(45, 373, 166, 95);
+
+/// 구멍 안쪽과 구멍 가운데선 위만 남기는 경로. [origin]은 클리퍼가 붙은 박스의
+/// 디자인 좌표다.
+Path _holeClipPath(Size size, {required Offset origin, required double scale}) {
+  final far = size.longestSide * 2;
+  final hole = _hamsterHole.shift(-origin);
+  final scaled = Rect.fromLTRB(
+    hole.left * scale,
+    hole.top * scale,
+    hole.right * scale,
+    hole.bottom * scale,
+  );
+  return Path()
+    ..addRect(Rect.fromLTRB(-far, -far, far, scaled.center.dy))
+    ..addOval(scaled);
+}
+
+/// 구멍 안쪽과 그 위만 남긴다. [_DigGroundClipper]의 구멍과 같은 모양이다.
+class _HoleClipper extends CustomClipper<Path> {
+  const _HoleClipper({required this.origin, required this.scale});
+
+  final Offset origin;
+  final double scale;
+
+  @override
+  Path getClip(Size size) => _holeClipPath(size, origin: origin, scale: scale);
+
+  @override
+  bool shouldReclip(covariant _HoleClipper oldClipper) =>
+      oldClipper.origin != origin || oldClipper.scale != scale;
 }
 
 /// Figma `541:2666` — 초급·중급 햄스터. 레이어 순서는 Figma와 같다.
@@ -1396,15 +1538,7 @@ class _DigGroundClipper extends CustomClipper<Path> {
     final far = size.longestSide * 2;
     switch (ground) {
       case _DigGround.hole:
-        final hole = Rect.fromLTWH(
-          45 * scale,
-          373 * scale,
-          166 * scale,
-          95 * scale,
-        );
-        return Path()
-          ..addRect(Rect.fromLTRB(-far, -far, far, hole.center.dy))
-          ..addOval(hole);
+        return _holeClipPath(size, origin: Offset.zero, scale: scale);
       case _DigGround.house:
         return Path()..addRect(Rect.fromLTRB(-far, -far, far, 478 * scale));
     }
@@ -1598,6 +1732,8 @@ Widget _stageShadow({
     width: width,
     height: height,
     child: OverflowBox(
+      minWidth: 0,
+      minHeight: 0,
       maxWidth: double.infinity,
       maxHeight: double.infinity,
       child: Transform.rotate(
@@ -1631,13 +1767,21 @@ class _StageShadowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Impeller(iOS·Android)는 MaskFilter.blur와 BlendMode.overlay를 한 Paint에
+    // 함께 쓰면 그림자를 아예 그리지 않는다. 모양은 레이어에 그리고 블러와
+    // overlay는 레이어를 합칠 때 적용한다.
+    final sigma = blurSigma * scale;
+    canvas.saveLayer(
+      null,
+      Paint()
+        ..blendMode = BlendMode.overlay
+        ..imageFilter = ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    );
     canvas.drawPath(
       path.transform(Matrix4.diagonal3Values(scale, scale, 1).storage),
-      Paint()
-        ..color = const Color(0xFF2A1D00)
-        ..blendMode = BlendMode.overlay
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, blurSigma * scale),
+      Paint()..color = const Color(0xFF2A1D00),
     );
+    canvas.restore();
   }
 
   @override
@@ -1742,8 +1886,7 @@ class _HomeLearningCta extends StatelessWidget {
     final s = figma.s;
     final originX = tier.learningCtaLeft;
     const iconSize = 47.0;
-    const chevronDesignSize = 46.055;
-    const chevronSize = chevronDesignSize * 0.75;
+    const chevronSize = 46.055;
     const textHeight = 33.8;
     return GestureDetector(
       onTap: onTap,
@@ -1812,7 +1955,7 @@ class _HomeLearningCta extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: s(309 - originX + (chevronDesignSize - chevronSize) / 2),
+            left: s(309 - originX),
             top: s((_homeLearningCtaHeight - chevronSize) / 2),
             width: s(chevronSize),
             height: s(chevronSize),
@@ -1883,6 +2026,23 @@ class _HomeStagePentagon extends StatelessWidget {
       fontWeight: FontWeight.w100,
       height: 1,
     );
+    // Figma 외곽선은 글자 바깥쪽에만 붙는다. Flutter 외곽선은 선 중심 기준이라
+    // 두 배로 그리고 안쪽 절반은 채움 글자가 덮는다.
+    TextStyle outlined(Color color) => style.copyWith(
+      foreground: Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s(labelStroke * 2)
+        ..strokeJoin = StrokeJoin.round
+        ..color = color,
+    );
+    Widget shape(Color color) => Transform.rotate(
+      angle: _rotation,
+      child: _StagePentagonShape(
+        size: Size(s(shapeSize.width), s(shapeSize.height)),
+        color: color,
+        isLarge: isLarge,
+      ),
+    );
     return FigmaBox(
       figma: figma,
       left: left,
@@ -1893,37 +2053,19 @@ class _HomeStagePentagon extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          Transform.rotate(
-            angle: _rotation,
-            child: _StagePentagonShape(
-              size: Size(s(shapeSize.width), s(shapeSize.height)),
-              fill: fill,
-              extrusion: extrusion,
-              extrusionOffset: Offset(
-                s(extrusionOffset.dx),
-                s(extrusionOffset.dy),
-              ),
-              isLarge: isLarge,
-            ),
+          // Figma 그림자 효과는 레이어 회전과 무관하게 화면 기준으로 떨어진다.
+          Transform.translate(
+            offset: Offset(s(extrusionOffset.dx), s(extrusionOffset.dy)),
+            child: shape(extrusion),
           ),
-          Text(
-            label,
-            style: style.copyWith(
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = s(labelStroke)
-                ..color = Colors.white,
-              shadows: [
-                Shadow(
-                  offset: Offset(
-                    s(labelShadowOffset.dx),
-                    s(labelShadowOffset.dy),
-                  ),
-                  color: labelShadowColor,
-                ),
-              ],
-            ),
+          shape(fill),
+          // 글자 그림자는 외곽선까지 포함한 모양으로 떨어진다. Text.shadows는
+          // 얇은 Thin 글자 모양으로만 그려져 흰 외곽선에 가려서 따로 깐다.
+          Transform.translate(
+            offset: Offset(s(labelShadowOffset.dx), s(labelShadowOffset.dy)),
+            child: Text(label, style: outlined(labelShadowColor)),
           ),
+          Text(label, style: outlined(Colors.white)),
           Text(label, style: style.copyWith(color: Colors.white)),
         ],
       ),
@@ -1931,24 +2073,20 @@ class _HomeStagePentagon extends StatelessWidget {
   }
 }
 
-/// 홈 단계 오각형. 원본 SVG를 그림자 색·채움 색으로 두 번 그린다.
+/// 홈 단계 오각형 한 겹. 원본 SVG를 [color] 한 색으로 칠한다.
 ///
-/// flutter_svg는 SVG의 drop-shadow filter를 그리지 않아서, 그림자는 같은 모양을
-/// [extrusionOffset]만큼 옮겨 아래에 깐다. 티어마다 모양이 같고 색만 달라 SVG는
-/// 한 벌이고 색은 [HomeTierTheme]에서 받는다.
+/// flutter_svg는 SVG의 drop-shadow filter를 그리지 않아서, [_HomeStagePentagon]이
+/// 같은 모양을 그림자 색으로 한 번 더 옮겨 깐다. 티어마다 모양이 같고 색만 달라
+/// SVG는 한 벌이고 색은 [HomeTierTheme]에서 받는다.
 class _StagePentagonShape extends StatelessWidget {
   const _StagePentagonShape({
     required this.size,
-    required this.fill,
-    required this.extrusion,
-    required this.extrusionOffset,
+    required this.color,
     required this.isLarge,
   });
 
   final Size size;
-  final Color fill;
-  final Color extrusion;
-  final Offset extrusionOffset;
+  final Color color;
   final bool isLarge;
 
   // 박스는 경로가 차지하는 영역(Figma bounds)에 맞춘다. SVG viewBox는 그림자 필터
@@ -1971,23 +2109,23 @@ class _StagePentagonShape extends StatelessWidget {
     final sx = size.width / shapeSize.width;
     final sy = size.height / shapeSize.height;
 
-    Widget layer(Color color, Offset shift) => Positioned(
-      left: -shapeOrigin.dx * sx + shift.dx,
-      top: -shapeOrigin.dy * sy + shift.dy,
-      width: viewBox.width * sx,
-      height: viewBox.height * sy,
-      child: FigmaSvg(
-        asset,
-        fit: BoxFit.fill,
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      ),
-    );
-
     return SizedBox.fromSize(
       size: size,
       child: Stack(
         clipBehavior: Clip.none,
-        children: [layer(extrusion, extrusionOffset), layer(fill, Offset.zero)],
+        children: [
+          Positioned(
+            left: -shapeOrigin.dx * sx,
+            top: -shapeOrigin.dy * sy,
+            width: viewBox.width * sx,
+            height: viewBox.height * sy,
+            child: FigmaSvg(
+              asset,
+              fit: BoxFit.fill,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
+          ),
+        ],
       ),
     );
   }

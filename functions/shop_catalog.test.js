@@ -23,9 +23,10 @@ test('legacy bundle owners already own its separate parts', () => {
 });
 test('Dart and Functions catalog IDs, prices and bundle members agree', () => {
   const dart = fs.readFileSync(path.join(__dirname, '../lib/data/shop_data.dart'), 'utf8');
-  const entries = [...dart.matchAll(/ShopItem\(\s*id:\s*'([^']+)'([\s\S]*?)\n\s*\),/g)];
+  const entries = [...dart.matchAll(/ShopItem\(\s*id:\s*(?:'([^']+)'|defaultSkinId)([\s\S]*?)\n\s*\),/g)];
   assert.equal(entries.length, Object.keys(SHOP_CATALOG).length);
-  for (const [,id,body] of entries) {
+  for (const [, literalId, body] of entries) {
+    const id = literalId ?? 'skin_default';
     assert.equal(Number(body.match(/price:\s*(\d+)/)[1]), SHOP_CATALOG[id].price, id);
     const members = body.match(/componentIds:\s*\[([^\]]*)\]/)?.[1] || '';
     assert.deepEqual([...members.matchAll(/'([^']+)'/g)].map(m => m[1]), SHOP_CATALOG[id].componentIds || [], id);

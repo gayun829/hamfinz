@@ -95,7 +95,9 @@ class FigmaAssets {
   static const kakaoSignup = '$_auth/kakao_signup.png';
 
   // 온보딩 (Figma `👀 9.6 화면작업중`) — 스플래시·초기 화면·가입 단계
-  static const onboardingSplash = '$_onboarding/splash.png';
+  static const onboardingSplashGreen = '$_onboarding/splash_green.png';
+  static const onboardingSplashBlue = '$_onboarding/splash_blue.png';
+  static const onboardingSplashSeed = '$_onboarding/splash_seed.png';
   static const onboardingHamsterIntro = '$_onboarding/hamster_intro.svg';
   static const onboardingHamsterBubble = '$_onboarding/hamster_bubble.svg';
   static const onboardingKakao = '$_onboarding/kakao.png';
@@ -138,6 +140,9 @@ class FigmaAssets {
   // Settings — 마이페이지 수정 (273:181)
   /// 흰 원 + 햄스터 + 카메라 배지 (Group 466, 161×161).
   static const settingsProfile = '$_settings/profile_group.svg';
+
+  /// [settingsProfile]에서 카메라 배지만 뗀 것. 같은 161×161 좌표에 얹는다.
+  static const settingsProfileBadge = '$_settings/profile_badge.svg';
   static const settingsChevron = '$_settings/chevron.svg';
   static const settingsChevronSmall = '$_settings/chevron_small.svg';
   static const settingsPlus = '$_settings/plus_small.svg';
