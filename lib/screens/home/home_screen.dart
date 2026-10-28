@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1629,13 +1630,21 @@ class _StageShadowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Impeller(iOS·Android)는 MaskFilter.blur와 BlendMode.overlay를 한 Paint에
+    // 함께 쓰면 그림자를 아예 그리지 않는다. 모양은 레이어에 그리고 블러와
+    // overlay는 레이어를 합칠 때 적용한다.
+    final sigma = blurSigma * scale;
+    canvas.saveLayer(
+      null,
+      Paint()
+        ..blendMode = BlendMode.overlay
+        ..imageFilter = ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    );
     canvas.drawPath(
       path.transform(Matrix4.diagonal3Values(scale, scale, 1).storage),
-      Paint()
-        ..color = const Color(0xFF2A1D00)
-        ..blendMode = BlendMode.overlay
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, blurSigma * scale),
+      Paint()..color = const Color(0xFF2A1D00),
     );
+    canvas.restore();
   }
 
   @override
