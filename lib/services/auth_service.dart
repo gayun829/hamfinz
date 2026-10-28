@@ -557,7 +557,7 @@ class AuthService {
       'equippedSkinId': skinId,
       'equippedPatternId': patternId,
       'equippedBackgroundId': backgroundId,
-      'equippedAccessoryIds': accessoryIds.take(1).toList(),
+      'equippedAccessoryIds': accessoryIds,
     });
   }
 

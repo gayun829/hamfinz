@@ -70,9 +70,6 @@ class _ClosetScreenState extends State<ClosetScreen> {
         if (part != null) _applyItem(part);
       }
     }
-    if (_stagedAccessoryIds.length > 1) {
-      _stagedAccessoryIds.removeRange(1, _stagedAccessoryIds.length);
-    }
   }
 
   bool _owns(ShopItem item) => ShopData.owns(item, _profile.ownedShopItemIds);
@@ -205,7 +202,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
       _stagedBackgroundId = _profile.equippedBackgroundId;
       _stagedAccessoryIds
         ..clear()
-        ..addAll(_profile.equippedAccessoryIds.take(1));
+        ..addAll(_profile.equippedAccessoryIds);
       _applyItem(item);
     });
   }

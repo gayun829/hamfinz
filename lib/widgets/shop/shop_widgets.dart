@@ -277,8 +277,7 @@ class EquippedLook {
     // 소모품(방어권·에너지)은 그릴 이미지가 없어 입은 것으로 치지 않는다.
     final drawable = {
       for (final item in catalog)
-        if (item.assetPath != null || item.imageLayers.isNotEmpty)
-          item.id,
+        if (item.assetPath != null || item.imageLayers.isNotEmpty) item.id,
     };
     String? keep(String? id) => drawable.contains(id) ? id : null;
     return EquippedLook(
@@ -334,9 +333,7 @@ class ShopAvatar extends StatelessWidget {
     ShopItem? resolve(String? id) => lookup(id) ?? ShopData.find(id);
     var skin = resolve(skinId);
     ShopItem? clothes = resolve(patternId);
-    ShopItem? accessory = accessoryIds.isEmpty
-        ? null
-        : resolve(accessoryIds.last);
+    var accessories = accessoryIds.map(resolve).toList();
     if (skin?.componentIds.isNotEmpty == true) {
       final bundle = skin!;
       skin = null;
@@ -344,14 +341,14 @@ class ShopAvatar extends StatelessWidget {
         final part = resolve(id);
         if (part?.category == ShopCategory.skin) skin = part;
         if (part?.category == ShopCategory.clothing) clothes = part;
-        if (part?.category == ShopCategory.accessory) accessory = part;
+        if (part?.category == ShopCategory.accessory) accessories = [part];
       }
     }
     final layers = [
       resolve(backgroundId),
       skin ?? ShopData.find(ShopData.defaultSkinId),
       clothes,
-      accessory,
+      ...accessories,
     ].whereType<ShopItem>();
     return Center(
       child: AspectRatio(
