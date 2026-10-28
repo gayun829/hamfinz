@@ -58,10 +58,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              '탈퇴',
-              style: TextStyle(color: AppTheme.error),
-            ),
+            child: const Text('탈퇴', style: TextStyle(color: AppTheme.error)),
           ),
         ],
       ),
@@ -78,7 +75,9 @@ class SettingsScreen extends StatelessWidget {
     final error = await AuthService.instance.withdraw(password: password);
     if (!context.mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     onLogout();
@@ -113,9 +112,9 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showComingSoon(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label 기능은 준비 중이에요.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label 기능은 준비 중이에요.')));
   }
 
   Future<void> _openLegal(BuildContext context) async {
@@ -175,9 +174,9 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _openFriends(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddFriendScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddFriendScreen()));
   }
 
   Future<bool> _saveBio(BuildContext context, String bio) async {
@@ -187,9 +186,9 @@ class SettingsScreen extends StatelessWidget {
       return true;
     } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('한줄소개를 저장하지 못했어요.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('한줄소개를 저장하지 못했어요.')));
       }
       return false;
     }
@@ -228,7 +227,10 @@ class SettingsScreen extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   s(FigmaSettingsTokens.menuHorizontal),
-                  s(FigmaSettingsTokens.menuTop - FigmaSettingsTokens.headerHeight),
+                  s(
+                    FigmaSettingsTokens.menuTop -
+                        FigmaSettingsTokens.headerHeight,
+                  ),
                   s(FigmaSettingsTokens.menuHorizontal),
                   s(FigmaSettingsTokens.menuHorizontal),
                 ),
@@ -360,7 +362,10 @@ class _Header extends StatelessWidget {
             top: 110,
             width: 161,
             height: 161,
-            child: const FigmaSvg(FigmaAssets.settingsProfile, fit: BoxFit.fill),
+            child: const FigmaSvg(
+              FigmaAssets.settingsProfile,
+              fit: BoxFit.fill,
+            ),
           ),
           // 카메라 배지 (Ellipse 210) 탭 영역
           FigmaBox(
@@ -402,11 +407,7 @@ class _Header extends StatelessWidget {
 
 /// 한줄소개 박스 — 탭하면 바로 입력, 포커스가 빠지거나 완료를 누르면 저장한다.
 class _BioBox extends StatefulWidget {
-  const _BioBox({
-    required this.figma,
-    required this.bio,
-    required this.onSave,
-  });
+  const _BioBox({required this.figma, required this.bio, required this.onSave});
 
   final FigmaScale figma;
   final String bio;
@@ -479,7 +480,9 @@ class _BioBoxState extends State<_BioBox> {
         decoration: BoxDecoration(
           // 편집 중에도 흰 박스를 덧씌우지 않고 하늘색 박스 안에서 바로 입력한다.
           color: FigmaSettingsTokens.bioBoxFill,
-          borderRadius: BorderRadius.circular(s(FigmaSettingsTokens.bioBoxRadius)),
+          borderRadius: BorderRadius.circular(
+            s(FigmaSettingsTokens.bioBoxRadius),
+          ),
         ),
         child: TextField(
           controller: _controller,
@@ -492,8 +495,9 @@ class _BioBoxState extends State<_BioBox> {
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.done,
           inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\n'))],
-          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-              null,
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  null,
           onSubmitted: (_) => _focusNode.unfocus(),
           onTapOutside: (_) => _focusNode.unfocus(),
           // 앱 전체 테마의 흰 배경·테두리 입력칸 스타일을 쓰지 않는다 —
@@ -728,7 +732,9 @@ class _LearningStageCard extends StatelessWidget {
                     child: Center(
                       child: Text(
                         '$current',
-                        style: FigmaSettingsTokens.stageNumberStyle(figma.scale),
+                        style: FigmaSettingsTokens.stageNumberStyle(
+                          figma.scale,
+                        ),
                       ),
                     ),
                   ),
