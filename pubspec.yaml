@@ -123,6 +123,10 @@ flutter:
           weight: 800
         - asset: assets/fonts/Pretendard-Black.otf
           weight: 900
+    - family: Cafe24 Ssurround
+      fonts:
+        - asset: assets/fonts/Cafe24Ssurround-Bold.ttf
+          weight: 700
     - family: SUIT
       fonts:
         - asset: assets/fonts/SUIT-Thin.otf

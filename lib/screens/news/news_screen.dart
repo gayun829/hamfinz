@@ -294,8 +294,9 @@ class _NewsHeader extends StatelessWidget {
       child: const Text(
         '햄뉴스',
         style: TextStyle(
+          fontFamily: 'Cafe24 Ssurround',
           fontSize: 22,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w700,
           color: Colors.white,
           letterSpacing: -0.2,
         ),
@@ -553,10 +554,7 @@ class _NewsRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _pagePad,
-          vertical: 14,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: _pagePad, vertical: 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -207,6 +207,8 @@ class ShopItemCard extends StatelessWidget {
                     ? Text(
                         actionLabel ?? '보유',
                         style: FigmaShopTokens.body(figma.scale).copyWith(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
                           fontSize: 12 * figma.scale,
                           color: const Color(0xFFF99832),
                         ),
@@ -277,8 +279,7 @@ class EquippedLook {
     // 소모품(방어권·에너지)은 그릴 이미지가 없어 입은 것으로 치지 않는다.
     final drawable = {
       for (final item in catalog)
-        if (item.assetPath != null || item.imageLayers.isNotEmpty)
-          item.id,
+        if (item.assetPath != null || item.imageLayers.isNotEmpty) item.id,
     };
     String? keep(String? id) => drawable.contains(id) ? id : null;
     return EquippedLook(
