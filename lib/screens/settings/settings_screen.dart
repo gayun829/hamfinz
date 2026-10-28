@@ -223,8 +223,6 @@ class SettingsScreen extends StatelessWidget {
               _Header(
                 figma: figma,
                 profile: profile,
-                nickname: profile.nickname,
-                bio: profile.bio,
                 onSaveBio: (bio) => _saveBio(context, bio),
                 onCameraTap: () => _showComingSoon(context, '프로필 사진 변경'),
               ),
@@ -312,16 +310,12 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.figma,
     required this.profile,
-    required this.nickname,
-    required this.bio,
     required this.onSaveBio,
     required this.onCameraTap,
   });
 
   final FigmaScale figma;
   final UserProfile profile;
-  final String nickname;
-  final String bio;
   final Future<bool> Function(String bio) onSaveBio;
   final VoidCallback onCameraTap;
 
@@ -388,7 +382,7 @@ class _Header extends StatelessWidget {
             top: 131,
             width: FigmaSettingsTokens.designWidth - 211 - 24,
             child: Text(
-              nickname,
+              profile.nickname,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: FigmaSettingsTokens.nicknameStyle(figma.scale),
@@ -400,7 +394,7 @@ class _Header extends StatelessWidget {
             top: 160,
             width: 122,
             height: 84,
-            child: _BioBox(figma: figma, bio: bio, onSave: onSaveBio),
+            child: _BioBox(figma: figma, bio: profile.bio, onSave: onSaveBio),
           ),
         ],
       ),
@@ -421,8 +415,9 @@ class _ProfileAvatar extends StatefulWidget {
 }
 
 class _ProfileAvatarState extends State<_ProfileAvatar> {
-  /// Firestore에만 있는 아이템은 불러온 뒤 반영한다.
-  List<ShopItem> _catalog = ShopData.items;
+  /// 이미 불러온 카탈로그가 있으면 그것으로 바로 그린다. 없으면 로컬
+  /// 카탈로그로 먼저 그리고, Firestore에만 있는 아이템은 불러온 뒤 반영한다.
+  List<ShopItem> _catalog = ShopCatalogService.instance.cachedOrLocal;
 
   @override
   void initState() {

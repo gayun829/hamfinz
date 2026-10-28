@@ -88,6 +88,10 @@ class _HomeScreenState extends State<HomeScreen>
   UserProfile? _profile;
   bool _loading = true;
 
+  /// 착용 아이템을 그릴 카탈로그. 이미 불러온 카탈로그가 있으면 그것으로,
+  /// 없으면 로컬 카탈로그로 먼저 그리고 불러온 뒤 반영한다.
+  List<ShopItem> _catalogItems = ShopCatalogService.instance.cachedOrLocal;
+
   @override
   void initState() {
     super.initState();
@@ -137,10 +141,6 @@ class _HomeScreenState extends State<HomeScreen>
     _newsTitle.dispose();
     super.dispose();
   }
-
-  /// 착용 아이템을 그릴 카탈로그. 처음엔 로컬 카탈로그로 그리고,
-  /// Firestore에만 있는 아이템은 불러온 뒤 반영한다.
-  List<ShopItem> _catalogItems = ShopData.items;
 
   Future<void> _loadCatalog() async {
     try {
@@ -533,17 +533,17 @@ List<Widget> _buildFigmaHomeLayers({
       // Ellipse 100 + Subtract 크레센트 — 햄스터 자리 3D (CSS 45,373 / 166×95·53).
       _homeEllipse(
         figma: figma,
-        left: 45,
-        top: 373,
-        width: 166,
-        height: 95,
+        left: _hamsterHole.left,
+        top: _hamsterHole.top,
+        width: _hamsterHole.width,
+        height: _hamsterHole.height,
         color: tier.hamsterSeat,
       ),
       FigmaBox(
         figma: figma,
-        left: 45,
-        top: 373,
-        width: 166,
+        left: _hamsterHole.left,
+        top: _hamsterHole.top,
+        width: _hamsterHole.width,
         height: 52.994,
         child: CustomPaint(
           painter: _HamsterSeatCrescentPainter(color: tier.hamsterSeatTop),
@@ -1098,8 +1098,27 @@ class _CutBelowClipper extends CustomClipper<Path> {
       oldClipper.bottom != bottom;
 }
 
-/// 구멍(Ellipse 100) 안쪽과 그 위만 남긴다. [_DigGroundClipper]의 구멍과 같은
-/// 모양이고, [origin]은 이 클리퍼가 붙은 박스의 디자인 좌표다.
+/// 햄핀이가 들어가는 구멍(Ellipse 100) — 디자인 px. 발판 그림과 두 클리퍼가
+/// 같은 값을 써야 테두리가 어긋나지 않는다.
+const _hamsterHole = Rect.fromLTWH(45, 373, 166, 95);
+
+/// 구멍 안쪽과 구멍 가운데선 위만 남기는 경로. [origin]은 클리퍼가 붙은 박스의
+/// 디자인 좌표다.
+Path _holeClipPath(Size size, {required Offset origin, required double scale}) {
+  final far = size.longestSide * 2;
+  final hole = _hamsterHole.shift(-origin);
+  final scaled = Rect.fromLTRB(
+    hole.left * scale,
+    hole.top * scale,
+    hole.right * scale,
+    hole.bottom * scale,
+  );
+  return Path()
+    ..addRect(Rect.fromLTRB(-far, -far, far, scaled.center.dy))
+    ..addOval(scaled);
+}
+
+/// 구멍 안쪽과 그 위만 남긴다. [_DigGroundClipper]의 구멍과 같은 모양이다.
 class _HoleClipper extends CustomClipper<Path> {
   const _HoleClipper({required this.origin, required this.scale});
 
@@ -1107,18 +1126,7 @@ class _HoleClipper extends CustomClipper<Path> {
   final double scale;
 
   @override
-  Path getClip(Size size) {
-    final far = size.longestSide * 2;
-    final hole = Rect.fromLTWH(
-      (45 - origin.dx) * scale,
-      (373 - origin.dy) * scale,
-      166 * scale,
-      95 * scale,
-    );
-    return Path()
-      ..addRect(Rect.fromLTRB(-far, -far, far, hole.center.dy))
-      ..addOval(hole);
-  }
+  Path getClip(Size size) => _holeClipPath(size, origin: origin, scale: scale);
 
   @override
   bool shouldReclip(covariant _HoleClipper oldClipper) =>
@@ -1542,15 +1550,7 @@ class _DigGroundClipper extends CustomClipper<Path> {
     final far = size.longestSide * 2;
     switch (ground) {
       case _DigGround.hole:
-        final hole = Rect.fromLTWH(
-          45 * scale,
-          373 * scale,
-          166 * scale,
-          95 * scale,
-        );
-        return Path()
-          ..addRect(Rect.fromLTRB(-far, -far, far, hole.center.dy))
-          ..addOval(hole);
+        return _holeClipPath(size, origin: Offset.zero, scale: scale);
       case _DigGround.house:
         return Path()..addRect(Rect.fromLTRB(-far, -far, far, 478 * scale));
     }
