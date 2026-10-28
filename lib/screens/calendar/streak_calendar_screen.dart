@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../services/friend_service.dart';
+import '../../theme/figma_home_fonts.dart';
 import '../../utils/date_helper.dart';
 
 import '../../widgets/figma/figma_asset_image.dart';
@@ -609,14 +610,24 @@ class _FriendsCard extends StatelessWidget {
             top: s(16),
             child: Text(
               '이번 달 친구와의 경쟁!',
-              style: TextStyle(fontSize: s(16), color: Colors.black),
+              style: TextStyle(
+                fontFamily: FigmaHomeFonts.inter,
+                fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+                fontSize: s(16),
+                color: Colors.black,
+              ),
             ),
           ),
           if (message != null)
             Center(
               child: Text(
                 message,
-                style: TextStyle(fontSize: s(16), color: Colors.black),
+                style: TextStyle(
+                  fontFamily: FigmaHomeFonts.inter,
+                  fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+                  fontSize: s(16),
+                  color: Colors.black,
+                ),
               ),
             )
           else
@@ -707,7 +718,11 @@ class _Rank extends StatelessWidget {
                 '1위 $name',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: s(15)),
+                style: TextStyle(
+                  fontFamily: FigmaHomeFonts.inter,
+                  fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+                  fontSize: s(15),
+                ),
               ),
             ),
           SizedBox(

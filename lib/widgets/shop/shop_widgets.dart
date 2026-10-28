@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../constants/figma_assets.dart';
 import '../../data/shop_data.dart';
 import '../../models/user_profile.dart';
+import '../../theme/figma_home_fonts.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../figma/figma_asset_image.dart';
 import '../figma/figma_scale.dart';
@@ -207,6 +208,9 @@ class ShopItemCard extends StatelessWidget {
                     ? Text(
                         actionLabel ?? '보유',
                         style: FigmaShopTokens.body(figma.scale).copyWith(
+                          fontFamily: FigmaHomeFonts.inter,
+                          fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+                          fontWeight: FontWeight.w600,
                           fontSize: 12 * figma.scale,
                           color: const Color(0xFFF99832),
                         ),

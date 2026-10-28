@@ -94,8 +94,8 @@ class FigmaAssets {
   static const appleSignup = '$_auth/apple_signup.png';
   static const kakaoSignup = '$_auth/kakao_signup.png';
 
-  /// 로그인 화면(`579:1619`) 「LOGIN」 제목. Cafe24 써라운드 글꼴이 앱에 없어서
-  /// 글자를 벡터로 내보냈다 (73×19).
+  /// 로그인 화면(`579:1619`) 「LOGIN」 제목. 글꼴을 넣기 전에 Cafe24 써라운드
+  /// 글자를 벡터로 내보낸 것이다 (73×19).
   static const loginTitle = '$_auth/login_title.svg';
 
   // 온보딩 (Figma `👀 9.6 화면작업중`) — 스플래시·초기 화면·가입 단계
