@@ -289,6 +289,10 @@ class EquippedLook {
       patternId != null ||
       accessoryIds.isNotEmpty;
 
+  /// 머리 장식이 있는 악세서리를 하나라도 끼고 있는지.
+  bool get wearsHeadwear =>
+      catalog.any((item) => item.coversHead && accessoryIds.contains(item.id));
+
   Widget avatar() => ShopAvatar(
     catalogItems: catalog,
     skinId: skinId,

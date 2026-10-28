@@ -15,6 +15,7 @@ class ShopItem {
     this.assetPath,
     this.included = false,
     this.sharedCanvas = false,
+    this.coversHead = false,
   });
 
   final String id;
@@ -30,6 +31,10 @@ class ShopItem {
   final String? assetPath;
   final bool included;
   final bool sharedCanvas;
+
+  /// 머리에 쓰는 장식(모자·머리카락 등)이 있는 아이템. 복습 집 홈은 이걸
+  /// 쓰고 있으면 복습 모자를 씌우지 않는다.
+  final bool coversHead;
   bool get usesSharedCanvas => assetPath != null || sharedCanvas;
 
   factory ShopItem.fromFirestore(String id, Map<String, dynamic> data) {
@@ -53,6 +58,9 @@ class ShopItem {
       sharedCanvas:
           data['sharedCanvas'] as bool? ??
           (category == ShopCategory.skin || category == ShopCategory.accessory),
+      // 지금 악세서리는 모두 머리 장식이 있어서, 값이 없으면 악세서리는 머리 장식으로 본다.
+      coversHead:
+          data['coversHead'] as bool? ?? category == ShopCategory.accessory,
     );
   }
 }
@@ -280,6 +288,7 @@ abstract final class ShopData {
       spriteRow: 0,
       assetPath: 'assets/figma/shop/accessories/accessory_grandma.png',
       included: false,
+      coversHead: true,
     ),
     ShopItem(
       id: 'accessory_painter_set',
@@ -291,6 +300,7 @@ abstract final class ShopData {
       spriteRow: 0,
       assetPath: 'assets/figma/shop/accessories/accessory_painter_set.png',
       included: false,
+      coversHead: true,
     ),
     ShopItem(
       id: 'accessory_perm',
@@ -301,6 +311,7 @@ abstract final class ShopData {
       spriteCol: 0,
       spriteRow: 0,
       assetPath: 'assets/figma/shop/accessories/accessory_perm.png',
+      coversHead: true,
     ),
     ShopItem(
       id: 'accessory_kindergarten_hair',
@@ -312,6 +323,7 @@ abstract final class ShopData {
       spriteRow: 0,
       assetPath:
           'assets/figma/shop/accessories/accessory_kindergarten_hair.png',
+      coversHead: true,
     ),
     ShopItem(
       id: 'accessory_kindergarten',
@@ -322,6 +334,7 @@ abstract final class ShopData {
       spriteCol: 0,
       spriteRow: 0,
       assetPath: 'assets/figma/shop/accessories/accessory_kindergarten.png',
+      coversHead: true,
     ),
     ShopItem(
       id: 'accessory_propeller_hat',
@@ -332,6 +345,7 @@ abstract final class ShopData {
       spriteCol: 0,
       spriteRow: 0,
       assetPath: 'assets/figma/shop/accessories/accessory_propeller_hat.png',
+      coversHead: true,
     ),
     ShopItem(
       id: 'accessory_genie_set',
@@ -342,6 +356,7 @@ abstract final class ShopData {
       spriteCol: 0,
       spriteRow: 0,
       assetPath: 'assets/figma/shop/accessories/accessory_genie_set.png',
+      coversHead: true,
     ),
     ShopItem(
       id: 'study_guard',

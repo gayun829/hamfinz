@@ -38,6 +38,17 @@ void main() {
     expect(result.accessoryIds, ['accessory_propeller_hat']);
   });
 
+  test('a head accessory counts as headwear', () {
+    expect(
+      look(profile(accessories: ['accessory_propeller_hat'])).wearsHeadwear,
+      isTrue,
+    );
+  });
+
+  test('a skin alone is not headwear', () {
+    expect(look(profile(skin: 'skin_ninja')).wearsHeadwear, isFalse);
+  });
+
   test('consumables are not worn', () {
     final result = look(profile(accessories: ['study_guard', 'energy_pack']));
     expect(result.accessoryIds, isEmpty);
