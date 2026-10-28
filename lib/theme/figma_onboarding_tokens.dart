@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 ///
 /// | 화면 | node |
 /// |------|------|
-/// | 로고+햄핀 등장창 | `478:1213` |
+/// | 로고+햄핀 등장창 (초록·파랑·씨앗) | `537:511` · `537:599` · `537:429` |
 /// | 맨처음 설치 시 초기 화면 | `102:12145` |
 /// | 다른 방법 로그인_닉네임 | `439:419` |
 /// | 다른 방법 로그인_이메일 | `439:463` |
@@ -16,12 +16,31 @@ import 'package:flutter/material.dart';
 /// 밑줄 아래 보조 영역(도움말·재전송·규칙)만 화면마다 다르다.
 abstract final class FigmaOnboardingTokens {
   static const designWidth = 393.0;
+  static const designHeight = 852.0;
 
   // Colors
   static const background = Color(0xFFFBFBFB);
   static const accent = Color(0xFF3CC6FF); // CTA·라벨·밑줄·체크
   static const bubbleFill = Color(0xFFCAF3FF);
-  static const splashBackground = Color(0xFFCAF3FF);
+
+  // 로고+햄핀 등장창 배경 — PNG 왼쪽 끝 세로줄에서 뽑은 그라데이션.
+  // 화면이 디자인보다 넓으면 좌우 여백이 이 색으로 채워진다.
+  static const splashGreenGradient = [
+    Color(0xFFFBFBFB),
+    Color(0xFFFBFBFB),
+    Color(0xFFE3FECE),
+  ];
+  static const splashGreenStops = [0.0, 0.25, 1.0];
+  static const splashBlueGradient = [
+    Color(0xFFFBFBFB),
+    Color(0xFFFBFBFB),
+    Color(0xFFE8F8FD),
+    Color(0xFFD1F4FE),
+  ];
+  static const splashBlueStops = [0.0, 0.12, 0.5, 1.0];
+  // 씨앗 판은 아래쪽이 씨앗으로 덮여 있어 배경이 보이는 구간(~0.67)까지만 잡는다.
+  static const splashSeedGradient = [Color(0xFFCCF3FF), Color(0xFFF7FAFB)];
+  static const splashSeedStops = [0.0, 0.67];
   static const placeholder = Color(0xFFBBBBBB);
   static const timer = Color(0xFFFF3C3C);
   static const kakaoFill = Color(0xFFFFE300);

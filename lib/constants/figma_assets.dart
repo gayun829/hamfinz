@@ -95,7 +95,9 @@ class FigmaAssets {
   static const kakaoSignup = '$_auth/kakao_signup.png';
 
   // 온보딩 (Figma `👀 9.6 화면작업중`) — 스플래시·초기 화면·가입 단계
-  static const onboardingSplash = '$_onboarding/splash.png';
+  static const onboardingSplashGreen = '$_onboarding/splash_green.png';
+  static const onboardingSplashBlue = '$_onboarding/splash_blue.png';
+  static const onboardingSplashSeed = '$_onboarding/splash_seed.png';
   static const onboardingHamsterIntro = '$_onboarding/hamster_intro.svg';
   static const onboardingHamsterBubble = '$_onboarding/hamster_bubble.svg';
   static const onboardingKakao = '$_onboarding/kakao.png';
