@@ -77,11 +77,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   /// 햄핀이가 땅속에 들어간 정도. 0이면 제자리, 1이면 완전히 땅속이다.
-  /// 튀어 오를 때 살짝 솟았다 내려앉도록 0 아래까지 허용한다.
-  late final AnimationController _dig = AnimationController(
-    vsync: this,
-    lowerBound: -0.12,
-  )..value = 0;
+  late final AnimationController _dig = AnimationController(vsync: this);
   bool _quizFlowActive = false;
 
   UserProfile? _profile;
@@ -226,15 +222,9 @@ class _HomeScreenState extends State<HomeScreen>
     await _loadProfile();
     if (!mounted) return;
     await _dig.animateTo(
-      _dig.lowerBound,
-      duration: const Duration(milliseconds: 650),
-      curve: Curves.easeOutCubic,
-    );
-    if (!mounted) return;
-    await _dig.animateTo(
       0,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeIn,
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
     );
   }
 
