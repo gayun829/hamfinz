@@ -43,6 +43,7 @@ abstract final class FigmaOnboardingTokens {
   static const splashSeedStops = [0.0, 0.67];
   static const placeholder = Color(0xFFBBBBBB);
   static const timer = Color(0xFFFF3C3C);
+  static const error = Color(0xFFFF3C3C); // 입력·로그인 실패 문구
   static const kakaoFill = Color(0xFFFFE300);
   static const clearCircle = Color(0xFFBABDCC);
   static const checkOff = Color(0xFFD9D9D9);
@@ -144,6 +145,67 @@ abstract final class FigmaOnboardingTokens {
   static const introGoogleIconWidth = 16.0;
   static const introGoogleIconHeight = 15.0;
   static const introIconTextGap = 7.0;
+
+  // 로그인 화면 (579:1606) — 좌표는 화면 상단 기준 절대값
+  // 뒤로가기 박스 top 60. SVG가 박스보다 위아래로 2.236씩 넘친다.
+  static const loginDesignHeight = 852.0;
+  static const loginStatusBarHeight = 54.0; // 프레임 안 상태바 영역
+  static const loginBackTop = 57.764; // 60 − (25.541 − 21.069) / 2
+  static const loginTitleLeft = 163.824;
+  static const loginTitleTop = 65.632;
+  static const loginTitleWidth = 73.0;
+  static const loginTitleHeight = 19.0;
+  static const loginFieldLeft = 24.0; // (393 − 345) / 2
+  static const loginFieldWidth = 345.0;
+  static const loginFieldHeight = 53.0;
+  static const loginFieldRadius = 13.0;
+  static const loginEmailTop = 188.0;
+  static const loginPasswordTop = 249.0;
+  static const loginFieldTextInset = 22.0; // 글자 x 46 − 상자 x 24
+  static const loginFieldBorder = Color(0xFFCECECE);
+  static const loginButtonTop = 322.0;
+  static const loginButtonHeight = 57.0;
+  static const loginLinksCenterY = 410.5;
+  static const loginFindIdLeft = 94.0;
+  static const loginDividerLeft = 188.0;
+  static const loginFindPasswordLeft = 213.0;
+  static const loginLinkColor = Color(0xFF9D9D9D);
+  static const loginFontSize = 16.0;
+  static const loginButtonFontSize = 18.0;
+  // 회원가입 링크 중심 y 769.5 — 화면 아래에서 82.5 위.
+  static const loginSignupCenterFromBottom = 82.5; // 852 − 769.5
+
+  static TextStyle loginFieldStyle(double scale, {required Color color}) =>
+      TextStyle(
+        fontSize: loginFontSize * scale,
+        fontWeight: FontWeight.w600,
+        color: color,
+        height: 1.2,
+      );
+
+  static TextStyle loginButtonStyle(double scale) => TextStyle(
+    fontSize: loginButtonFontSize * scale,
+    fontWeight: FontWeight.w700,
+    color: Colors.white,
+    height: 1.2,
+  );
+
+  static TextStyle loginLinkStyle(
+    double scale, {
+    FontWeight weight = FontWeight.w500,
+  }) => TextStyle(
+    fontSize: loginFontSize * scale,
+    fontWeight: weight,
+    color: loginLinkColor,
+    height: 1.2,
+  );
+
+  static TextStyle loginSignupStyle(double scale) => TextStyle(
+    fontSize: loginFontSize * scale,
+    fontWeight: FontWeight.w600,
+    color: accent,
+    height: 1.2,
+  );
 
   static TextStyle bubbleStyle(double scale) => TextStyle(
     fontSize: bubbleFontSize * scale,

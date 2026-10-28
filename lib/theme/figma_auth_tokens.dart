@@ -35,9 +35,6 @@ abstract final class FigmaAuthTokens {
   // Button geometry
   static const primaryButtonHeight = 165.0;
   static const primaryButtonRadius = 82.5;
-  static const socialButtonSize = 143.0;
-  static const socialButtonRadius = 89.0;
-  static const socialIconGap = 43.0;
   static const duplicateButtonWidth = 204.0;
   static const duplicateButtonHeight = 74.0;
   static const duplicateButtonRadius = 30.0;
@@ -58,21 +55,12 @@ abstract final class FigmaAuthTokens {
   static const signupHamsterHeight = 384.147;
 
   // Horizontal padding (Dev Mode left offsets)
-  static const loginFieldPaddingX = 109.0;
-  static const loginButtonPaddingX = 88.0;
   static const signupFieldPaddingX = 112.0;
   static const signupNicknameFieldPaddingX = 105.0;
   static const signupButtonPaddingX = 106.0;
 
-  // Login vertical spacing (derived from Dev Mode top values)
+  // Login hero height
   static const loginHeroHeight = loginHamsterTop + loginHamsterHeight; // 775
-  static const loginHeroToForm = 108.0; // 883 - 775
-  static const loginFieldGap = 82.0; // password label - email field bottom
-  static const loginForgotTopGap = 42.0; // forgot - password field bottom
-  static const loginButtonTopGap = 205.0; // button - forgot bottom
-  static const loginDividerTopGap = 108.0; // divider - button bottom
-  static const loginSocialTopGap = 98.0; // social - divider
-  static const loginFooterTopGap = 232.0; // footer - social bottom
 
   // Signup vertical spacing
   static const signupHeroHeight = signupHamsterTop + signupHamsterHeight; // 741.147
