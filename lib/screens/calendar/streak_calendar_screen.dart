@@ -845,10 +845,6 @@ class _RankRow extends StatelessWidget {
   final FriendRankEntry entry;
   final int index;
 
-  /// 순위 숫자는 Thin에 같은 색 외곽선(Figma 바깥쪽 0.8)을 둘러 굵어 보인다.
-  /// Flutter stroke는 글자선 가운데 정렬이라 두 배로 준다.
-  static const _rankStrokeWidth = 1.6;
-
   // ponytail: 친구 스킨은 users 문서가 비공개라 못 읽는다. 기본 햄핀이에 줄마다 배경색만 바꾼다.
   // 스킨까지 보이려면 streaks 문서에 착용 스킨 id를 같이 저장해야 한다.
   static const _avatarColors = [
@@ -857,6 +853,10 @@ class _RankRow extends StatelessWidget {
     Color(0xFF5ED3E8),
     Color(0xFF7CC8FA),
   ];
+
+  /// 순위 숫자는 Thin에 같은 색 외곽선(Figma 바깥쪽 0.8)을 둘러 굵어 보인다.
+  /// Flutter stroke는 글자선 가운데 정렬이라 두 배로 준다.
+  static const _rankStrokeWidth = 1.6;
 
   @override
   Widget build(BuildContext context) {
