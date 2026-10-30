@@ -61,7 +61,8 @@ abstract final class FigmaQuizOxTokens {
   static const numberLineHeight = 39 / 31;
 
   /// SUIT Thin 위에 얹히는 텍스트 stroke (`border: 1.5px solid #70D9FF`).
-  static const numberStrokeWidth = 1.5;
+  /// Figma는 글자 바깥쪽 1.5px라, 가운데 정렬인 Flutter stroke로는 3px이다.
+  static const numberStrokeWidth = 3.0;
   static const number = Color(0xFF70D9FF);
   static const explainNumber = Color(0xFFFFCB5A);
 

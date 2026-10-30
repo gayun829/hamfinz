@@ -135,6 +135,7 @@ class FigmaAssets {
   static const calendarPodium3 = '$_calendar/podium_3.svg';
   static const calendarPodium4 = '$_calendar/podium_4.svg';
   static const calendarTodayHamster = '$_calendar/today_hamster.svg';
+  static const calendarStreakFlame = '$_calendar/streak_flame.svg';
 
   // Friends (node 270:9)
   static const friendsBackChevron = '$_friends/back_chevron.svg';

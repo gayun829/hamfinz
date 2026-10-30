@@ -99,6 +99,10 @@ abstract final class FigmaSettingsTokens {
         height: 1,
       );
 
+  /// Thin 숫자에 덧입히는 외곽선. Figma 렌더(`538:189`) 획 두께 ≈2.7px에
+  /// 맞춘 값 — Flutter stroke는 글자선 가운데 정렬이라 양쪽에 절반씩 붙는다.
+  static const stageNumberStrokeWidth = 2.0;
+
   static TextStyle sheetTitleStyle(double scale) => TextStyle(
         fontSize: 20 * scale,
         fontWeight: FontWeight.w600,

@@ -12,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/figma_settings_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../../widgets/learning_stage_sheet.dart';
 import '../../widgets/shop/shop_widgets.dart';
@@ -215,89 +216,121 @@ class SettingsScreen extends StatelessWidget {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: FigmaSettingsTokens.background,
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(
-                figma: figma,
-                profile: profile,
-                onSaveBio: (bio) => _saveBio(context, bio),
-                onCameraTap: () => _showComingSoon(context, '프로필 사진 변경'),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  s(FigmaSettingsTokens.menuHorizontal),
-                  s(
-                    FigmaSettingsTokens.menuTop -
-                        FigmaSettingsTokens.headerHeight,
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Header(
+                    figma: figma,
+                    profile: profile,
+                    onSaveBio: (bio) => _saveBio(context, bio),
+                    onCameraTap: () => _showComingSoon(context, '프로필 사진 변경'),
                   ),
-                  s(FigmaSettingsTokens.menuHorizontal),
-                  s(FigmaSettingsTokens.menuHorizontal),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _LearningStageCard(
-                      figma: figma,
-                      stage: profile.learningStage,
-                      onTap: () => _openLearningStage(context),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      s(FigmaSettingsTokens.menuHorizontal),
+                      s(
+                        FigmaSettingsTokens.menuTop -
+                            FigmaSettingsTokens.headerHeight,
+                      ),
+                      s(FigmaSettingsTokens.menuHorizontal),
+                      s(FigmaSettingsTokens.menuHorizontal),
                     ),
-                    SizedBox(height: s(FigmaSettingsTokens.menuGap)),
-                    SizedBox(
-                      height: s(FigmaSettingsTokens.topRowHeight),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // 202.59 : 11.41 : 131 (Figma 273:236 / 273:228)
-                          Expanded(
-                            flex: 20259,
-                            child: _SettingsCard(
-                              figma: figma,
-                              label: '친구 목록',
-                              onTap: () => _openFriends(context),
-                              trailing: FigmaSvg(
-                                FigmaAssets.settingsPlus,
-                                width: s(24),
-                                height: s(20.87),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _LearningStageCard(
+                          figma: figma,
+                          stage: profile.learningStage,
+                          onTap: () => _openLearningStage(context),
+                        ),
+                        SizedBox(height: s(FigmaSettingsTokens.menuGap)),
+                        SizedBox(
+                          height: s(FigmaSettingsTokens.topRowHeight),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // 202.59 : 11.41 : 131 (Figma 273:236 / 273:228)
+                              Expanded(
+                                flex: 20259,
+                                child: _SettingsCard(
+                                  figma: figma,
+                                  label: '친구 목록',
+                                  onTap: () => _openFriends(context),
+                                  trailing: FigmaSvg(
+                                    FigmaAssets.settingsPlus,
+                                    width: s(24),
+                                    height: s(20.87),
+                                  ),
+                                  trailingRight: 10.59,
+                                ),
                               ),
-                              trailingRight: 10.59,
-                            ),
+                              SizedBox(width: s(11.41)),
+                              Expanded(
+                                flex: 13100,
+                                child: _SettingsCard(
+                                  figma: figma,
+                                  label: '연락처 연동',
+                                  onTap: () =>
+                                      _showComingSoon(context, '연락처 연동'),
+                                  trailing: _Chevron(
+                                    asset: FigmaAssets.settingsChevronSmall,
+                                    width: s(6.877),
+                                    height: s(9.972),
+                                  ),
+                                  trailingRight: 11.81,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: s(11.41)),
-                          Expanded(
-                            flex: 13100,
-                            child: _SettingsCard(
-                              figma: figma,
-                              label: '연락처 연동',
-                              onTap: () => _showComingSoon(context, '연락처 연동'),
-                              trailing: _Chevron(
-                                asset: FigmaAssets.settingsChevronSmall,
-                                width: s(6.877),
-                                height: s(9.972),
-                              ),
-                              trailingRight: 11.81,
-                            ),
+                        ),
+                        for (final row in rows) ...[
+                          SizedBox(height: s(FigmaSettingsTokens.menuGap)),
+                          _SettingsRow(
+                            figma: figma,
+                            label: row.$1,
+                            onTap: row.$2,
                           ),
                         ],
-                      ),
+                        SizedBox(height: s(FigmaSettingsTokens.menuGap)),
+                        _SettingsRow(
+                          figma: figma,
+                          label: '회원탈퇴',
+                          destructive: true,
+                          onTap: () => _withdraw(context),
+                        ),
+                      ],
                     ),
-                    for (final row in rows) ...[
-                      SizedBox(height: s(FigmaSettingsTokens.menuGap)),
-                      _SettingsRow(figma: figma, label: row.$1, onTap: row.$2),
-                    ],
-                    SizedBox(height: s(FigmaSettingsTokens.menuGap)),
-                    _SettingsRow(
-                      figma: figma,
-                      label: '회원탈퇴',
-                      destructive: true,
-                      onTap: () => _withdraw(context),
+                  ),
+                ],
+              ),
+            ),
+            // 페이지가 화면보다 길어 스크롤되면 헤더가 상태바·다이나믹
+            // 아일랜드 밑으로 올라간다. 상태바 높이만큼은 헤더와 같은
+            // 그라데이션으로 덮어 둬서, 맨 위에선 그대로 보이고 스크롤한
+            // 내용은 그 아래로 사라지게 한다.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: MediaQuery.paddingOf(context).top,
+              child: IgnorePointer(
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    minHeight: _Header.heightOf(context, figma),
+                    maxHeight: _Header.heightOf(context, figma),
+                    child: const DecoratedBox(
+                      decoration: _Header.decoration,
+                      child: SizedBox.expand(),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -320,29 +353,33 @@ class _Header extends StatelessWidget {
 
   static const _titleTop = 58.0;
 
+  static const decoration = BoxDecoration(
+    gradient: LinearGradient(
+      begin: FigmaSettingsTokens.headerGradientFrom,
+      end: FigmaSettingsTokens.headerGradientTo,
+      colors: [
+        FigmaSettingsTokens.headerGradientStart,
+        FigmaSettingsTokens.headerGradientEnd,
+      ],
+      stops: FigmaSettingsTokens.headerGradientStops,
+    ),
+  );
+
+  /// Figma 프레임은 타이틀이 상태바 바로 아래(y 58)에 온다. 노치가 더 깊은
+  /// 기기에서만 그만큼 내용을 내린다.
+  static double _topShift(BuildContext context, FigmaScale figma) =>
+      math.max(0.0, MediaQuery.paddingOf(context).top - figma.s(_titleTop));
+
+  static double heightOf(BuildContext context, FigmaScale figma) =>
+      figma.s(FigmaSettingsTokens.headerHeight) + _topShift(context, figma);
+
   @override
   Widget build(BuildContext context) {
-    final s = figma.s;
-    // Figma 프레임은 타이틀이 상태바 바로 아래(y 58)에 온다. 노치가 더 깊은
-    // 기기에서만 그만큼 내용을 내린다.
-    final topShift = math.max(
-      0.0,
-      MediaQuery.paddingOf(context).top - s(_titleTop),
-    );
+    final topShift = _topShift(context, figma);
 
     return Container(
-      height: s(FigmaSettingsTokens.headerHeight) + topShift,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: FigmaSettingsTokens.headerGradientFrom,
-          end: FigmaSettingsTokens.headerGradientTo,
-          colors: [
-            FigmaSettingsTokens.headerGradientStart,
-            FigmaSettingsTokens.headerGradientEnd,
-          ],
-          stops: FigmaSettingsTokens.headerGradientStops,
-        ),
-      ),
+      height: heightOf(context, figma),
+      decoration: decoration,
       padding: EdgeInsets.only(top: topShift),
       child: Stack(
         children: [
@@ -763,10 +800,14 @@ class _LearningStageCard extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.only(top: s(13.2)),
                     child: Center(
-                      child: Text(
+                      child: StrokedText(
                         '$current',
                         style: FigmaSettingsTokens.stageNumberStyle(
                           figma.scale,
+                        ),
+                        color: Colors.white,
+                        strokeWidth: s(
+                          FigmaSettingsTokens.stageNumberStrokeWidth,
                         ),
                       ),
                     ),

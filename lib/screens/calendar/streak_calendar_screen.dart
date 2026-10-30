@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../services/friend_service.dart';
+import '../../theme/figma_calendar_tokens.dart';
 import '../../theme/figma_home_fonts.dart';
 import '../../utils/date_helper.dart';
 
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../friends/add_friend_screen.dart';
+
+typedef _T = FigmaCalendarTokens;
 
 const _mint = Color(0xFFDEFDFE);
 const _cyan = Color(0xFF65D6F8);
@@ -289,29 +292,39 @@ class _Stat extends StatelessWidget {
         children: [
           if (flame) ...[
             Container(
-              width: s(16),
-              height: s(65),
+              width: s(_T.streakBar.width),
+              height: s(_T.streakBar.height),
               decoration: BoxDecoration(
-                color: const Color(0xFFD9D9D9),
-                borderRadius: BorderRadius.circular(s(20)),
+                color: _T.barTrack,
+                borderRadius: BorderRadius.circular(s(_T.barRadius)),
               ),
               alignment: Alignment.bottomCenter,
-              child: FractionallySizedBox(
-                heightFactor: progress.clamp(0.0, 1.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(s(20)),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFFF5B18), Color(0xFFFF994C)],
-                    ),
-                  ),
-                ),
-              ),
+              // 채움은 최소 트랙 폭만큼의 원으로 시작해야 둥근 트랙 밖으로
+              // 납작하게 삐져나오지 않는다.
+              child: progress > 0
+                  ? Container(
+                      width: s(_T.streakBar.width),
+                      height: (s(_T.streakBar.height) *
+                              progress.clamp(0.0, 1.0))
+                          .clamp(s(_T.streakBar.width), s(_T.streakBar.height)),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(s(_T.barRadius)),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: [_T.streakBarTopStop, 1],
+                          colors: [_T.streakBarTop, _T.streakBarBottom],
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             SizedBox(width: s(8)),
-            FigmaSvg(FigmaAssets.statStreak, width: s(43), height: s(59)),
+            FigmaSvg(
+              FigmaAssets.calendarStreakFlame,
+              width: s(_T.streakFlame.width),
+              height: s(_T.streakFlame.height),
+            ),
             SizedBox(width: s(12)),
           ],
           Expanded(

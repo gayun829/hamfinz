@@ -8,6 +8,7 @@ import 'figma_canvas.dart';
 import 'figma_scale.dart';
 import 'quiz_coin_bar.dart';
 import 'quiz_question_layout.dart';
+import 'stroked_text.dart';
 
 /// Figma `137:5890` 문제 / `137:5957` 정답 / `291:971` 해설.
 class FigmaQuizOxView extends StatelessWidget {
@@ -416,25 +417,13 @@ class FigmaQuizOxView extends StatelessWidget {
       fontWeight: FontWeight.w100,
       height: FigmaQuizOxTokens.numberLineHeight,
     );
-    final label = '$questionNumber';
-    final color = showExplanation
-        ? FigmaQuizOxTokens.explainNumber
-        : FigmaQuizOxTokens.number;
-
-    return Stack(
-      children: [
-        Text(
-          label,
-          style: base.copyWith(
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = figma.s(FigmaQuizOxTokens.numberStrokeWidth)
-              ..strokeJoin = StrokeJoin.round
-              ..color = color,
-          ),
-        ),
-        Text(label, style: base.copyWith(color: color)),
-      ],
+    return StrokedText(
+      '$questionNumber',
+      style: base,
+      color: showExplanation
+          ? FigmaQuizOxTokens.explainNumber
+          : FigmaQuizOxTokens.number,
+      strokeWidth: figma.s(FigmaQuizOxTokens.numberStrokeWidth),
     );
   }
 

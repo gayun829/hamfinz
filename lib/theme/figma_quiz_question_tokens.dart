@@ -78,6 +78,10 @@ abstract final class FigmaQuizQuestionTokens {
   static const numberWidth = 48.0;
   static const numberHeight = 42.0;
 
+  /// SUIT Thin 위에 얹히는 텍스트 stroke. Figma 렌더(`639:3585`)의 `1` 획이
+  /// ≈3.8px이다. Figma 바깥쪽 1.5px = Flutter 가운데 정렬 stroke 3px.
+  static const numberStrokeWidth = 3.0;
+
   static const questionLineHeight = 1.2;
 
   // 짧은 질문 — 꼬리 달린 말풍선. 60자 이하이면서 세 줄에 들어갈 때만 쓴다.
