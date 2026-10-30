@@ -7,6 +7,7 @@ import '../../theme/figma_home_fonts.dart';
 import '../../utils/date_helper.dart';
 
 import '../../widgets/figma/figma_asset_image.dart';
+import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/home_bottom_nav.dart';
 import '../../widgets/shop/shop_widgets.dart';
 import '../friends/add_friend_screen.dart';
@@ -138,8 +139,9 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                               Text(
                                 '목표까지 D-${(widget.goalDays - widget.streak).clamp(0, widget.goalDays)}',
                                 style: TextStyle(
-                                  fontSize: s(18),
-                                  color: Colors.black,
+                                  fontSize: s(20),
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -341,7 +343,8 @@ class _Stat extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontSize: s(12),
-                      color: const Color(0xFF999999),
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF898989),
                     ),
                   ),
                   SizedBox(height: s(10)),
@@ -352,12 +355,15 @@ class _Stat extends StatelessWidget {
                           text: '$value',
                           style: TextStyle(
                             fontSize: s(32),
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         TextSpan(
                           text: ' $unit',
-                          style: TextStyle(fontSize: s(12)),
+                          style: TextStyle(
+                            fontSize: s(12),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ],
                     ),
@@ -412,7 +418,7 @@ class _Calendar extends StatelessWidget {
                     '${month.year}년 ${month.month}월',
                     style: TextStyle(
                       fontSize: s(20),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -452,7 +458,13 @@ class _Calendar extends StatelessWidget {
                 for (final label in ['일', '월', '화', '수', '목', '금', '토'])
                   Expanded(
                     child: Center(
-                      child: Text(label, style: TextStyle(fontSize: s(12))),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: s(11.448),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -553,12 +565,13 @@ class _Calendar extends StatelessWidget {
                                       Text(
                                         '${date.day}',
                                         style: TextStyle(
-                                          fontSize: s(12),
+                                          fontSize: s(11.448),
+                                          fontWeight: FontWeight.w500,
                                           color: !inMonth
-                                              ? const Color(0xFFD8D8D8)
+                                              ? const Color(0xFFD9D9D9)
                                               : completed || isToday
                                               ? Colors.black
-                                              : const Color(0xFF999999),
+                                              : const Color(0xFF8C8C8C),
                                         ),
                                       ),
                                     ],
@@ -619,9 +632,9 @@ class _FriendsCard extends StatelessWidget {
         ? '친구가 아직 없어요..'
         : null;
     final textStyle = TextStyle(
-      fontFamily: FigmaHomeFonts.inter,
-      fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+      fontFamily: FigmaHomeFonts.pretendard,
       fontSize: s(16),
+      fontWeight: FontWeight.w500,
       color: Colors.black,
     );
     return Container(
@@ -711,6 +724,7 @@ class _Podium extends StatelessWidget {
     'assets/figma/calendar/hamster_rank_2.png',
     'assets/figma/calendar/hamster_floating.png',
   ];
+  static const _nameSizes = [12.815, 10.0, 8.277];
 
   @override
   Widget build(BuildContext context) {
@@ -750,9 +764,9 @@ class _Podium extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: FigmaHomeFonts.inter,
-                fontFamilyFallback: const [FigmaHomeFonts.pretendard],
-                fontSize: s(first ? 15 : 11),
+                fontFamily: FigmaHomeFonts.pretendard,
+                fontSize: s(_nameSizes[index]),
+                fontWeight: FontWeight.w500,
                 color: Colors.black,
               ),
             ),
@@ -770,8 +784,9 @@ class _Podium extends StatelessWidget {
                   child: Text(
                     '${entry.rank}',
                     style: TextStyle(
-                      fontSize: s(first ? 11 : 9),
-                      color: Colors.grey,
+                      fontSize: s(first ? 13.571 : 10),
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF636363),
                     ),
                   ),
                 ),
@@ -839,6 +854,10 @@ class _RankRow extends StatelessWidget {
     Color(0xFF7CC8FA),
   ];
 
+  /// 순위 숫자는 Thin에 같은 색 외곽선(Figma 바깥쪽 0.8)을 둘러 굵어 보인다.
+  /// Flutter stroke는 글자선 가운데 정렬이라 두 배로 준다.
+  static const _rankStrokeWidth = 1.6;
+
   @override
   Widget build(BuildContext context) {
     double s(double value) => value * scale;
@@ -852,11 +871,15 @@ class _RankRow extends StatelessWidget {
         children: [
           SizedBox(
             width: s(22),
-            child: Text(
-              '$rank',
-              style: TextStyle(
-                fontSize: s(15),
-                color: entry.isMe ? _cyan : const Color(0xFFB0B0B0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: StrokedText(
+                '$rank',
+                style: TextStyle(fontSize: s(16), fontWeight: FontWeight.w100),
+                color: entry.isMe
+                    ? const Color(0xFF70D9FF)
+                    : const Color(0xFFBBBBBB),
+                strokeWidth: s(_rankStrokeWidth),
               ),
             ),
           ),
@@ -886,35 +909,33 @@ class _RankRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (rank <= 3)
+                // Figma: 불꽃은 아바타 동그라미 위쪽에 맞춰 왼쪽으로 8 삐져나온다.
+                if (rank <= FigmaAssets.calendarRankFlames.length)
                   Positioned(
                     left: -s(4),
-                    top: -s(6),
-                    width: s(22),
-                    height: s(28),
+                    top: s(4),
+                    width: s(23.229),
+                    height: s(31.124),
                     child: Stack(
-                      alignment: Alignment.center,
                       children: [
-                        if (rank == 3)
-                          Icon(
-                            Icons.water_drop,
-                            size: s(28),
-                            color: const Color(0xFF5CC8F5),
-                          )
-                        else
-                          const FigmaSvg(
-                            FigmaAssets.calendarStreakFlame,
-                            fit: BoxFit.contain,
+                        Positioned.fill(
+                          child: FigmaSvg(
+                            FigmaAssets.calendarRankFlames[rank - 1],
+                            fit: BoxFit.fill,
                           ),
-                        Padding(
-                          padding: EdgeInsets.only(top: s(8)),
-                          child: Text(
+                        ),
+                        Align(
+                          // 숫자는 불꽃 아래 둥근 부분 가운데(높이 65%)에 온다.
+                          alignment: const Alignment(0, 0.3),
+                          child: StrokedText(
                             '$rank',
                             style: TextStyle(
-                              fontSize: s(12),
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              fontSize: s(14.596),
+                              fontWeight: FontWeight.w100,
+                              height: 1.2,
                             ),
+                            color: Colors.white,
+                            strokeWidth: s(_rankStrokeWidth),
                           ),
                         ),
                       ],
@@ -936,7 +957,7 @@ class _RankRow extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: FigmaHomeFonts.pretendard,
                     fontSize: s(16),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: Colors.black,
                   ),
                 ),
@@ -946,7 +967,8 @@ class _RankRow extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: FigmaHomeFonts.pretendard,
                     fontSize: s(11),
-                    color: const Color(0xFFB0B0B0),
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFFBBBBBB),
                   ),
                 ),
               ],
