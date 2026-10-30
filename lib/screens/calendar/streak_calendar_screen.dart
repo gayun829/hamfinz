@@ -304,9 +304,12 @@ class _Stat extends StatelessWidget {
               child: progress > 0
                   ? Container(
                       width: s(_T.streakBar.width),
-                      height: (s(_T.streakBar.height) *
-                              progress.clamp(0.0, 1.0))
-                          .clamp(s(_T.streakBar.width), s(_T.streakBar.height)),
+                      height:
+                          (s(_T.streakBar.height) * progress.clamp(0.0, 1.0))
+                              .clamp(
+                                s(_T.streakBar.width),
+                                s(_T.streakBar.height),
+                              ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(s(_T.barRadius)),
                         gradient: const LinearGradient(
@@ -587,6 +590,7 @@ class _Calendar extends StatelessWidget {
   }
 }
 
+/// Figma 「이번 달 친구와의 경쟁!」: 위에 1~3위 단상, 아래에 전체 순위 목록.
 class _FriendsCard extends StatelessWidget {
   const _FriendsCard({
     required this.scale,
@@ -613,66 +617,77 @@ class _FriendsCard extends StatelessWidget {
         : ranking != null && ranking.friendCount == 0
         ? '친구가 아직 없어요..'
         : null;
+    final textStyle = TextStyle(
+      fontFamily: FigmaHomeFonts.inter,
+      fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+      fontSize: s(16),
+      color: Colors.black,
+    );
     return Container(
       decoration: _card(scale),
-      height: s(246),
-      child: Stack(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Positioned(
-            left: s(18),
-            top: s(16),
-            child: Text(
-              '이번 달 친구와의 경쟁!',
-              style: TextStyle(
-                fontFamily: FigmaHomeFonts.inter,
-                fontFamilyFallback: const [FigmaHomeFonts.pretendard],
-                fontSize: s(16),
-                color: Colors.black,
-              ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(s(18), s(6), s(4), 0),
+            child: Row(
+              children: [
+                Expanded(child: Text('이번 달 친구와의 경쟁!', style: textStyle)),
+                IconButton(
+                  tooltip: '친구 추가',
+                  onPressed: onAddFriend,
+                  icon: Icon(Icons.person_add_alt_1, size: s(21), color: _cyan),
+                ),
+              ],
             ),
           ),
           if (message != null)
-            Center(
-              child: Text(
-                message,
-                style: TextStyle(
-                  fontFamily: FigmaHomeFonts.inter,
-                  fontFamilyFallback: const [FigmaHomeFonts.pretendard],
-                  fontSize: s(16),
-                  color: Colors.black,
-                ),
-              ),
+            SizedBox(
+              height: s(190),
+              child: Center(child: Text(message, style: textStyle)),
             )
-          else
-            for (var i = 0; i < people.length && i < 4; i++)
-              Positioned(
-                left: s([30.0, 160.0, 230.0, 272.0][i]),
-                top: s([46.0, 20.0, 126.0, 60.0][i]),
-                width: s([118.0, 78.0, 66.0, 48.0][i]),
-                child: _Rank(
-                  scale: scale,
-                  entry: people[i],
-                  leaderStreak: leaderStreak,
-                  index: i,
-                ),
+          else if (people.isNotEmpty) ...[
+            Padding(
+              padding: EdgeInsets.fromLTRB(s(20), s(4), s(20), s(18)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (var i = 0; i < people.length && i < 3; i++)
+                    _Podium(
+                      scale: scale,
+                      entry: people[i],
+                      leaderStreak: leaderStreak,
+                      index: i,
+                    ),
+                  // 2·3위 자리가 비어도 1위는 왼쪽에 그대로 둔다.
+                  for (var i = people.length; i < 3; i++)
+                    SizedBox(width: s(_Podium.widths[i])),
+                ],
               ),
-          Positioned(
-            right: s(4),
-            top: 0,
-            child: IconButton(
-              tooltip: '친구 추가',
-              onPressed: onAddFriend,
-              icon: Icon(Icons.person_add_alt_1, size: s(21), color: _cyan),
             ),
-          ),
+            Divider(
+              height: 1,
+              indent: s(18),
+              endIndent: s(18),
+              color: const Color(0xFFE6E6E6),
+            ),
+            SizedBox(height: s(8)),
+            for (var i = 0; i < people.length; i++)
+              _RankRow(scale: scale, entry: people[i], index: i),
+            SizedBox(height: s(10)),
+          ] else
+            SizedBox(height: s(190)),
         ],
       ),
     );
   }
 }
 
-class _Rank extends StatelessWidget {
-  const _Rank({
+/// 1~3위 단상 하나: 햄스터, 이름, 순위 동그라미와 연속학습 막대.
+class _Podium extends StatelessWidget {
+  const _Podium({
     required this.scale,
     required this.entry,
     required this.leaderStreak,
@@ -683,134 +698,256 @@ class _Rank extends StatelessWidget {
   final int leaderStreak;
   final int index;
 
+  static const widths = [118.0, 78.0, 66.0];
+  static const _heights = [128.0, 82.0, 66.0];
+  static const _podiums = [
+    FigmaAssets.calendarPodium1,
+    FigmaAssets.calendarPodium2,
+    FigmaAssets.calendarPodium3,
+  ];
+  static const _hamsters = [
+    'assets/figma/calendar/hamster_rank_1.png',
+    'assets/figma/calendar/hamster_rank_2.png',
+    'assets/figma/calendar/hamster_floating.png',
+  ];
+
   @override
   Widget build(BuildContext context) {
     double s(double value) => value * scale;
-    final height = [128.0, 96.0, 61.0, 46.0][index];
+    final height = _heights[index];
     final name = entry.isMe ? '나' : entry.nickname;
+    final first = index == 0;
+    final barHeight = s(first ? 12 : 9);
+    final fraction = leaderStreak > 0
+        ? (entry.streak / leaderStreak).clamp(0.0, 1.0)
+        : 0.0;
     return Semantics(
       label: '${entry.rank}위 $name, 연속학습 ${entry.streak}일',
       excludeSemantics: true,
-      child: Column(
-        children: [
-          SizedBox(
-            height: s(height),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  top: s(height * 0.3),
-                  child: FigmaSvg(
-                    [
-                      FigmaAssets.calendarPodium1,
-                      FigmaAssets.calendarPodium2,
-                      FigmaAssets.calendarPodium3,
-                      FigmaAssets.calendarPodium4,
-                    ][index],
-                    fit: BoxFit.contain,
+      child: SizedBox(
+        width: s(widths[index]),
+        child: Column(
+          children: [
+            SizedBox(
+              height: s(height),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    top: s(height * 0.3),
+                    child: FigmaSvg(_podiums[index], fit: BoxFit.contain),
                   ),
-                ),
-                if (index != 2)
                   Positioned.fill(
                     bottom: s(8),
-                    child: FigmaPng(
-                      'assets/figma/calendar/hamster_rank_${index == 0
-                          ? 1
-                          : index == 1
-                          ? 2
-                          : 4}.png',
-                      fit: BoxFit.contain,
-                    ),
+                    child: FigmaPng(_hamsters[index], fit: BoxFit.contain),
                   ),
-              ],
-            ),
-          ),
-          if (index == 0)
-            Padding(
-              padding: EdgeInsets.only(top: s(4), bottom: s(3)),
-              child: Text(
-                '1위 $name',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: FigmaHomeFonts.inter,
-                  fontFamilyFallback: const [FigmaHomeFonts.pretendard],
-                  fontSize: s(15),
-                ),
+                ],
               ),
             ),
-          SizedBox(
-            height: s(index == 0 ? 16 : 13),
-            child: Row(
+            SizedBox(height: s(first ? 10 : 6)),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: FigmaHomeFonts.inter,
+                fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+                fontSize: s(first ? 15 : 11),
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: s(first ? 6 : 4)),
+            Row(
               children: [
-                if (index == 1 || index == 2) ...[
-                  Container(
-                    width: s(14),
-                    height: s(14),
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFB2EFF2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${entry.rank}',
-                      style: TextStyle(fontSize: s(10), color: Colors.grey),
+                Container(
+                  width: s(first ? 18 : 14),
+                  height: s(first ? 18 : 14),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFB2EFF2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${entry.rank}',
+                    style: TextStyle(
+                      fontSize: s(first ? 11 : 9),
+                      color: Colors.grey,
                     ),
                   ),
-                  SizedBox(width: s(3)),
-                ],
+                ),
+                SizedBox(width: s(3)),
                 Expanded(
                   child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final fraction = leaderStreak > 0
-                          ? (entry.streak / leaderStreak).clamp(0.0, 1.0)
-                          : 0.0;
-                      final height = s(
-                        index == 0
-                            ? 16
-                            : index == 3
-                            ? 6
-                            : 12,
-                      );
-                      return Container(
-                        height: height,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F0F0),
-                          borderRadius: BorderRadius.circular(height),
-                        ),
-                        child: Stack(
-                          children: [
-                            FractionallySizedBox(
-                              widthFactor: fraction,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: _cyan,
-                                  borderRadius: BorderRadius.circular(height),
-                                ),
+                    builder: (context, constraints) => Container(
+                      height: barHeight,
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(barHeight),
+                      ),
+                      child: fraction == 0
+                          ? null
+                          : Container(
+                              width: (constraints.maxWidth * fraction).clamp(
+                                barHeight,
+                                constraints.maxWidth,
                               ),
-                            ),
-                            if (fraction > 0)
-                              Positioned(
-                                left:
-                                    ((constraints.maxWidth * fraction) - height)
-                                        .clamp(
-                                          0.0,
-                                          constraints.maxWidth - height,
-                                        ),
-                                top: height * 0.18,
+                              alignment: Alignment.centerRight,
+                              padding: EdgeInsets.all(barHeight * 0.18),
+                              decoration: BoxDecoration(
+                                color: _cyan,
+                                borderRadius: BorderRadius.circular(barHeight),
+                              ),
+                              child: AspectRatio(
+                                aspectRatio: 1,
                                 child: Container(
-                                  width: height * .64,
-                                  height: height * .64,
                                   decoration: const BoxDecoration(
                                     color: Color(0xFF36C3FA),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
                               ),
-                          ],
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 전체 순위 한 줄. 내 줄은 하늘색 띠로 칠하고, 1~3위는 아바타에 배지를 단다.
+class _RankRow extends StatelessWidget {
+  const _RankRow({
+    required this.scale,
+    required this.entry,
+    required this.index,
+  });
+  final double scale;
+  final FriendRankEntry entry;
+  final int index;
+
+  // ponytail: 친구 스킨은 users 문서가 비공개라 못 읽는다. 기본 햄핀이에 줄마다 배경색만 바꾼다.
+  // 스킨까지 보이려면 streaks 문서에 착용 스킨 id를 같이 저장해야 한다.
+  static const _avatarColors = [
+    Color(0xFFA8E27E),
+    Color(0xFFFFA98A),
+    Color(0xFF5ED3E8),
+    Color(0xFF7CC8FA),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    double s(double value) => value * scale;
+    final color = _avatarColors[index % _avatarColors.length];
+    final rank = entry.rank;
+    return Container(
+      height: s(66),
+      color: entry.isMe ? const Color(0xFFDFFBFF) : null,
+      padding: EdgeInsets.symmetric(horizontal: s(18)),
+      child: Row(
+        children: [
+          SizedBox(
+            width: s(22),
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: s(15),
+                color: entry.isMe ? _cyan : const Color(0xFFB0B0B0),
+              ),
+            ),
+          ),
+          SizedBox(width: s(12)),
+          SizedBox(
+            width: s(54),
+            height: s(54),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  left: s(4),
+                  top: s(4),
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.white, color],
+                      ),
+                    ),
+                    padding: EdgeInsets.fromLTRB(s(5), s(9), s(5), 0),
+                    child: const FigmaPng(
+                      'assets/figma/calendar/hamster_rank_2.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                if (rank <= 3)
+                  Positioned(
+                    left: -s(4),
+                    top: -s(6),
+                    width: s(22),
+                    height: s(28),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (rank == 3)
+                          Icon(
+                            Icons.water_drop,
+                            size: s(28),
+                            color: const Color(0xFF5CC8F5),
+                          )
+                        else
+                          const FigmaSvg(
+                            FigmaAssets.calendarStreakFlame,
+                            fit: BoxFit.contain,
+                          ),
+                        Padding(
+                          padding: EdgeInsets.only(top: s(8)),
+                          child: Text(
+                            '$rank',
+                            style: TextStyle(
+                              fontSize: s(12),
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(width: s(14)),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.nickname,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: FigmaHomeFonts.pretendard,
+                    fontSize: s(16),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: s(2)),
+                Text(
+                  '연속학습 ${entry.streak}일',
+                  style: TextStyle(
+                    fontFamily: FigmaHomeFonts.pretendard,
+                    fontSize: s(11),
+                    color: const Color(0xFFB0B0B0),
                   ),
                 ),
               ],
