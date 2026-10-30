@@ -904,34 +904,31 @@ class _RankRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (rank <= 3)
+                // Figma: 불꽃은 아바타 동그라미 위쪽에 맞춰 왼쪽으로 8 삐져나온다.
+                if (rank <= FigmaAssets.calendarRankFlames.length)
                   Positioned(
                     left: -s(4),
-                    top: -s(6),
-                    width: s(22),
-                    height: s(28),
+                    top: s(4),
+                    width: s(23.229),
+                    height: s(31.124),
                     child: Stack(
-                      alignment: Alignment.center,
                       children: [
-                        if (rank == 3)
-                          Icon(
-                            Icons.water_drop,
-                            size: s(28),
-                            color: const Color(0xFF5CC8F5),
-                          )
-                        else
-                          const FigmaSvg(
-                            FigmaAssets.calendarStreakFlame,
-                            fit: BoxFit.contain,
+                        Positioned.fill(
+                          child: FigmaSvg(
+                            FigmaAssets.calendarRankFlames[rank - 1],
+                            fit: BoxFit.fill,
                           ),
-                        Padding(
-                          padding: EdgeInsets.only(top: s(8)),
+                        ),
+                        Align(
+                          // 숫자는 불꽃 아래 둥근 부분 가운데(높이 65%)에 온다.
+                          alignment: const Alignment(0, 0.3),
                           child: Text(
                             '$rank',
                             style: TextStyle(
                               fontSize: s(14.596),
                               fontWeight: FontWeight.w100,
                               color: Colors.white,
+                              height: 1.2,
                             ),
                           ),
                         ),

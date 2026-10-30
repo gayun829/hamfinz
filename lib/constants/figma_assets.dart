@@ -137,6 +137,13 @@ class FigmaAssets {
   static const calendarTodayHamster = '$_calendar/today_hamster.svg';
   static const calendarStreakFlame = '$_calendar/streak_flame.svg';
 
+  /// 친구 순위 목록 1~3위 아바타 배지 (`연속학습 창_스크롤` 963:7890).
+  static const calendarRankFlames = [
+    '$_calendar/rank_flame_1.svg',
+    '$_calendar/rank_flame_2.svg',
+    '$_calendar/rank_flame_3.svg',
+  ];
+
   // Friends (node 270:9)
   static const friendsBackChevron = '$_friends/back_chevron.svg';
   static const friendsSearchIcon = '$_friends/search_icon.svg';

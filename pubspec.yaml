@@ -97,6 +97,9 @@ flutter:
     - assets/figma/calendar/podium_4.svg
     - assets/figma/calendar/today_hamster.svg
     - assets/figma/calendar/streak_flame.svg
+    - assets/figma/calendar/rank_flame_1.svg
+    - assets/figma/calendar/rank_flame_2.svg
+    - assets/figma/calendar/rank_flame_3.svg
     - assets/figma/settings/
     - assets/figma/friends/back_chevron.svg
     - assets/figma/friends/search_icon.svg
