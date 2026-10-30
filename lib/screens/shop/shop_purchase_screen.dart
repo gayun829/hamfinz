@@ -13,7 +13,7 @@ class ShopPurchaseRoute extends MaterialPageRoute<bool> {
   bool get currentResult => isCompleted();
 }
 
-/// Purchase confirmation and receipt share the exact selected outfit.
+/// Confirmation previews the product; the receipt shows the saved outfit.
 class ShopPurchaseScreen extends StatefulWidget {
   const ShopPurchaseScreen({
     super.key,
@@ -21,12 +21,14 @@ class ShopPurchaseScreen extends StatefulWidget {
     required this.price,
     required this.balance,
     required this.avatar,
+    this.receiptAvatar,
     required this.onPurchase,
   });
   final String itemName;
   final int price;
   final int Function() balance;
   final Widget avatar;
+  final Widget? receiptAvatar;
   final Future<bool> Function() onPurchase;
 
   @override
@@ -131,7 +133,9 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
                                           SizedBox(
                                             width: s(290),
                                             height: h(.38),
-                                            child: widget.avatar,
+                                            child:
+                                                widget.receiptAvatar ??
+                                                widget.avatar,
                                           ),
                                           SizedBox(height: h(.025)),
                                           Text(

@@ -129,6 +129,16 @@ class _ClosetScreenState extends State<ClosetScreen> {
   int _price(ShopItem item) =>
       ShopData.purchasePrice(item, _profile.ownedShopItemIds);
 
+  String _closetActionLabel(ShopItem item) {
+    if (!_isEquipped(item)) return '착용하기';
+    if (item.included) return '착용 중';
+    return switch (item.category) {
+      ShopCategory.clothing || ShopCategory.pattern => '옷 벗기',
+      ShopCategory.skin => '기본으로',
+      _ => '해제하기',
+    };
+  }
+
   void _applyItem(ShopItem item, {bool removing = false}) {
     final legacy = ShopData.legacyComponents[item.id];
     if (legacy != null) {
@@ -225,6 +235,25 @@ class _ClosetScreenState extends State<ClosetScreen> {
             price: _price(item),
             balance: () => _profile.seeds,
             avatar: ShopAvatar(
+              catalogItems: _catalogItems,
+              skinId:
+                  item.category == ShopCategory.skin ||
+                      item.category == ShopCategory.bundle
+                  ? item.id
+                  : null,
+              patternId:
+                  item.category == ShopCategory.clothing ||
+                      item.category == ShopCategory.pattern
+                  ? item.id
+                  : null,
+              backgroundId: item.category == ShopCategory.background
+                  ? item.id
+                  : null,
+              accessoryIds: item.category == ShopCategory.accessory
+                  ? [item.id]
+                  : const [],
+            ),
+            receiptAvatar: ShopAvatar(
               catalogItems: _catalogItems,
               skinId: _stagedSkinId,
               patternId: _stagedPatternId,
@@ -462,7 +491,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                 displayPrice: _price(item),
                                 actionLabel: widget.showCatalog
                                     ? null
-                                    : (_isEquipped(item) ? '착용 중' : '착용하기'),
+                                    : _closetActionLabel(item),
                                 selected: widget.showCatalog
                                     ? _selectedItem?.id == item.id
                                     : _isEquipped(item),

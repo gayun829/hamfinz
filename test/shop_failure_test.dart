@@ -6,6 +6,57 @@ import 'package:testapp/screens/shop/closet_screen.dart';
 import 'package:testapp/widgets/shop/shop_widgets.dart';
 
 void main() {
+  testWidgets('remove clothes preserves skin and accessory until saved', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(393, 852));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final profile = UserProfile(
+      email: 'test@test.com',
+      nickname: 'test',
+      ownedShopItemIds: [
+        'skin_dinosaur',
+        'clothing_ninja',
+        'accessory_genie_hair',
+      ],
+      equippedSkinId: 'skin_dinosaur',
+      equippedPatternId: 'clothing_ninja',
+      equippedAccessoryIds: ['accessory_genie_hair'],
+    );
+    var saves = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ClosetScreen(
+          profile: profile,
+          saveEquipment:
+              ({
+                required skinId,
+                required patternId,
+                required backgroundId,
+                required accessoryIds,
+              }) async {
+                saves++;
+                expect(patternId, isNull);
+                expect(skinId, 'skin_dinosaur');
+                expect(accessoryIds, ['accessory_genie_hair']);
+              },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('옷'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('옷 벗기'));
+    await tester.pumpAndSettle();
+    expect(find.text('착용하기'), findsOneWidget);
+    expect(profile.equippedPatternId, 'clothing_ninja');
+    expect(saves, 0);
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+    expect(profile.equippedPatternId, isNull);
+    expect(saves, 1);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('category tabs scroll at 360 width with large text', (
     tester,
   ) async {
