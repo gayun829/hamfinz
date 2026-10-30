@@ -87,6 +87,7 @@ flutter:
     - assets/figma/calendar/hamster_rank_1.png
     - assets/figma/calendar/hamster_rank_2.png
     - assets/figma/calendar/hamster_rank_4.png
+    - assets/figma/calendar/hamster_floating.png
     - assets/figma/calendar/drop_empty_1.svg
     - assets/figma/calendar/drop_empty_2.svg
     - assets/figma/calendar/drop_filled.svg

@@ -77,7 +77,8 @@ void main() {
     );
     await tester.pump();
     expect(find.text('친구가 아직 없어요..'), findsNothing);
-    expect(find.text('1위 김기니'), findsOneWidget);
+    expect(find.bySemanticsLabel('1위 김기니, 연속학습 9일'), findsOneWidget);
+    expect(find.text('연속학습 9일'), findsOneWidget);
     expect(find.bySemanticsLabel('2위 나, 연속학습 4일'), findsOneWidget);
     expect(find.bySemanticsLabel('3위 다람, 연속학습 0일'), findsOneWidget);
     expect(tester.takeException(), isNull);
