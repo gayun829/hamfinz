@@ -85,9 +85,6 @@ class NewsService {
   static List<NewsItem>? _cache;
   static DateTime? _cachedAt;
 
-  /// 마지막으로 받아온 시각. 목록 위에 '방금 업데이트'를 띄우는 데 쓴다.
-  static DateTime? get cachedAt => _cachedAt;
-
   /// 마지막으로 받아온 지 [refreshInterval]이 지났는지.
   static bool get isStale {
     final at = _cachedAt;
