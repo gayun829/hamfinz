@@ -137,8 +137,9 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                               Text(
                                 '목표까지 D-${(widget.goalDays - widget.streak).clamp(0, widget.goalDays)}',
                                 style: TextStyle(
-                                  fontSize: s(18),
-                                  color: Colors.black,
+                                  fontSize: s(20),
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -340,7 +341,8 @@ class _Stat extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontSize: s(12),
-                      color: const Color(0xFF999999),
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF898989),
                     ),
                   ),
                   SizedBox(height: s(10)),
@@ -351,12 +353,15 @@ class _Stat extends StatelessWidget {
                           text: '$value',
                           style: TextStyle(
                             fontSize: s(32),
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         TextSpan(
                           text: ' $unit',
-                          style: TextStyle(fontSize: s(12)),
+                          style: TextStyle(
+                            fontSize: s(12),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ],
                     ),
@@ -411,7 +416,7 @@ class _Calendar extends StatelessWidget {
                     '${month.year}년 ${month.month}월',
                     style: TextStyle(
                       fontSize: s(20),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -451,7 +456,13 @@ class _Calendar extends StatelessWidget {
                 for (final label in ['일', '월', '화', '수', '목', '금', '토'])
                   Expanded(
                     child: Center(
-                      child: Text(label, style: TextStyle(fontSize: s(12))),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: s(11.448),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -552,12 +563,13 @@ class _Calendar extends StatelessWidget {
                                       Text(
                                         '${date.day}',
                                         style: TextStyle(
-                                          fontSize: s(12),
+                                          fontSize: s(11.448),
+                                          fontWeight: FontWeight.w500,
                                           color: !inMonth
-                                              ? const Color(0xFFD8D8D8)
+                                              ? const Color(0xFFD9D9D9)
                                               : completed || isToday
                                               ? Colors.black
-                                              : const Color(0xFF999999),
+                                              : const Color(0xFF8C8C8C),
                                         ),
                                       ),
                                     ],
@@ -618,9 +630,9 @@ class _FriendsCard extends StatelessWidget {
         ? '친구가 아직 없어요..'
         : null;
     final textStyle = TextStyle(
-      fontFamily: FigmaHomeFonts.inter,
-      fontFamilyFallback: const [FigmaHomeFonts.pretendard],
+      fontFamily: FigmaHomeFonts.pretendard,
       fontSize: s(16),
+      fontWeight: FontWeight.w500,
       color: Colors.black,
     );
     return Container(
@@ -710,6 +722,7 @@ class _Podium extends StatelessWidget {
     'assets/figma/calendar/hamster_rank_2.png',
     'assets/figma/calendar/hamster_floating.png',
   ];
+  static const _nameSizes = [12.815, 10.0, 8.277];
 
   @override
   Widget build(BuildContext context) {
@@ -749,9 +762,9 @@ class _Podium extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: FigmaHomeFonts.inter,
-                fontFamilyFallback: const [FigmaHomeFonts.pretendard],
-                fontSize: s(first ? 15 : 11),
+                fontFamily: FigmaHomeFonts.pretendard,
+                fontSize: s(_nameSizes[index]),
+                fontWeight: FontWeight.w500,
                 color: Colors.black,
               ),
             ),
@@ -769,8 +782,9 @@ class _Podium extends StatelessWidget {
                   child: Text(
                     '${entry.rank}',
                     style: TextStyle(
-                      fontSize: s(first ? 11 : 9),
-                      color: Colors.grey,
+                      fontSize: s(first ? 13.571 : 10),
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF636363),
                     ),
                   ),
                 ),
@@ -855,8 +869,11 @@ class _RankRow extends StatelessWidget {
             child: Text(
               '$rank',
               style: TextStyle(
-                fontSize: s(15),
-                color: entry.isMe ? _cyan : const Color(0xFFB0B0B0),
+                fontSize: s(16),
+                fontWeight: FontWeight.w100,
+                color: entry.isMe
+                    ? const Color(0xFF70D9FF)
+                    : const Color(0xFFBBBBBB),
               ),
             ),
           ),
@@ -912,8 +929,8 @@ class _RankRow extends StatelessWidget {
                           child: Text(
                             '$rank',
                             style: TextStyle(
-                              fontSize: s(12),
-                              fontWeight: FontWeight.w800,
+                              fontSize: s(14.596),
+                              fontWeight: FontWeight.w100,
                               color: Colors.white,
                             ),
                           ),
@@ -937,7 +954,7 @@ class _RankRow extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: FigmaHomeFonts.pretendard,
                     fontSize: s(16),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: Colors.black,
                   ),
                 ),
@@ -947,7 +964,8 @@ class _RankRow extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: FigmaHomeFonts.pretendard,
                     fontSize: s(11),
-                    color: const Color(0xFFB0B0B0),
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFFBBBBBB),
                   ),
                 ),
               ],
