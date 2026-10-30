@@ -25,9 +25,10 @@ void main() {
   testWidgets('디자인 목업(14)이 아니라 실제 연속학습일을 보여준다', (tester) async {
     await pumpStreak(tester, const Size(393, 852), streak: 3);
 
-    expect(find.text('3'), findsOneWidget);
+    // 숫자와 day는 외곽선 층과 채움 층, 두 번 그린다.
+    expect(find.text('3'), findsNWidgets(2));
     expect(find.text('14'), findsNothing);
-    expect(find.text('day'), findsOneWidget);
+    expect(find.text('day'), findsNWidgets(2));
     expect(find.text('streak!'), findsOneWidget);
     expect(tester.widget<PopScope>(find.byType(PopScope)).canPop, isFalse);
   });
@@ -35,11 +36,11 @@ void main() {
   testWidgets('자릿수가 늘어도 작은 화면에서 넘치지 않는다', (tester) async {
     await pumpStreak(tester, const Size(360, 740), streak: 365);
 
-    expect(find.text('365'), findsOneWidget);
+    expect(find.text('365'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('streak 묶음이 Figma 좌표(top 486, 중심 192.5)에 놓인다', (tester) async {
+  testWidgets('streak 묶음이 Figma 좌표(top 501, 중심 191)에 놓인다', (tester) async {
     await pumpStreak(tester, const Size(393, 852), streak: 14);
 
     // FigmaSvg 내부에도 FittedBox가 있어서 streak 묶음의 것만 골라낸다.
@@ -48,8 +49,8 @@ void main() {
         (w) => w is FittedBox && w.fit == BoxFit.scaleDown,
       ),
     );
-    expect(block.top, moreOrLessEquals(486, epsilon: 0.5));
-    expect(block.center.dx, moreOrLessEquals(192.5, epsilon: 0.5));
+    expect(block.top, moreOrLessEquals(501, epsilon: 0.5));
+    expect(block.center.dx, moreOrLessEquals(191, epsilon: 0.5));
   });
 
   testWidgets('다음으로를 누르면 이어서 넘어간다', (tester) async {

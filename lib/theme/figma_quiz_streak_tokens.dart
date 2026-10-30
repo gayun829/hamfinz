@@ -14,22 +14,31 @@ abstract final class FigmaQuizStreakTokens {
   static const raySize = Size(34.185, 174.461);
   static const rayRadius = 87.524;
 
-  /// Figma는 `14`/`day`를 SUIT Thin으로 적어두지만, 정작 그 프레임 렌더는
-  /// 굵은 획이다 (SUIT Thin으로 그리면 헤어라인이라 디자인과 전혀 다르다).
-  /// 화면 모습을 기준으로 Pretendard Bold를 쓴다. 퀴즈_ox처럼 stroke를 덧입히는
-  /// 방식은 이 프레임 CSS에 border가 없어 해당하지 않는다.
+  /// `14`/`day`는 SUIT Thin에 바깥쪽 외곽선(6 / 2.61)을 두른 글자다. 내보낸 CSS에는
+  /// 외곽선이 안 나오니 Plugin API의 `strokes`로 확인해야 한다.
+  /// Figma 바깥쪽 N px = Flutter 가운데 정렬 stroke 2N px.
   static const streakNumberColor = Color(0xFF00AFF8);
   static const streakLabelColor = Color(0xFF3CC6FF);
   static const streakNumberFontSize = 148.0;
+  static const streakNumberStroke = 12.0;
   static const streakDayFontSize = 64.0;
+  static const streakDayStroke = 5.22;
   static const streakSuffixFontSize = 34.0;
 
   /// `14 day` 묶음의 가로 중심. 프레임 중앙(196.5)에서 살짝 왼쪽이다.
-  static const streakBlockCenterX = 192.5;
-  static const streakBlockTop = 486.0;
+  static const streakBlockCenterX = 191.0;
 
-  /// `148 + 간격 + 34`. 자릿수가 많으면 이 안에서 축소된다.
+  /// 글자 줄 높이를 1로 줄인 묶음의 위쪽. 숫자 글자 모양이 Figma 위치에 오는 값이다.
+  static const streakBlockTop = 501.0;
+
+  /// `148 + 34`. 자릿수가 많으면 이 안에서 축소된다.
   static const streakBlockHeight = 200.0;
-  static const streakDayGap = 4.3;
-  static const streakSuffixGap = 14.0;
+  static const streakDayGap = 7.5;
+
+  /// `day`는 숫자 기준선보다 조금 위에 놓인다.
+  static const streakDayLift = 9.0;
+  static const streakSuffixGap = 2.0;
+
+  /// `streak!`의 오른쪽 끝은 `day`보다 3 안쪽이다.
+  static const streakSuffixRightInset = 3.0;
 }

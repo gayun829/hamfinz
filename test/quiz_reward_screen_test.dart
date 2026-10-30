@@ -37,7 +37,7 @@ void main() {
     expect(find.text('7/10'), findsOneWidget);
     expect(find.text('+35'), findsOneWidget);
     expect(find.text('+20'), findsOneWidget);
-    expect(find.text('레슨 완료!'), findsOneWidget);
+    expect(find.text('레슨 완료!'), findsNWidgets(2));
     expect(tester.widget<PopScope>(find.byType(PopScope)).canPop, isFalse);
   });
 

@@ -7,6 +7,7 @@ import '../../theme/figma_quiz_fonts.dart';
 import '../../theme/figma_quiz_streak_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/quiz_figma_cta_button.dart';
 
 const _degrees = math.pi / 180;
@@ -253,40 +254,57 @@ class QuizStreakScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(
+                StrokedText(
                   '$streak',
                   style: TextStyle(
-                    fontFamily: FigmaQuizFonts.pretendard,
+                    fontFamily: FigmaQuizFonts.suit,
                     fontSize: figma.s(
                       FigmaQuizStreakTokens.streakNumberFontSize,
                     ),
                     height: 1,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaQuizStreakTokens.streakNumberColor,
+                    fontWeight: FontWeight.w100,
+                  ),
+                  color: FigmaQuizStreakTokens.streakNumberColor,
+                  strokeWidth: figma.s(
+                    FigmaQuizStreakTokens.streakNumberStroke,
                   ),
                 ),
                 SizedBox(width: figma.s(FigmaQuizStreakTokens.streakDayGap)),
-                Text(
-                  'day',
-                  style: TextStyle(
-                    fontFamily: FigmaQuizFonts.pretendard,
-                    fontSize: figma.s(FigmaQuizStreakTokens.streakDayFontSize),
-                    height: 1,
-                    fontWeight: FontWeight.w700,
+                Transform.translate(
+                  offset: Offset(
+                    0,
+                    -figma.s(FigmaQuizStreakTokens.streakDayLift),
+                  ),
+                  child: StrokedText(
+                    'day',
+                    style: TextStyle(
+                      fontFamily: FigmaQuizFonts.suit,
+                      fontSize: figma.s(
+                        FigmaQuizStreakTokens.streakDayFontSize,
+                      ),
+                      height: 1,
+                      fontWeight: FontWeight.w100,
+                    ),
                     color: FigmaQuizStreakTokens.streakLabelColor,
+                    strokeWidth: figma.s(FigmaQuizStreakTokens.streakDayStroke),
                   ),
                 ),
               ],
             ),
             SizedBox(height: figma.s(FigmaQuizStreakTokens.streakSuffixGap)),
-            Text(
-              'streak!',
-              style: TextStyle(
-                fontFamily: FigmaQuizFonts.pretendard,
-                fontSize: figma.s(FigmaQuizStreakTokens.streakSuffixFontSize),
-                height: 1,
-                fontWeight: FontWeight.w400,
-                color: FigmaQuizStreakTokens.streakLabelColor,
+            Padding(
+              padding: EdgeInsets.only(
+                right: figma.s(FigmaQuizStreakTokens.streakSuffixRightInset),
+              ),
+              child: Text(
+                'streak!',
+                style: TextStyle(
+                  fontFamily: FigmaQuizFonts.pretendard,
+                  fontSize: figma.s(FigmaQuizStreakTokens.streakSuffixFontSize),
+                  height: 1,
+                  fontWeight: FontWeight.w400,
+                  color: FigmaQuizStreakTokens.streakLabelColor,
+                ),
               ),
             ),
           ],
