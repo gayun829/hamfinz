@@ -24,10 +24,10 @@ const _pagePad = 20.0;
 /// 용어 칩 팔레트. 카테고리가 아니라 **줄에 놓인 순서**대로 돈다 —
 /// Figma에서 코스피와 ETF가 같은 주식 카테고리인데 색이 다르다.
 const _chipPalette = [
-  (Color(0xFFDCEBFB), Color(0xFFAFD3F2)),
-  (Color(0xFFE0F3DC), Color(0xFFB6E0AE)),
-  (Color(0xFFFCE3D8), Color(0xFFF4BFA6)),
-  (Color(0xFFF1E4FB), Color(0xFFD3B6EC)),
+  Color(0xFFB4E8FF),
+  Color(0xFFDFF5C4),
+  Color(0xFFFFD3C2),
+  Color(0xFFEAD9FF),
 ];
 
 /// 하단 네비 첫 번째 탭. 지금 가장 큰 금융 뉴스 10건을 사진과 함께 보여준다.
@@ -216,7 +216,11 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
           padding: const EdgeInsets.symmetric(horizontal: _pagePad),
           child: Text(
             _subtitle(items.length),
-            style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary),
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textSecondary,
+            ),
           ),
         ),
         if (items.isEmpty)
@@ -228,8 +232,8 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
             ),
           )
         else ...[
-          const SizedBox(height: 14),
-          _TermChips(items: items, onTap: _toggleTip, selected: _tipTerm),
+          const SizedBox(height: 18),
+          _TermChips(items: items, onTap: _toggleTip),
           const SizedBox(height: 6),
           for (final item in items) ...[
             const Divider(height: 1, thickness: 1, color: _rowDivider),
@@ -308,15 +312,10 @@ class _NewsHeader extends StatelessWidget {
 
 /// 오늘 목록에 걸린 용어를 칩으로 훑어 준다. 누르면 뜻이 말풍선으로 뜬다.
 class _TermChips extends StatelessWidget {
-  const _TermChips({
-    required this.items,
-    required this.onTap,
-    required this.selected,
-  });
+  const _TermChips({required this.items, required this.onTap});
 
   final List<NewsItem> items;
   final void Function(FinanceTerm term, Rect anchor) onTap;
-  final FinanceTerm? selected;
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +335,8 @@ class _TermChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: _pagePad),
         itemCount: terms.length + 1,
-        separatorBuilder: (context, index) => const SizedBox(width: 6),
+        separatorBuilder: (context, index) =>
+            SizedBox(width: index == 0 ? 12 : 7),
         itemBuilder: (context, index) {
           if (index == 0) {
             return const Center(
@@ -345,7 +345,7 @@ class _TermChips extends StatelessWidget {
                 child: Text(
                   '오늘의 용어',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.textPrimary,
                   ),
@@ -356,8 +356,7 @@ class _TermChips extends StatelessWidget {
           final term = terms[index - 1];
           return _TermChip(
             term: term,
-            palette: _chipPalette[(index - 1) % _chipPalette.length],
-            active: selected?.term == term.term,
+            color: _chipPalette[(index - 1) % _chipPalette.length],
             onTap: onTap,
           );
         },
@@ -369,14 +368,12 @@ class _TermChips extends StatelessWidget {
 class _TermChip extends StatefulWidget {
   const _TermChip({
     required this.term,
-    required this.palette,
-    required this.active,
+    required this.color,
     required this.onTap,
   });
 
   final FinanceTerm term;
-  final (Color, Color) palette;
-  final bool active;
+  final Color color;
   final void Function(FinanceTerm term, Rect anchor) onTap;
 
   @override
@@ -401,20 +398,17 @@ class _TermChipState extends State<_TermChip> {
         behavior: HitTestBehavior.opaque,
         onTap: _handleTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: widget.palette.$1,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: widget.palette.$2,
-              width: widget.active ? 1.4 : 1,
-            ),
+          // Figma: 테두리 없는 알약 모양, 이모지와 용어를 붙여 쓴다.
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: ShapeDecoration(
+            color: widget.color,
+            shape: const StadiumBorder(),
           ),
           child: Text(
-            '${_emoji(widget.term.categoryId)} ${widget.term.term}',
+            '${_emoji(widget.term.categoryId)}${widget.term.term}',
             style: const TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: AppTheme.textPrimary,
             ),
           ),

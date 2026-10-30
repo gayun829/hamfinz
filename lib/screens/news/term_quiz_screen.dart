@@ -746,7 +746,7 @@ class _PrimaryButton extends StatelessWidget {
           disabledForegroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(_radius),
           ),
         ),
         child: AnimatedSwitcher(
