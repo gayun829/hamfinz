@@ -29,6 +29,10 @@ class AppTheme {
   static const figmaNewsBanner = Color(0xFFB7F1F3);
   static const figmaSpeechBubble = Color(0xFFF5FAFF);
 
+  /// Figma 줄 높이 `auto`(Pretendard 기본값). 머티리얼 본문 기본값 1.43을 그대로 두면
+  /// 시안보다 글줄 사이와 글자 위아래가 벌어진다.
+  static const figmaAutoLineHeight = 1.19;
+
   static ThemeData get theme {
     return ThemeData(
       useMaterial3: true,
@@ -63,6 +67,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(16),
           ),
           textStyle: const TextStyle(
+            fontFamily: 'Pretendard',
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -77,6 +82,7 @@ class AppTheme {
           side: const BorderSide(color: primaryBlue, width: 2),
           foregroundColor: primaryBlue,
           textStyle: const TextStyle(
+            fontFamily: 'Pretendard',
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
