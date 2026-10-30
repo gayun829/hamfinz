@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../theme/figma_settings_tokens.dart';
 import 'figma/figma_asset_image.dart';
 import 'figma/figma_scale.dart';
+import 'figma/stroked_text.dart';
 
 /// 학습 과정 시트 (Figma `539:2373` 마이페이지_학습과정).
 ///
@@ -310,9 +311,12 @@ class _StageChip extends StatelessWidget {
             Padding(
               padding: EdgeInsets.only(top: figma.s(9)),
               child: Center(
-                child: Text(
+                child: StrokedText(
                   '$stage',
                   style: FigmaSettingsTokens.stageNumberStyle(figma.scale),
+                  color: Colors.white,
+                  strokeWidth:
+                      figma.s(FigmaSettingsTokens.stageNumberStrokeWidth),
                 ),
               ),
             ),

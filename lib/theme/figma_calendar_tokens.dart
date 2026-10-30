@@ -17,15 +17,19 @@ abstract final class FigmaCalendarTokens {
   static const streakTeal = Color(0xFF60CCC9);
   static const barTrack = Color(0xFFD9D9D9);
   static const pauseFill = Color(0xFF60CCC9);
+  /// `546:3681` 채움: 20.157%까지 `rgba(255,81,5,0.89)`, 아래로 `#FD9953`.
   static const streakBarTop = Color(0xE3FF5105);
+  static const streakBarTopStop = 0.20157;
   static const streakBarBottom = Color(0xFFFD9953);
 
   static const panelRadius = 16.0;
   static const cardRadius = 13.0;
-  static const barRadius = 50.0;
+  static const barRadius = 50.137;
 
   static const headerFlame = Size(21, 28.031);
-  static const streakFlame = Size(39.706, 52.999);
+
+  /// `546:3685` 연속학습_v04_1 불꽃 (Group 82).
+  static const streakFlame = Size(42.926, 57.514);
   static const dropFilled = Size(9, 15);
   static const dropFaded = Size(9, 15);
   static const dropMid = Size(10, 15);
@@ -39,7 +43,8 @@ abstract final class FigmaCalendarTokens {
   static const rank3Hamster = Size(61.569, 63.619);
   static const rank4Hamster = Size(56, 40);
 
-  static const streakBar = Size(15, 61);
+  /// `546:3680` 회색 트랙.
+  static const streakBar = Size(16.12, 65.555);
   static const streakBarFill = Size(15, 46);
   static const pauseBar = Size(69, 16);
   static const pauseBarFill = Size(49, 16);

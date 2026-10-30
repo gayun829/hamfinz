@@ -10,6 +10,7 @@ import 'figma_canvas.dart';
 import 'figma_scale.dart';
 import 'quiz_coin_bar.dart';
 import 'quiz_question_layout.dart';
+import 'stroked_text.dart';
 
 typedef _T = FigmaQuizQuestionTokens;
 
@@ -231,15 +232,16 @@ class FigmaQuizQuestionView extends StatelessWidget {
         height: _T.numberHeight,
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text(
+          child: StrokedText(
             '$questionNumber',
             style: TextStyle(
               fontFamily: FigmaQuizFonts.suit,
               fontSize: figma.s(_T.numberFontSize),
               fontWeight: FontWeight.w100,
-              color: showExplanation ? _T.explainNumber : _T.questionNumber,
               height: 1.3,
             ),
+            color: showExplanation ? _T.explainNumber : _T.questionNumber,
+            strokeWidth: figma.s(_T.numberStrokeWidth),
           ),
         ),
       ),

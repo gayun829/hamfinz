@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testapp/models/user_profile.dart';
 import 'package:testapp/screens/settings/settings_screen.dart';
 import 'package:testapp/theme/app_theme.dart';
+import 'package:testapp/widgets/figma/stroked_text.dart';
 
 void main() {
   Future<void> pumpSettings(
@@ -107,7 +108,10 @@ void main() {
   testWidgets('learning card shows the current stage on the flame',
       (tester) async {
     await pumpSettings(tester, const Size(393, 852), learningStage: 3);
-    expect(find.text('3'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is StrokedText && w.text == '3'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('tapping the learning card opens the stage sheet',
