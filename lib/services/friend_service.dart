@@ -41,6 +41,23 @@ class Friend {
   final String nickname;
 }
 
+/// 친구 순위에 보이는 햄스터 얼굴. 옷·무늬는 빼고 스킨·악세서리만 담는다.
+class FriendLook {
+  const FriendLook({this.skinId, this.accessoryIds = const []});
+
+  factory FriendLook.fromJson(
+    Map<String, dynamic>? data, {
+    String skinKey = 'skinId',
+    String accessoryKey = 'accessoryIds',
+  }) => FriendLook(
+    skinId: data?[skinKey] as String?,
+    accessoryIds: List<String>.from(data?[accessoryKey] as List? ?? const []),
+  );
+
+  final String? skinId;
+  final List<String> accessoryIds;
+}
+
 /// 캘린더 "이번 달 친구와의 경쟁"의 한 사람(나 포함).
 class FriendRankEntry {
   const FriendRankEntry({
@@ -48,12 +65,14 @@ class FriendRankEntry {
     required this.nickname,
     required this.streak,
     required this.isMe,
+    this.look = const FriendLook(),
   });
 
   final int rank;
   final String nickname;
   final int streak;
   final bool isMe;
+  final FriendLook look;
 }
 
 class FriendsRanking {
@@ -74,12 +93,14 @@ class FriendStreak {
     required this.streak,
     required this.lastQuizCompletedDate,
     this.isMe = false,
+    this.look = const FriendLook(),
   });
 
   final String nickname;
   final int streak;
   final String? lastQuizCompletedDate;
   final bool isMe;
+  final FriendLook look;
 }
 
 /// 마지막 학습일이 오늘·어제가 아니면 연속학습은 이미 끊긴 것이라 0으로 보고
@@ -110,6 +131,7 @@ List<FriendRankEntry> rankFriendStreaks(
         nickname: sorted[i].nickname,
         streak: effective(sorted[i]),
         isMe: sorted[i].isMe,
+        look: sorted[i].look,
       ),
   ];
 }
@@ -127,6 +149,7 @@ class FriendService {
   final _emails = FirebaseFirestore.instance.collection('emails');
   final _friendships = FirebaseFirestore.instance.collection('friendships');
   final _streaks = FirebaseFirestore.instance.collection('streaks');
+  final _looks = FirebaseFirestore.instance.collection('looks');
 
   String get _myUid => _auth.currentUser!.uid;
 
@@ -314,8 +337,9 @@ class FriendService {
   }
 
   /// 나와 친구들의 연속학습 순위. 친구의 `users` 문서는 못 읽으니 친구만 읽을 수
-  /// 있는 `streaks/{uid}` 인덱스에서 연속학습을 가져온다. 인덱스가 아직 없는
-  /// 친구(업데이트 후 로그인·학습 전)는 연속학습 0으로 둔다.
+  /// 있는 `streaks/{uid}`·`looks/{uid}` 인덱스에서 연속학습과 얼굴을 가져온다.
+  /// 인덱스가 아직 없는 친구(업데이트 후 로그인·학습 전)는 연속학습 0, 기본
+  /// 얼굴로 둔다.
   Future<FriendsRanking> getFriendsRanking() async {
     final myUid = _myUid;
     final friends = await getFriends();
@@ -323,12 +347,18 @@ class FriendService {
     final friendStreaks = await Future.wait(
       friends.map((f) => _streaks.doc(f.uid).get()),
     );
+    final friendLooks = await Future.wait(friends.map((f) => _lookOf(f.uid)));
     final people = [
       FriendStreak(
         nickname: me['nickname'] as String? ?? '',
         streak: (me['streak'] as num?)?.toInt() ?? 0,
         lastQuizCompletedDate: me['lastQuizCompletedDate'] as String?,
         isMe: true,
+        look: FriendLook.fromJson(
+          me,
+          skinKey: 'equippedSkinId',
+          accessoryKey: 'equippedAccessoryIds',
+        ),
       ),
       for (var i = 0; i < friends.length; i++)
         FriendStreak(
@@ -336,6 +366,7 @@ class FriendService {
           streak: (friendStreaks[i].data()?['streak'] as num?)?.toInt() ?? 0,
           lastQuizCompletedDate:
               friendStreaks[i].data()?['lastQuizCompletedDate'] as String?,
+          look: friendLooks[i],
         ),
     ];
     return FriendsRanking(
@@ -346,6 +377,16 @@ class FriendService {
         yesterday: DateHelper.yesterdayKey(),
       ),
     );
+  }
+
+  /// 친구의 얼굴. `looks` Rules 배포 전이라 막혀도 순위는 보여야 하니 기본
+  /// 얼굴로 둔다.
+  Future<FriendLook> _lookOf(String uid) async {
+    try {
+      return FriendLook.fromJson((await _looks.doc(uid).get()).data());
+    } on FirebaseException catch (_) {
+      return const FriendLook();
+    }
   }
 
   /// 내 `users` 문서의 연속학습을 친구 공개용 `streaks/{uid}`에 옮겨 적는다.

@@ -72,4 +72,50 @@ void main() {
     );
     expect(ranked.map((e) => e.isMe), [true, false]);
   });
+
+  test('keeps each face with its person after sorting', () {
+    final ranked = rankFriendStreaks(
+      const [
+        FriendStreak(
+          nickname: '느림',
+          streak: 1,
+          lastQuizCompletedDate: today,
+          look: FriendLook(skinId: 'skin_black'),
+        ),
+        FriendStreak(
+          nickname: '빠름',
+          streak: 5,
+          lastQuizCompletedDate: today,
+          look: FriendLook(
+            skinId: 'skin_bee',
+            accessoryIds: ['accessory_perm'],
+          ),
+        ),
+      ],
+      today: today,
+      yesterday: yesterday,
+    );
+    expect(ranked.map((e) => e.look.skinId), ['skin_bee', 'skin_black']);
+    expect(ranked.first.look.accessoryIds, ['accessory_perm']);
+  });
+
+  test('reads a face from the looks index or the users document', () {
+    final fromIndex = FriendLook.fromJson({
+      'skinId': 'skin_ninja',
+      'accessoryIds': ['accessory_perm'],
+    });
+    expect(fromIndex.skinId, 'skin_ninja');
+    expect(fromIndex.accessoryIds, ['accessory_perm']);
+
+    final fromUser = FriendLook.fromJson(
+      {'equippedSkinId': 'skin_bee'},
+      skinKey: 'equippedSkinId',
+      accessoryKey: 'equippedAccessoryIds',
+    );
+    expect(fromUser.skinId, 'skin_bee');
+    expect(fromUser.accessoryIds, isEmpty);
+
+    // looks 문서가 아직 없는 친구는 기본 얼굴이다.
+    expect(FriendLook.fromJson(null).skinId, isNull);
+  });
 }

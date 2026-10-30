@@ -5,6 +5,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // friendships 문서 id는 두 uid를 정렬해 이어붙인 것이라 두 순서를 다 확인한다.
+    function isAcceptedFriend(uid) {
+      let a = /databases/$(database)/documents/friendships/$(request.auth.uid + '_' + uid);
+      let b = /databases/$(database)/documents/friendships/$(uid + '_' + request.auth.uid);
+      return (exists(a) && get(a).data.status == 'accepted')
+        || (exists(b) && get(b).data.status == 'accepted');
+    }
+
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
 
@@ -120,15 +128,8 @@ service cloud.firestore {
     // 쓰기는 본인 users 문서와 값이 같을 때만 허용한다. 프로덕션에서 users의 streak은
     // Functions 전용이라 이 인덱스도 부풀릴 수 없다.
     match /streaks/{uid} {
-      function isFriend() {
-        let a = /databases/$(database)/documents/friendships/$(request.auth.uid + '_' + uid);
-        let b = /databases/$(database)/documents/friendships/$(uid + '_' + request.auth.uid);
-        return (exists(a) && get(a).data.status == 'accepted')
-          || (exists(b) && get(b).data.status == 'accepted');
-      }
-
       allow read: if request.auth != null
-        && (request.auth.uid == uid || isFriend());
+        && (request.auth.uid == uid || isAcceptedFriend(uid));
 
       allow create, update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['streak', 'lastQuizCompletedDate'])
@@ -136,6 +137,22 @@ service cloud.firestore {
              == get(/databases/$(database)/documents/users/$(uid)).data.get('streak', 0)
         && request.resource.data.lastQuizCompletedDate
              == get(/databases/$(database)/documents/users/$(uid)).data.get('lastQuizCompletedDate', null);
+
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // looks: 친구 순위에 보이는 햄스터 얼굴(스킨·악세서리). streaks와 같은 방식 —
+    // 읽기는 본인과 수락된 친구만, 쓰기는 본인 users 문서의 착용 값과 같을 때만.
+    match /looks/{uid} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || isAcceptedFriend(uid));
+
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['skinId', 'accessoryIds'])
+        && request.resource.data.skinId
+             == get(/databases/$(database)/documents/users/$(uid)).data.get('equippedSkinId', null)
+        && request.resource.data.accessoryIds
+             == get(/databases/$(database)/documents/users/$(uid)).data.get('equippedAccessoryIds', []);
 
       allow delete: if request.auth != null && request.auth.uid == uid;
     }

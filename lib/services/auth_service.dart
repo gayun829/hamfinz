@@ -25,6 +25,7 @@ class AuthService {
   final _emails = FirebaseFirestore.instance.collection('emails');
   final _friendships = FirebaseFirestore.instance.collection('friendships');
   final _streaks = FirebaseFirestore.instance.collection('streaks');
+  final _looks = FirebaseFirestore.instance.collection('looks');
 
   Future<String?> getCurrentEmail() async => _auth.currentUser?.email;
 
@@ -506,11 +507,27 @@ class AuthService {
     } on FirebaseException catch (_) {}
   }
 
+  /// 친구 순위에 보이는 얼굴용 `looks/{uid}`를 users 문서의 착용 값으로 맞춘다.
+  /// [_publishStreak]과 같이 로그인마다 덮어쓰고, 실패해도 막지 않는다 —
+  /// 친구에게 내 햄스터가 기본 얼굴로 보일 뿐이다.
+  Future<void> _publishLook(String uid, Map<String, dynamic>? user) async {
+    if (user == null) return;
+    try {
+      await _looks.doc(uid).set({
+        'skinId': user['equippedSkinId'] as String?,
+        'accessoryIds': List<String>.from(
+          user['equippedAccessoryIds'] as List? ?? const [],
+        ),
+      });
+    } on FirebaseException catch (_) {}
+  }
+
   /// nicknames/emails 인덱스가 생기기 전에 가입한 기존 계정을 위한 백필.
   /// 로그인할 때마다 호출하되, 내 uid로 인덱스가 이미 있으면 아무 것도 안 해서 저렴하다.
   Future<void> _backfillSearchIndexes(User user) async {
     final profileDoc = await _users.doc(user.uid).get();
     await _publishStreak(user.uid, profileDoc.data());
+    await _publishLook(user.uid, profileDoc.data());
     final nickname = profileDoc.data()?['nickname'] as String?;
     if (nickname == null || nickname.isEmpty) return;
 
@@ -553,11 +570,16 @@ class AuthService {
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw StateError('로그인이 필요해요.');
+    final accessories = accessoryIds.take(1).toList();
     await _users.doc(user.uid).update({
       'equippedSkinId': skinId,
       'equippedPatternId': patternId,
       'equippedBackgroundId': backgroundId,
-      'equippedAccessoryIds': accessoryIds.take(1).toList(),
+      'equippedAccessoryIds': accessories,
+    });
+    await _publishLook(user.uid, {
+      'equippedSkinId': skinId,
+      'equippedAccessoryIds': accessories,
     });
   }
 
@@ -610,6 +632,7 @@ class AuthService {
       // 막혀도 탈퇴는 계속한다.
       try {
         await _streaks.doc(user.uid).delete();
+        await _looks.doc(user.uid).delete();
       } on FirebaseException catch (_) {}
       await _users.doc(user.uid).delete();
 
