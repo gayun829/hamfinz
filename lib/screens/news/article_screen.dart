@@ -180,7 +180,8 @@ class _ArticleScreenState extends State<ArticleScreen> {
                   child: FilledButton(
                     onPressed: () => onStartQuiz(widget.url, widget.title),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.figmaTeal,
+                      // Figma 뉴스 화면 버튼 하늘색.
+                      backgroundColor: const Color(0xFF3CC6FF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

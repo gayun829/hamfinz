@@ -15,7 +15,7 @@ String _titleFor(FinanceTerm term) {
 }
 
 String _chipLabel(FinanceTerm term) =>
-    '${findInterestCategory(term.categoryId)?.emoji ?? '📰'} ${term.term}';
+    '${findInterestCategory(term.categoryId)?.emoji ?? '📰'}${term.term}';
 
 /// 뜻이 있는 용어 3개.
 ///
