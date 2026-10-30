@@ -17,9 +17,7 @@ void main() {
     expect(find.byTooltip('친구 추가'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('only the streak running into today is joined by a band', (
-    tester,
-  ) async {
+  testWidgets('consecutive study days are joined by a band', (tester) async {
     final now = DateHelper.koreaNow();
     // 한 달 안에서만 확인하도록 월 초에는 건너뛴다.
     if (now.day < 5) return;
@@ -38,20 +36,30 @@ void main() {
     expect(find.byKey(ValueKey('streak-band-$today')), findsOneWidget);
     expect(find.byKey(ValueKey('streak-band-${daysAgo(1)}')), findsOneWidget);
     expect(find.byKey(ValueKey('streak-band-${daysAgo(2)}')), findsOneWidget);
-    // 끊긴 과거 학습일은 띠 없이 동그라미만.
+    // 하루만 공부한 날은 띠 없이 동그라미만.
     expect(find.byKey(ValueKey('streak-band-${daysAgo(4)}')), findsNothing);
     expect(find.byKey(ValueKey('study-circle-${daysAgo(4)}')), findsOneWidget);
 
-    // 오늘 아직 안 했으면 띠 없이 동그라미만 보인다.
+    // 오늘 아직 안 했으면 어제까지 잇고 햄스터는 어제에 얹는다.
     await tester.pumpWidget(
       MaterialApp(
         home: StreakCalendarScreen(completedDates: {daysAgo(2), daysAgo(1)}),
       ),
     );
     expect(find.byKey(ValueKey('today-hamster-$today')), findsNothing);
-    expect(find.byKey(ValueKey('streak-band-${daysAgo(1)}')), findsNothing);
-    expect(find.byKey(ValueKey('study-circle-${daysAgo(1)}')), findsOneWidget);
-    expect(find.byKey(ValueKey('study-circle-${daysAgo(2)}')), findsOneWidget);
+    expect(find.byKey(ValueKey('today-hamster-${daysAgo(1)}')), findsOneWidget);
+    expect(find.byKey(ValueKey('streak-band-${daysAgo(1)}')), findsOneWidget);
+    expect(find.byKey(ValueKey('streak-band-${daysAgo(2)}')), findsOneWidget);
+
+    // 이미 끊긴 지난 연속도 띠로 잇되, 햄스터는 얹지 않는다.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StreakCalendarScreen(completedDates: {daysAgo(4), daysAgo(3)}),
+      ),
+    );
+    expect(find.byKey(ValueKey('streak-band-${daysAgo(4)}')), findsOneWidget);
+    expect(find.byKey(ValueKey('streak-band-${daysAgo(3)}')), findsOneWidget);
+    expect(find.byKey(ValueKey('today-hamster-${daysAgo(3)}')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
