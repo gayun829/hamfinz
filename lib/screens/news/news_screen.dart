@@ -278,11 +278,7 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
 
   String _subtitle(int count) {
     if (count == 0) return '지금 가장 핫한 금융 뉴스';
-    final at = NewsService.cachedAt;
-    if (at == null) return '지금 가장 핫한 금융 뉴스 TOP $count';
-    final gap = DateTime.now().difference(at);
-    final when = gap.inMinutes < 1 ? '방금' : '${gap.inMinutes}분 전';
-    return '지금 가장 핫한 금융 뉴스 TOP $count · $when 업데이트';
+    return '지금 가장 핫한 금융 뉴스 TOP $count';
   }
 }
 
