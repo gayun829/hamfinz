@@ -51,7 +51,9 @@ void main() {
               itemName: '닌자 옷',
               price: 150,
               balance: () => balance,
-              avatar: const ShopAvatar(
+              avatar: const ShopAvatar(patternId: 'clothing_ninja'),
+              receiptAvatar: const ShopAvatar(
+                skinId: 'skin_dinosaur',
                 patternId: 'clothing_ninja',
                 accessoryIds: ['accessory_ninja'],
               ),
@@ -65,7 +67,8 @@ void main() {
         await tester.pump();
         final avatar = tester.widget<ShopAvatar>(find.byType(ShopAvatar));
         expect(avatar.patternId, 'clothing_ninja');
-        expect(avatar.accessoryIds, ['accessory_ninja']);
+        expect(avatar.skinId, isNull);
+        expect(avatar.accessoryIds, isEmpty);
         await tester.ensureVisible(find.text('구매하기'));
         await tester.tap(find.text('구매하기'));
         await tester.pump();
@@ -82,6 +85,10 @@ void main() {
         expect(
           tester.widget<ShopAvatar>(find.byType(ShopAvatar)).patternId,
           'clothing_ninja',
+        );
+        expect(
+          tester.widget<ShopAvatar>(find.byType(ShopAvatar)).skinId,
+          'skin_dinosaur',
         );
         expect(tester.takeException(), isNull);
       },

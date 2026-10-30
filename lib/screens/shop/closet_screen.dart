@@ -226,6 +226,25 @@ class _ClosetScreenState extends State<ClosetScreen> {
             balance: () => _profile.seeds,
             avatar: ShopAvatar(
               catalogItems: _catalogItems,
+              skinId:
+                  item.category == ShopCategory.skin ||
+                      item.category == ShopCategory.bundle
+                  ? item.id
+                  : null,
+              patternId:
+                  item.category == ShopCategory.clothing ||
+                      item.category == ShopCategory.pattern
+                  ? item.id
+                  : null,
+              backgroundId: item.category == ShopCategory.background
+                  ? item.id
+                  : null,
+              accessoryIds: item.category == ShopCategory.accessory
+                  ? [item.id]
+                  : const [],
+            ),
+            receiptAvatar: ShopAvatar(
+              catalogItems: _catalogItems,
               skinId: _stagedSkinId,
               patternId: _stagedPatternId,
               backgroundId: _stagedBackgroundId,
