@@ -283,8 +283,11 @@ class FigmaQuizQuestionView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: FigmaQuizFonts.pretendard,
-                    fontSize: figma.s(_T.optionFontSize),
-                    fontWeight: FontWeight.w400,
+                    // Figma 정오답 프레임(`639:2873`)만 Regular 18이고 나머지는 SemiBold 20이다.
+                    fontSize: figma.s(
+                      showAnswer ? _T.gradedOptionFontSize : _T.optionFontSize,
+                    ),
+                    fontWeight: showAnswer ? FontWeight.w400 : FontWeight.w600,
                     color: Colors.black,
                     height: 1.2,
                   ),

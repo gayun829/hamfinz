@@ -143,7 +143,7 @@ abstract final class FigmaSettingsTokens {
   static TextStyle menuStyle(double scale, {bool destructive = false}) =>
       TextStyle(
         fontSize: 16 * scale,
-        fontWeight: destructive ? FontWeight.w400 : FontWeight.w500,
+        fontWeight: FontWeight.w500,
         color: destructive ? FigmaSettingsTokens.destructive : Colors.black,
       );
 }
