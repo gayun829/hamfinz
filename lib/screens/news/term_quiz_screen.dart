@@ -5,7 +5,9 @@ import '../../constants/figma_assets.dart';
 import '../../data/finance_terms.dart';
 import '../../services/news_quiz_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/figma_quiz_fonts.dart';
 import '../../widgets/figma/figma_asset_image.dart';
+import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/home_bottom_nav.dart';
 
 /// 기사에서 잡은 금융 용어 하나를 가르치고 3지선다 한 문제로 묻는다.
@@ -50,11 +52,17 @@ class TermQuizScreen extends StatefulWidget {
   State<TermQuizScreen> createState() => _TermQuizScreenState();
 }
 
-/// Figma `뉴스_퀴즈창` 바탕. 순백이 아니라 아주 옅은 회색이다.
-const _quizBg = Color(0xFFFAFAFA);
+/// Figma `뉴스_퀴즈창`(`137:6383`) 바탕. 순백이 아니라 아주 옅은 회색이다.
+const _quizBg = Color(0xFFFBFBFB);
 
-/// 보기·상자 공통 모서리.
-const _radius = 12.0;
+/// 보기·상자·버튼 공통 모서리.
+const _radius = 13.0;
+
+/// 보기·상자 공통 테두리 두께.
+const _borderWidth = 1.95;
+
+/// `뉴스_해설`의 Q. 정답 보기 테두리보다 진한 노랑이다.
+const _explainAccent = Color(0xFFFFCB5A);
 
 enum _Stage { learn, question, graded, explain }
 
@@ -108,118 +116,134 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _quizBg,
-      body: Column(
-        children: [
-          Expanded(
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                // Figma 뉴스_정오답: 내용 덩어리는 좌우 41씩 들여서 가운데에 둔다.
-                padding: const EdgeInsets.fromLTRB(41, 8, 41, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 뒤로 가기만 내용보다 바깥(화면 왼쪽 24)에 붙는다.
-                    Transform.translate(
-                      offset: const Offset(-17, 0),
-                      child: _BackChevron(onTap: _exit),
-                    ),
-                    const SizedBox(height: 70),
-                    _StageSwitcher(
-                      child: _stage == _Stage.learn
-                          ? _LearnHeader(
-                              key: const ValueKey('learn'),
-                              term: widget.term.term,
-                              reward: NewsQuizRepository.seedsPerCorrect,
-                              showReward: _showReward,
-                            )
-                          : Column(
-                              key: const ValueKey('question'),
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _QuestionHeader(
-                                  reward: NewsQuizRepository.seedsPerCorrect,
-                                  showReward: _showReward,
-                                  // 해설 장면에서는 Q도 정답 보기와 같은 노랑이 된다.
-                                  color: _stage == _Stage.explain
-                                      ? _OptionStyle.answer.border
-                                      : _OptionStyle.accent,
-                                ),
-                                const SizedBox(height: 18),
-                                Text(
-                                  _quiz.question,
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    height: 1.45,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
+      body: DefaultTextStyle.merge(
+        style: const TextStyle(height: AppTheme.figmaAutoLineHeight),
+        child: Column(
+          children: [
+            Expanded(
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  // Figma 뉴스_정오답: 내용 덩어리는 좌우 41씩 들여서 가운데에 둔다.
+                  padding: const EdgeInsets.fromLTRB(41, 10, 41, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 뒤로 가기만 내용보다 바깥(화면 왼쪽 26)에 붙는다.
+                      Transform.translate(
+                        offset: const Offset(-23, 0),
+                        child: _BackChevron(onTap: _exit),
+                      ),
+                      const SizedBox(height: 55),
+                      _StageSwitcher(
+                        child: _stage == _Stage.learn
+                            ? _LearnHeader(
+                                key: const ValueKey('learn'),
+                                term: widget.term.term,
+                                reward: NewsQuizRepository.seedsPerCorrect,
+                                showReward: _showReward,
+                              )
+                            : Column(
+                                key: const ValueKey('question'),
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _QuestionHeader(
+                                    reward: NewsQuizRepository.seedsPerCorrect,
+                                    showReward: _showReward,
+                                    // 해설 장면에서는 Q도 정답 보기와 같은 노랑이 된다.
+                                    color: _stage == _Stage.explain
+                                        ? _explainAccent
+                                        : _OptionStyle.accent,
                                   ),
-                                ),
-                              ],
-                            ),
-                    ),
-                    const SizedBox(height: 56),
-                    // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _StageSwitcher(
-                              child: switch (_stage) {
-                                _Stage.learn => KeyedSubtree(
-                                  key: const ValueKey('learn'),
-                                  child: _buildLearn(),
-                                ),
-                                _Stage.explain => KeyedSubtree(
-                                  key: const ValueKey('explain'),
-                                  child: _buildExplain(),
-                                ),
-                                _ => Column(
-                                  key: const ValueKey('options'),
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    // 배너가 끼어들 때 보기가 툭 밀리지 않고 미끄러지게.
-                                    AnimatedSize(
-                                      duration: const Duration(
-                                        milliseconds: 220,
-                                      ),
-                                      curve: Curves.easeOut,
-                                      child: _stage == _Stage.graded
-                                          ? Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 16,
-                                              ),
-                                              child: _Verdict(
-                                                correct: _isCorrect,
-                                                earned: _earned,
-                                              ),
-                                            )
-                                          : const SizedBox(
-                                              width: double.infinity,
-                                            ),
+                                  const SizedBox(height: 15),
+                                  // 문제가 한 줄이어도 보기 시작 위치(323)는 그대로다.
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      minHeight: 107,
                                     ),
-                                    _buildOptions(),
-                                  ],
-                                ),
-                              },
-                            ),
-                            const SizedBox(height: 40),
-                            _buildButton(),
-                          ],
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 15,
+                                        right: 28,
+                                        bottom: 12,
+                                      ),
+                                      child: Text(
+                                        _quiz.question,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                      // 학습 단계는 시안에 없어서 문제 영역 높이가 없다.
+                      SizedBox(height: _stage == _Stage.learn ? 56 : 0),
+                      // Figma대로 버튼은 바닥에 붙이지 않고 보기 바로 아래에 둔다.
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _StageSwitcher(
+                                child: switch (_stage) {
+                                  _Stage.learn => KeyedSubtree(
+                                    key: const ValueKey('learn'),
+                                    child: _buildLearn(),
+                                  ),
+                                  _Stage.explain => KeyedSubtree(
+                                    key: const ValueKey('explain'),
+                                    child: _buildExplain(),
+                                  ),
+                                  _ => Column(
+                                    key: const ValueKey('options'),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      // 배너가 끼어들 때 보기가 툭 밀리지 않고 미끄러지게.
+                                      AnimatedSize(
+                                        duration: const Duration(
+                                          milliseconds: 220,
+                                        ),
+                                        curve: Curves.easeOut,
+                                        child: _stage == _Stage.graded
+                                            ? Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 16,
+                                                ),
+                                                child: _Verdict(
+                                                  correct: _isCorrect,
+                                                  earned: _earned,
+                                                ),
+                                              )
+                                            : const SizedBox(
+                                                width: double.infinity,
+                                              ),
+                                      ),
+                                      _buildOptions(),
+                                    ],
+                                  ),
+                                },
+                              ),
+                              const SizedBox(height: 40),
+                              _buildButton(),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // 퀴즈도 탭 안의 한 장면처럼 보이게 하단 탭을 그대로 둔다.
-          // 누르면 뉴스 탭으로 돌아간다 — 탭 전환은 MainShell 몫이라 여기서 안 한다.
-          HomeBottomNav(currentIndex: 0, onTap: (_) => _exit()),
-        ],
+            // 퀴즈도 탭 안의 한 장면처럼 보이게 하단 탭을 그대로 둔다.
+            // 누르면 뉴스 탭으로 돌아간다 — 탭 전환은 MainShell 몫이라 여기서 안 한다.
+            HomeBottomNav(currentIndex: 0, onTap: (_) => _exit()),
+          ],
+        ),
       ),
     );
   }
@@ -237,11 +261,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
         ),
         if (term.forMe.isNotEmpty) ...[
           const SizedBox(height: 10),
-          _LearnBox(
-            label: '나한테는?',
-            body: term.forMe,
-            accent: _OptionStyle.answer.border,
-          ),
+          _LearnBox(label: '나한테는?', body: term.forMe, accent: _explainAccent),
         ],
       ],
     );
@@ -252,7 +272,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
     return Column(
       children: [
         for (final i in _order) ...[
-          if (i != _order.first) const SizedBox(height: 14),
+          if (i != _order.first) const SizedBox(height: 12),
           _OptionBox(
             label: options[i],
             style: _styleFor(i),
@@ -300,16 +320,19 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
           style: _OptionStyle.answer,
           onTap: null,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Container(
           width: double.infinity,
           // Figma 해설 상자는 내용이 짧아도 높이를 유지한다.
-          constraints: const BoxConstraints(minHeight: 132),
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          constraints: const BoxConstraints(minHeight: 140),
+          padding: const EdgeInsets.fromLTRB(15, 16, 14, 15),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: _OptionStyle.idle.border),
+            border: Border.all(
+              color: _OptionStyle.idle.border,
+              width: _borderWidth,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,11 +350,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               const SizedBox(height: 8),
               Text(
                 _quiz.why,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.55,
-                  color: Colors.black,
-                ),
+                style: const TextStyle(fontSize: 18, color: Colors.black),
               ),
               if (term.summary.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -372,7 +391,7 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
   }
 }
 
-/// Figma 좌상단 `<`. 얇고 연한 회색이라 기본 AppBar 화살표 대신 직접 그린다.
+/// Figma 좌상단 `<`(10.6×21.1, `#D9D9D9` 획 3). 기본 AppBar 화살표 대신 직접 그린다.
 class _BackChevron extends StatelessWidget {
   const _BackChevron({required this.onTap});
 
@@ -385,17 +404,38 @@ class _BackChevron extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        child: const Padding(
-          padding: EdgeInsets.all(8),
-          child: Icon(
-            Icons.arrow_back_ios_new,
-            size: 18,
-            color: Color(0xFFB0B0B0),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: CustomPaint(
+            size: const Size(10.6, 21.1),
+            painter: _BackChevronPainter(),
           ),
         ),
       ),
     );
   }
+}
+
+class _BackChevronPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width, 0)
+      ..lineTo(0, size.height / 2)
+      ..lineTo(size.width, size.height);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFFD9D9D9),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// 학습 단계 머리 — 용어 이름과 씨앗 배지. `Q` 자리에 용어가 온다.
@@ -467,7 +507,10 @@ class _LearnBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _OptionStyle.idle.border),
+        border: Border.all(
+          color: _OptionStyle.idle.border,
+          width: _borderWidth,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,27 +552,38 @@ class _QuestionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 250),
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
-            color: color,
-            height: 1,
+    return Padding(
+      // Figma: Q는 보기보다 13 안쪽(x=54), 배지는 Q 바로 옆(x=92)에 붙는다.
+      padding: const EdgeInsets.only(left: 13),
+      child: Row(
+        children: [
+          TweenAnimationBuilder<Color?>(
+            tween: ColorTween(end: color),
+            duration: const Duration(milliseconds: 250),
+            builder: (context, value, _) => StrokedText(
+              'Q',
+              style: const TextStyle(
+                fontFamily: FigmaQuizFonts.suit,
+                fontSize: 32.088,
+                fontWeight: FontWeight.w100,
+                height: 1.309,
+              ),
+              color: value ?? color,
+              // Figma 바깥쪽 1.3px = Flutter 가운데 정렬 stroke 2.6px.
+              strokeWidth: 2.6,
+            ),
           ),
-          child: const Text('Q'),
-        ),
-        if (showReward) ...[
-          const SizedBox(width: 8),
-          _SeedBadge(reward: reward),
+          if (showReward) ...[
+            const SizedBox(width: 10),
+            _SeedBadge(reward: reward),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
+/// Figma `Group 384`: 53×26.1 알약에 씨앗 아이콘과 `+N`.
 class _SeedBadge extends StatelessWidget {
   const _SeedBadge({required this.reward});
 
@@ -538,33 +592,49 @@ class _SeedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+      constraints: const BoxConstraints(minWidth: 53, minHeight: 26.1),
+      padding: const EdgeInsets.fromLTRB(8.6, 4, 8, 4),
       decoration: BoxDecoration(
-        color: AppTheme.figmaMintCard,
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFD9FAFF),
+        borderRadius: BorderRadius.circular(16.83),
       ),
-      child: _SeedAmount(
-        amount: reward,
-        size: 10,
-        color: AppTheme.textPrimary,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox.square(
+            dimension: 16.5,
+            child: FigmaSvg(
+              FigmaAssets.homeBeginnerStatCoin,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 2.7),
+          Text(
+            '+$reward',
+            style: const TextStyle(
+              fontFamily: FigmaQuizFonts.inter,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF616161),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// 홈 상단 씨앗 아이콘 + `+N`. 배지·판정 배너·해설이 같은 모양을 쓴다.
+/// 홈 상단 씨앗 아이콘 + `+N`. 판정 배너·해설이 같은 모양을 쓴다.
 class _SeedAmount extends StatelessWidget {
   const _SeedAmount({
     required this.amount,
     required this.size,
     this.label = '',
-    this.color = AppTheme.figmaTeal,
   });
 
   final int amount;
   final double size;
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -584,7 +654,7 @@ class _SeedAmount extends StatelessWidget {
           style: TextStyle(
             fontSize: size,
             fontWeight: FontWeight.w800,
-            color: color,
+            color: AppTheme.figmaTeal,
           ),
         ),
       ],
@@ -617,7 +687,7 @@ class _Verdict extends StatelessWidget {
         decoration: BoxDecoration(
           color: style.background,
           borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: style.border, width: 1.6),
+          border: Border.all(color: style.border, width: _borderWidth),
         ),
         child: Row(
           children: [
@@ -638,8 +708,7 @@ class _Verdict extends StatelessWidget {
                 ),
               ),
             ),
-            if (earned > 0)
-              _SeedAmount(amount: earned, size: 14),
+            if (earned > 0) _SeedAmount(amount: earned, size: 14),
           ],
         ),
       ),
@@ -649,11 +718,11 @@ class _Verdict extends StatelessWidget {
 
 /// 보기 상자의 색 조합. Figma 네 장면에서 쓰인 다섯 가지.
 enum _OptionStyle {
-  idle(Colors.white, Color(0xFFDADADA)),
+  idle(Colors.white, Color(0xFFD9D9D9)),
   picked(Colors.white, accent),
-  correct(Color(0xFFD6F4FF), Color(0xFF7DD3F7)),
-  wrong(Color(0xFFF8C9C9), Color(0xFFE5484D)),
-  answer(Color(0xFFFFF5C2), Color(0xFFF3D66B));
+  correct(Color(0xFFD4F4FF), Color(0xFF70D9FF)),
+  wrong(Color(0xFFFFC4C4), Color(0xFFFF3C3C)),
+  answer(Color(0xFFFFF8D3), Color(0xFFF9E08D));
 
   const _OptionStyle(this.background, this.border);
 
@@ -686,16 +755,13 @@ class _OptionBox extends StatelessWidget {
       borderRadius: BorderRadius.circular(_radius),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        constraints: const BoxConstraints(minHeight: 56),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        constraints: const BoxConstraints(minHeight: 64),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: style.background,
           borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(
-            color: style.border,
-            width: style == _OptionStyle.idle ? 1 : 1.6,
-          ),
+          border: Border.all(color: style.border, width: _borderWidth),
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -706,12 +772,7 @@ class _OptionBox extends StatelessWidget {
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  height: 1.35,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
-                ),
+                style: const TextStyle(fontSize: 18, color: Colors.black),
               ),
             ),
             if (mark != null)
@@ -735,7 +796,7 @@ class _PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 49,
+      height: 50,
       width: double.infinity,
       child: FilledButton(
         onPressed: onPressed,
@@ -754,7 +815,7 @@ class _PrimaryButton extends StatelessWidget {
           child: Text(
             label,
             key: ValueKey(label),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
       ),

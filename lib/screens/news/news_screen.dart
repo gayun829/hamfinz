@@ -13,20 +13,25 @@ import 'term_quiz_screen.dart';
 /// 목록에서 기사를 여는 콜백.
 typedef OpenArticle = void Function(NewsItem item);
 
-// Figma `뉴스화면` 393폭 프레임 값.
+// Figma `뉴스화면`(`579:2230`) 393폭 프레임 값.
 const _bg = Color(0xFFFBFBFB);
 const _headerBlue = Color(0xFF3CC6FF);
-const _rowDivider = Color(0xFFE8E8E8);
-const _thumbWidth = 132.0;
-const _thumbHeight = 88.0;
-const _pagePad = 20.0;
+const _rowDivider = Color(0xFFD9D9D9);
+const _rowDividerThickness = 1.3;
+const _thumbWidth = 127.0;
+const _thumbHeight = 90.0;
+const _thumbRadius = 8.18;
+const _pagePad = 22.0;
+const _metaGray = Color(0xFF8C8C8C);
+const _chipHeight = 21.1;
+const _chipFontSize = 11.06;
 
 /// 용어 칩 팔레트. 카테고리가 아니라 **줄에 놓인 순서**대로 돈다 —
 /// Figma에서 코스피와 ETF가 같은 주식 카테고리인데 색이 다르다.
 const _chipPalette = [
-  Color(0xFFB4E8FF),
+  Color(0xFFB4E9FF),
   Color(0xFFDFF5C4),
-  Color(0xFFFFD3C2),
+  Color(0xFFFFD3C3),
   Color(0xFFEAD9FF),
 ];
 
@@ -144,50 +149,66 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
 
     return ColoredBox(
       color: _bg,
-      child: SafeArea(
-        bottom: false,
+      child: DefaultTextStyle.merge(
+        style: const TextStyle(height: AppTheme.figmaAutoLineHeight),
         child: Stack(
-          key: _stackKey,
           children: [
-            Column(
-              children: [
-                const _NewsHeader(),
-                Expanded(
-                  // 재 둔 위치에 떠 있는 말풍선은 스크롤하면 칩과 어긋난다.
-                  // 세로 목록이든 가로 칩 줄이든 밀기 시작하면 닫는다.
-                  child: NotificationListener<ScrollStartNotification>(
-                    onNotification: (_) {
-                      _closeTip();
-                      return false;
-                    },
-                    child: FutureBuilder<List<NewsItem>>(
-                      future: _future,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState != ConnectionState.done) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        return RefreshIndicator(
-                          onRefresh: _refresh,
-                          child: _buildList(
-                            snapshot.data ?? const <NewsItem>[],
-                            snapshot.hasError,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
+            // Figma 머리띠는 상태바까지 파랗게 이어진다.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: MediaQuery.paddingOf(context).top,
+              child: const ColoredBox(color: _headerBlue),
             ),
-            // 말풍선은 목록 위에 떠야 해서 화면 맨 위 층에 그린다.
-            if (tipTerm != null && tipAnchor != null)
-              _TermTooltipLayer(
-                term: tipTerm,
-                anchor: tipAnchor,
-                onDismiss: _closeTip,
+            SafeArea(
+              bottom: false,
+              child: Stack(
+                key: _stackKey,
+                children: [
+                  Column(
+                    children: [
+                      const _NewsHeader(),
+                      Expanded(
+                        // 재 둔 위치에 떠 있는 말풍선은 스크롤하면 칩과 어긋난다.
+                        // 세로 목록이든 가로 칩 줄이든 밀기 시작하면 닫는다.
+                        child: NotificationListener<ScrollStartNotification>(
+                          onNotification: (_) {
+                            _closeTip();
+                            return false;
+                          },
+                          child: FutureBuilder<List<NewsItem>>(
+                            future: _future,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState !=
+                                  ConnectionState.done) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              return RefreshIndicator(
+                                onRefresh: _refresh,
+                                child: _buildList(
+                                  snapshot.data ?? const <NewsItem>[],
+                                  snapshot.hasError,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 말풍선은 목록 위에 떠야 해서 화면 맨 위 층에 그린다.
+                  if (tipTerm != null && tipAnchor != null)
+                    _TermTooltipLayer(
+                      term: tipTerm,
+                      anchor: tipAnchor,
+                      onDismiss: _closeTip,
+                    ),
+                ],
               ),
+            ),
           ],
         ),
       ),
@@ -199,19 +220,19 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        const SizedBox(height: 16),
+        const SizedBox(height: 21),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: _pagePad),
           child: Text(
             '오늘의 금융 뉴스',
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 9),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: _pagePad),
           child: Text(
@@ -219,7 +240,7 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
             style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textSecondary,
+              color: Color(0xFF7B7B7B),
             ),
           ),
         ),
@@ -232,14 +253,15 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
             ),
           )
         else ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: 25),
           _TermChips(items: items, onTap: _toggleTip),
-          const SizedBox(height: 6),
-          for (final item in items) ...[
-            const Divider(height: 1, thickness: 1, color: _rowDivider),
+          const SizedBox(height: 14),
+          // Figma 구분선은 기사 사이에만, 좌우를 22씩 띄워 긋는다.
+          for (final (index, item) in items.indexed) ...[
+            if (index > 0) const _RowDivider(),
             _NewsRow(item: item, onTap: () => _open(item)),
           ],
-          const Divider(height: 1, thickness: 1, color: _rowDivider),
+          const _RowDivider(),
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
@@ -291,15 +313,15 @@ class _NewsHeader extends StatelessWidget {
     return Container(
       height: 59,
       alignment: Alignment.center,
+      padding: const EdgeInsets.only(top: 6),
       color: _headerBlue,
       child: const Text(
         '햄뉴스',
         style: TextStyle(
           fontFamily: FigmaHomeFonts.cafe24Ssurround,
-          fontSize: 22,
+          fontSize: 24,
           fontWeight: FontWeight.w700,
           color: Colors.white,
-          letterSpacing: -0.2,
         ),
       ),
     );
@@ -323,28 +345,26 @@ class _TermChips extends StatelessWidget {
     ];
     if (terms.isEmpty) return const SizedBox.shrink();
 
-    // 칩 안 글씨가 커지면 칩도 커진다. 높이를 32로 못 박으면 위아래가 잘린다.
-    final textScale = MediaQuery.textScalerOf(context).scale(13) / 13;
+    // 칩 안 글씨가 커지면 칩도 커진다. 높이를 못 박으면 위아래가 잘린다.
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(_chipFontSize) / _chipFontSize;
     return SizedBox(
-      height: 32 * (textScale < 1 ? 1.0 : textScale),
+      height: _chipHeight * (textScale < 1 ? 1.0 : textScale),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: _pagePad),
         itemCount: terms.length + 1,
         separatorBuilder: (context, index) =>
-            SizedBox(width: index == 0 ? 12 : 7),
+            SizedBox(width: index == 0 ? 12 : 6),
         itemBuilder: (context, index) {
           if (index == 0) {
             return const Center(
-              child: Padding(
-                padding: EdgeInsets.only(right: 2),
-                child: Text(
-                  '오늘의 용어',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
+              child: Text(
+                '오늘의 용어',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
               ),
             );
@@ -395,7 +415,8 @@ class _TermChipState extends State<_TermChip> {
         onTap: _handleTap,
         child: Container(
           // Figma: 테두리 없는 알약 모양, 이모지와 용어를 붙여 쓴다.
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 7.2),
+          alignment: Alignment.center,
           decoration: ShapeDecoration(
             color: widget.color,
             shape: const StadiumBorder(),
@@ -403,9 +424,9 @@ class _TermChipState extends State<_TermChip> {
           child: Text(
             '${_emoji(widget.term.categoryId)}${widget.term.term}',
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              fontSize: _chipFontSize,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
             ),
           ),
         ),
@@ -528,6 +549,21 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class _RowDivider extends StatelessWidget {
+  const _RowDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: _rowDividerThickness,
+      thickness: _rowDividerThickness,
+      indent: _pagePad,
+      endIndent: _pagePad,
+      color: _rowDivider,
+    );
+  }
+}
+
 /// 기사 한 줄 — 왼쪽 사진, 오른쪽 제목 두 줄과 출처.
 class _NewsRow extends StatelessWidget {
   const _NewsRow({required this.item, required this.onTap});
@@ -545,44 +581,56 @@ class _NewsRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _pagePad,
-          vertical: 14,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Thumbnail(item: item),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      height: 1.35,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    meta,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
+        // Figma 글자 폭이 215라 오른쪽은 사진 쪽 여백보다 좁은 13만 비운다.
+        // 구분선 두께까지 합쳐 줄 간격이 Figma의 114가 되도록 아래를 줄인다.
+        padding: const EdgeInsets.fromLTRB(_pagePad, 12, 13, 10.7),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: _Thumbnail(item: item),
               ),
-            ),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                // 제목은 사진 위에서 8, 출처는 사진 아래에서 8에 맞춘다.
+                // 제목이 한 줄이어도 출처 위치가 흔들리지 않는다.
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _metaGray,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -605,7 +653,7 @@ class _Thumbnail extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = item.imageUrl;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(_thumbRadius),
       child: SizedBox(
         width: _thumbWidth,
         height: _thumbHeight,
