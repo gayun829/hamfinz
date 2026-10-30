@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testapp/screens/calendar/streak_calendar_screen.dart';
 import 'package:testapp/services/friend_service.dart';
 import 'package:testapp/utils/date_helper.dart';
+import 'package:testapp/widgets/shop/shop_widgets.dart';
 
 void main() {
   testWidgets('guard count uses pieces and friend entry remains available', (
@@ -69,7 +70,13 @@ void main() {
             participants: [
               FriendRankEntry(rank: 1, nickname: '김기니', streak: 9, isMe: false),
               FriendRankEntry(rank: 2, nickname: '햄찌', streak: 4, isMe: true),
-              FriendRankEntry(rank: 3, nickname: '다람', streak: 0, isMe: false),
+              FriendRankEntry(
+                rank: 3,
+                nickname: '다람',
+                streak: 0,
+                isMe: false,
+                look: FriendLook(skinId: 'skin_black'),
+              ),
             ],
           ),
         ),
@@ -81,6 +88,9 @@ void main() {
     expect(find.text('연속학습 9일'), findsOneWidget);
     expect(find.bySemanticsLabel('2위 나, 연속학습 4일'), findsOneWidget);
     expect(find.bySemanticsLabel('3위 다람, 연속학습 0일'), findsOneWidget);
+    // 목록 아바타는 각자 입은 스킨으로 그린다.
+    final faces = tester.widgetList<HamsterFace>(find.byType(HamsterFace));
+    expect(faces.map((f) => f.skinId), [null, null, 'skin_black']);
     expect(tester.takeException(), isNull);
   });
 

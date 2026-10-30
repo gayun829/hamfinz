@@ -286,8 +286,7 @@ class EquippedLook {
     // 소모품(방어권·에너지)은 그릴 이미지가 없어 입은 것으로 치지 않는다.
     final drawable = {
       for (final item in catalog)
-        if (item.assetPath != null || item.imageLayers.isNotEmpty)
-          item.id,
+        if (item.assetPath != null || item.imageLayers.isNotEmpty) item.id,
     };
     String? keep(String? id) => drawable.contains(id) ? id : null;
     return EquippedLook(
@@ -316,6 +315,39 @@ class EquippedLook {
     skinId: skinId,
     patternId: patternId,
     accessoryIds: accessoryIds,
+  );
+}
+
+/// 동그라미 안에 햄스터 얼굴만 보이도록 [ShopAvatar]를 키워서 자른다.
+/// 친구 순위 리스트처럼 옷·무늬·배경 없이 스킨과 악세서리만 그린다.
+class HamsterFace extends StatelessWidget {
+  const HamsterFace({super.key, this.skinId, this.accessoryIds = const []});
+
+  final String? skinId;
+  final List<String> accessoryIds;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final size = constraints.biggest.shortestSide;
+      // 전신 캔버스에서 머리는 폭의 73%를 차지하고 세로 35% 지점이 중심이다.
+      // Figma처럼 귀까지 동그라미 안에 들어오게 머리를 폭의 79%로 두고,
+      // 중심은 살짝 아래(56%)에 맞춘다.
+      return ClipOval(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: -size * 0.04,
+              top: size * 0.18,
+              width: size * 1.08,
+              height: size * 1.08,
+              child: ShopAvatar(skinId: skinId, accessoryIds: accessoryIds),
+            ),
+          ],
+        ),
+      );
+    },
   );
 }
 

@@ -534,6 +534,12 @@ friendships/{uidA}_{uidB}
   - 갱신 시점: 세션 완료 직후(`QuizService.completeSession`)와 로그인마다(`AuthService._backfillSearchIndexes`). 탈퇴 시 삭제.
   - 앱은 마지막 학습일이 오늘·어제가 아니면 연속학습을 0으로 보고 순위를 매긴다(`rankFriendStreaks`).
   - 노출 범위(친구에게 연속학습·마지막 학습일 공개)는 §2 owner(Auth) 리뷰 필요
+- 친구 순위 리스트 얼굴: `looks/{uid}` 인덱스. `streaks`와 같은 방식이다.
+  - 필드: `skinId`(string | null), `accessoryIds`(string[]) 딱 두 개. 옷·무늬·배경은 친구에게 안 보여서 뺀다.
+  - 읽기: 본인 + `accepted` 친구만 (`isAcceptedFriend`를 `streaks`와 같이 쓴다).
+  - 쓰기: 본인만, 그리고 값이 본인 `users` 문서의 `equippedSkinId`·`equippedAccessoryIds`와 같을 때만.
+  - 갱신 시점: 옷장 저장 직후(`AuthService.updateShopEquipment`)와 로그인마다(`_backfillSearchIndexes`). 탈퇴 시 삭제.
+  - 문서가 없거나 Rules 배포 전이라 막히면 기본 햄핀이 얼굴로 보인다.
 
 ---
 

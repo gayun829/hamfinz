@@ -8,6 +8,7 @@ import '../../utils/date_helper.dart';
 
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/home_bottom_nav.dart';
+import '../../widgets/shop/shop_widgets.dart';
 import '../friends/add_friend_screen.dart';
 
 typedef _T = FigmaCalendarTokens;
@@ -830,8 +831,7 @@ class _RankRow extends StatelessWidget {
   final FriendRankEntry entry;
   final int index;
 
-  // ponytail: 친구 스킨은 users 문서가 비공개라 못 읽는다. 기본 햄핀이에 줄마다 배경색만 바꾼다.
-  // 스킨까지 보이려면 streaks 문서에 착용 스킨 id를 같이 저장해야 한다.
+  // 아바타는 각자 입은 스킨·악세서리 얼굴이다(`looks/{uid}`). 배경색은 줄마다 바꾼다.
   static const _avatarColors = [
     Color(0xFFA8E27E),
     Color(0xFFFFA98A),
@@ -880,10 +880,9 @@ class _RankRow extends StatelessWidget {
                         colors: [Colors.white, color],
                       ),
                     ),
-                    padding: EdgeInsets.fromLTRB(s(5), s(9), s(5), 0),
-                    child: const FigmaPng(
-                      'assets/figma/calendar/hamster_rank_2.png',
-                      fit: BoxFit.contain,
+                    child: HamsterFace(
+                      skinId: entry.look.skinId,
+                      accessoryIds: entry.look.accessoryIds,
                     ),
                   ),
                 ),
