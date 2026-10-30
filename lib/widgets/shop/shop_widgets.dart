@@ -16,50 +16,73 @@ class ShopHeader extends StatelessWidget {
     required this.title,
     required this.seeds,
     required this.onBack,
+    this.titleSize = 22,
   });
 
   final FigmaScale figma;
   final String title;
   final int seeds;
   final VoidCallback onBack;
+  final double titleSize;
 
   @override
   Widget build(BuildContext context) {
     final s = figma.s;
     return Container(
-      height: s(72),
+      height: s(57),
       width: double.infinity,
+      // Figma 글자 줄은 머리띠 가운데보다 살짝 아래(y=87)에 놓인다.
+      padding: EdgeInsets.only(top: s(3)),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE4E4E4))),
+        border: Border(
+          bottom: BorderSide(color: FigmaShopTokens.headerBorder, width: 2),
+        ),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Text(title, style: FigmaShopTokens.headerTitle(figma.scale)),
+          Text(
+            title,
+            style: FigmaShopTokens.headerTitle(figma.scale, size: titleSize),
+          ),
           Positioned(
-            left: s(14),
-            child: IconButton(
-              tooltip: '뒤로',
-              onPressed: onBack,
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: const Color(0xFFD6D6D6),
-                size: s(26),
+            left: s(10),
+            child: Tooltip(
+              message: '뒤로',
+              child: Semantics(
+                button: true,
+                label: '뒤로',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onBack,
+                  child: Padding(
+                    padding: EdgeInsets.all(s(16)),
+                    child: FigmaSvg(
+                      FigmaAssets.friendsBackChevron,
+                      width: s(10.644),
+                      height: s(21.069),
+                      colorFilter: const ColorFilter.mode(
+                        Color(0xFFD9D9D9),
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
           Positioned(
-            right: s(20),
+            right: s(23),
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: s(94)),
+              constraints: BoxConstraints(maxWidth: s(100)),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: ShopSeedChip(
                   figma: figma,
                   seeds: seeds,
                   iconSize: FigmaShopTokens.seedIconHeader,
-                  amountSize: 18,
+                  amountSize: 17.243,
                 ),
               ),
             ),
@@ -147,7 +170,7 @@ class ShopItemCard extends StatelessWidget {
             ),
           ],
           border: selected
-              ? Border.all(color: const Color(0xFF38C5F5), width: 2)
+              ? Border.all(color: FigmaShopTokens.purchaseAction, width: 2)
               : null,
           borderRadius: BorderRadius.circular(s(FigmaShopTokens.cardRadius)),
         ),
@@ -202,7 +225,7 @@ class ShopItemCard extends StatelessWidget {
                 height: s(30),
                 decoration: BoxDecoration(
                   color: owned && actionLabel == null
-                      ? const Color(0xFFFFF7D0)
+                      ? FigmaShopTokens.chipOwned
                       : FigmaShopTokens.chip,
                   borderRadius: BorderRadius.circular(
                     s(FigmaShopTokens.cardRadius),
@@ -216,15 +239,16 @@ class ShopItemCard extends StatelessWidget {
                           fontFamily: FigmaHomeFonts.inter,
                           fontFamilyFallback: const [FigmaHomeFonts.pretendard],
                           fontWeight: FontWeight.w600,
-                          fontSize: 12 * figma.scale,
-                          color: const Color(0xFFF99832),
+                          fontSize: 13.9 * figma.scale,
+                          color: FigmaShopTokens.chipAmount,
                         ),
                       )
                     : ShopSeedChip(
                         figma: figma,
                         seeds: displayPrice ?? item.price,
                         iconSize: const Size(17, 17),
-                        amountSize: 14,
+                        amountSize: 13.9,
+                        amountColor: FigmaShopTokens.chipAmount,
                       ),
               ),
             ),

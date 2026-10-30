@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
 import '../../theme/figma_shop_tokens.dart';
 import '../../widgets/figma/figma_scale.dart';
 import '../../widgets/shop/shop_widgets.dart';
@@ -63,191 +64,213 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
       canPop: !_busy,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, bounds) {
-              final scale = FigmaScale.ofWidth(bounds.maxWidth).clamped();
-              final s = scale.s;
-              return Column(
-                children: [
-                  ShopHeader(
-                    figma: scale,
-                    title: '미리보기',
-                    seeds: widget.balance(),
-                    onBack: () {
-                      if (!_busy) Navigator.pop(context, _complete);
-                    },
-                  ),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: _complete
-                            ? null
-                            : FigmaShopTokens.purchaseBackground,
-                        gradient: _complete
-                            ? const RadialGradient(
-                                center: Alignment(0, -.35),
-                                radius: .95,
-                                colors: [
-                                  Colors.white,
-                                  FigmaShopTokens.receiptBackground,
-                                ],
-                              )
-                            : null,
-                      ),
-                      child: LayoutBuilder(
-                        builder: (context, content) {
-                          // Scroll only on short windows or large accessibility text.
-                          final minHeight = content.maxHeight;
-                          final layoutHeight = minHeight < s(650)
-                              ? s(650)
-                              : minHeight;
-                          double h(double fraction) => layoutHeight * fraction;
-                          return SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(minHeight: minHeight),
-                              child: Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                  s(20),
-                                  h(_complete ? .125 : .064),
-                                  s(20),
-                                  h(.07),
+        body: DefaultTextStyle.merge(
+          style: const TextStyle(height: AppTheme.figmaAutoLineHeight),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, bounds) {
+                final scale = FigmaScale.ofWidth(bounds.maxWidth).clamped();
+                final s = scale.s;
+                return Column(
+                  children: [
+                    ShopHeader(
+                      figma: scale,
+                      title: '미리보기',
+                      seeds: widget.balance(),
+                      onBack: () {
+                        if (!_busy) Navigator.pop(context, _complete);
+                      },
+                    ),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: _complete
+                              ? null
+                              : FigmaShopTokens.purchaseBackground,
+                          gradient: _complete
+                              ? const RadialGradient(
+                                  center: Alignment(0, -.35),
+                                  radius: .95,
+                                  colors: [
+                                    Colors.white,
+                                    FigmaShopTokens.receiptBackground,
+                                  ],
+                                )
+                              : null,
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, content) {
+                            // Scroll only on short windows or large accessibility text.
+                            final minHeight = content.maxHeight;
+                            final layoutHeight = minHeight < s(650)
+                                ? s(650)
+                                : minHeight;
+                            double h(double fraction) =>
+                                layoutHeight * fraction;
+                            return SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: minHeight,
                                 ),
-                                child: _complete
-                                    ? Column(
-                                        children: [
-                                          Text(
-                                            '구매 완료',
-                                            style: TextStyle(
-                                              fontSize: s(
-                                                FigmaShopTokens
-                                                    .receiptTitleSize,
-                                              ),
-                                              fontWeight: FontWeight.w700,
-                                              color:
-                                                  FigmaShopTokens.receiptTitle,
-                                            ),
-                                          ),
-                                          SizedBox(height: h(.025)),
-                                          SizedBox(
-                                            width: s(290),
-                                            height: h(.38),
-                                            child:
-                                                widget.receiptAvatar ??
-                                                widget.avatar,
-                                          ),
-                                          SizedBox(height: h(.025)),
-                                          Text(
-                                            _receiptMessage,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: s(
-                                                FigmaShopTokens
-                                                    .receiptMessageSize,
-                                              ),
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: (h(.375) - s(114)).clamp(
-                                              s(24),
-                                              double.infinity,
-                                            ),
-                                          ),
-                                          _button(
-                                            '확인',
-                                            () => Navigator.pop(context, true),
-                                            s,
-                                          ),
-                                        ],
-                                      )
-                                    : Column(
-                                        children: [
-                                          Container(
-                                            width: double.infinity,
-                                            padding: EdgeInsets.fromLTRB(
-                                              s(16),
-                                              h(.033),
-                                              s(16),
-                                              h(.075),
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(s(14)),
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                SizedBox(
-                                                  height: h(.353),
-                                                  width: s(290),
-                                                  child: widget.avatar,
+                                child: Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    s(20),
+                                    h(_complete ? .125 : .064),
+                                    s(20),
+                                    h(.07),
+                                  ),
+                                  child: _complete
+                                      ? Column(
+                                          children: [
+                                            Text(
+                                              '구매 완료',
+                                              style: TextStyle(
+                                                fontSize: s(
+                                                  FigmaShopTokens
+                                                      .receiptTitleSize,
                                                 ),
-                                                SizedBox(height: s(24)),
-                                                Text(
-                                                  widget.itemName,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontSize: s(
-                                                      FigmaShopTokens
-                                                          .purchaseNameSize,
+                                                fontWeight: FontWeight.w600,
+                                                color: FigmaShopTokens
+                                                    .receiptTitle,
+                                              ),
+                                            ),
+                                            SizedBox(height: h(.025)),
+                                            SizedBox(
+                                              width: s(290),
+                                              height: h(.37),
+                                              child:
+                                                  widget.receiptAvatar ??
+                                                  widget.avatar,
+                                            ),
+                                            SizedBox(height: h(.025)),
+                                            Text(
+                                              _receiptMessage,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: s(
+                                                  FigmaShopTokens
+                                                      .receiptMessageSize,
+                                                ),
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height: h(
+                                                .226,
+                                              ).clamp(s(24), double.infinity),
+                                            ),
+                                            // Figma 확인 버튼은 x=24, 폭 345다.
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: s(4),
+                                              ),
+                                              child: _button(
+                                                '확인',
+                                                () => Navigator.pop(
+                                                  context,
+                                                  true,
+                                                ),
+                                                s,
+                                                radius: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Column(
+                                          children: [
+                                            Container(
+                                              width: double.infinity,
+                                              padding: EdgeInsets.fromLTRB(
+                                                s(16),
+                                                h(.033),
+                                                s(16),
+                                                h(.084),
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      s(13),
                                                     ),
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Colors.black,
+                                              ),
+                                              child: Column(
+                                                children: [
+                                                  SizedBox(
+                                                    height: h(.353),
+                                                    width: s(290),
+                                                    child: widget.avatar,
+                                                  ),
+                                                  SizedBox(height: s(20)),
+                                                  Text(
+                                                    widget.itemName,
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      fontSize: s(
+                                                        FigmaShopTokens
+                                                            .purchaseNameSize,
+                                                      ),
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: s(18)),
+                                                  ShopSeedChip(
+                                                    figma: scale,
+                                                    seeds: widget.price,
+                                                    iconSize: const Size(
+                                                      30,
+                                                      30,
+                                                    ),
+                                                    amountSize: FigmaShopTokens
+                                                        .purchasePriceSize,
+                                                    amountColor: Colors.black,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(height: s(24)),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  flex: 106,
+                                                  child: _button(
+                                                    '취소',
+                                                    _busy
+                                                        ? null
+                                                        : () => Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                    s,
+                                                    cancel: true,
                                                   ),
                                                 ),
-                                                SizedBox(height: s(16)),
-                                                ShopSeedChip(
-                                                  figma: scale,
-                                                  seeds: widget.price,
-                                                  iconSize: const Size(30, 30),
-                                                  amountSize: 24,
-                                                  amountColor: Colors.black,
+                                                SizedBox(width: s(8)),
+                                                Expanded(
+                                                  flex: 239,
+                                                  child: _button(
+                                                    _busy ? '구매 중…' : '구매하기',
+                                                    _busy ? null : _buy,
+                                                    s,
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          SizedBox(height: s(24)),
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 3,
-                                                child: _button(
-                                                  '취소',
-                                                  _busy
-                                                      ? null
-                                                      : () => Navigator.pop(
-                                                          context,
-                                                          false,
-                                                        ),
-                                                  s,
-                                                  cancel: true,
-                                                ),
-                                              ),
-                                              SizedBox(width: s(8)),
-                                              Expanded(
-                                                flex: 7,
-                                                child: _button(
-                                                  _busy ? '구매 중…' : '구매하기',
-                                                  _busy ? null : _buy,
-                                                  s,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
+                                          ],
+                                        ),
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -268,6 +291,7 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
     VoidCallback? onPressed,
     double Function(double) s, {
     bool cancel = false,
+    double radius = 14,
   }) => SizedBox(
     width: double.infinity,
     height: s(52),
@@ -275,11 +299,11 @@ class _ShopPurchaseScreenState extends State<ShopPurchaseScreen> {
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         backgroundColor: cancel
-            ? FigmaShopTokens.previewBackground
+            ? FigmaShopTokens.purchaseCancel
             : FigmaShopTokens.purchaseAction,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(s(14)),
+          borderRadius: BorderRadius.circular(s(radius)),
         ),
       ),
       child: Text(

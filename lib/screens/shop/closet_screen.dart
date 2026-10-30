@@ -376,173 +376,209 @@ class _ClosetScreenState extends State<ClosetScreen> {
     return Scaffold(
       backgroundColor: FigmaShopTokens.background,
       body: SafeArea(
-        child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(
-              MediaQuery.textScalerOf(context).scale(1).clamp(0.9, 1.1),
+        // 상태바 자리는 Figma처럼 머리띠와 같은 흰색으로 칠한다.
+        top: false,
+        child: Column(
+          children: [
+            ColoredBox(
+              color: Colors.white,
+              child: SizedBox(
+                width: double.infinity,
+                height: MediaQuery.paddingOf(context).top,
+              ),
             ),
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final figma = FigmaScale.ofLayout(
-                constraints,
-                designWidth: FigmaShopTokens.designWidth,
-              );
-              final s = figma.s;
-              final previewHeight = (constraints.maxHeight * .36).clamp(
-                140.0,
-                s(280),
-              );
-              final showAction = widget.showCatalog
-                  ? _selectedItem != null
-                  : _hasChanges;
-              return Column(
-                children: [
-                  ShopHeader(
-                    figma: figma,
-                    title: widget.showCatalog ? '햄핀이 옷 상점' : '햄핀이 옷장',
-                    seeds: _profile.seeds,
-                    onBack: () => Navigator.of(context).pop(),
+            Expanded(
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(
+                    MediaQuery.textScalerOf(context).scale(1).clamp(0.9, 1.1),
                   ),
-                  ClosetStage(
-                    height: previewHeight,
-                    avatar: ShopAvatar(
-                      catalogItems: _catalogItems,
-                      skinId: _stagedSkinId,
-                      patternId: _stagedPatternId,
-                      backgroundId: _stagedBackgroundId,
-                      accessoryIds: _stagedAccessoryIds,
-                    ),
-                  ),
-                  Container(
-                    height: s(56),
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        bottom: BorderSide(color: Color(0xFFE3E3E3), width: 2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: s(20)),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) =>
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minWidth: constraints.maxWidth,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _tabLabel(figma, _ClosetTab.my, 'my'),
-                                    _tabLabel(figma, _ClosetTab.bundle, '세트'),
-                                    _tabLabel(figma, _ClosetTab.skin, '스킨'),
-                                    _tabLabel(figma, _ClosetTab.clothing, '옷'),
-                                    _tabLabel(
-                                      figma,
-                                      _ClosetTab.accessory,
-                                      '악세서리',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Stack(
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final figma = FigmaScale.ofLayout(
+                      constraints,
+                      designWidth: FigmaShopTokens.designWidth,
+                    );
+                    final s = figma.s;
+                    final previewHeight = (constraints.maxHeight * .36).clamp(
+                      140.0,
+                      s(280),
+                    );
+                    final showAction = widget.showCatalog
+                        ? _selectedItem != null
+                        : _hasChanges;
+                    return Column(
                       children: [
-                        if (items.isEmpty)
-                          Center(
-                            child: Text(
-                              widget.showCatalog
-                                  ? '준비 중인 아이템이에요'
-                                  : '아직 가진 아이템이 없어요',
-                              style: FigmaShopTokens.body(figma.scale),
-                            ),
-                          )
-                        else
-                          GridView.builder(
-                            padding: EdgeInsets.fromLTRB(
-                              s(20),
-                              s(23),
-                              s(20),
-                              showAction ? s(92) : s(24),
-                            ),
-                            itemCount: items.length,
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: s(10),
-                                  mainAxisSpacing: s(16),
-                                  childAspectRatio: 111 / 145,
-                                ),
-                            itemBuilder: (context, index) {
-                              final item = items[index];
-                              return ShopItemCard(
-                                key: ValueKey('shop-item-${item.id}'),
-                                figma: figma,
-                                item: item,
-                                owned: _owns(item),
-                                displayPrice: _price(item),
-                                actionLabel: widget.showCatalog
-                                    ? null
-                                    : _closetActionLabel(item),
-                                selected: widget.showCatalog
-                                    ? _selectedItem?.id == item.id
-                                    : _isEquipped(item),
-                                onTap: () => _onItemTap(item),
-                              );
-                            },
+                        ShopHeader(
+                          figma: figma,
+                          title: widget.showCatalog ? '햄핀이 옷 상점' : '햄핀이 옷장',
+                          titleSize: 20,
+                          seeds: _profile.seeds,
+                          onBack: () => Navigator.of(context).pop(),
+                        ),
+                        ClosetStage(
+                          height: previewHeight,
+                          avatar: ShopAvatar(
+                            catalogItems: _catalogItems,
+                            skinId: _stagedSkinId,
+                            patternId: _stagedPatternId,
+                            backgroundId: _stagedBackgroundId,
+                            accessoryIds: _stagedAccessoryIds,
                           ),
-                        if (showAction)
-                          Positioned(
-                            left: s(23),
-                            right: s(23),
-                            bottom: s(16),
-                            child: SizedBox(
-                              height: s(52),
-                              child: FilledButton(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF38C5F5),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(s(14)),
-                                  ),
-                                  textStyle: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: s(20),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                onPressed: _saving
-                                    ? null
-                                    : (widget.showCatalog
-                                          ? _confirmSelection
-                                          : _saveOutfit),
-                                child: Text(
-                                  _saving
-                                      ? '저장 중…'
-                                      : widget.showCatalog
-                                      ? (_owns(_selectedItem!)
-                                            ? '착용하기'
-                                            : '구매하기')
-                                      : '저장',
-                                ),
+                        ),
+                        Container(
+                          height: s(58),
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              bottom: BorderSide(
+                                color: FigmaShopTokens.headerBorder,
+                                width: 2,
                               ),
                             ),
                           ),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: s(20)),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) =>
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        minWidth: constraints.maxWidth,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _tabLabel(figma, _ClosetTab.my, 'my'),
+                                          _tabLabel(
+                                            figma,
+                                            _ClosetTab.bundle,
+                                            '세트',
+                                          ),
+                                          _tabLabel(
+                                            figma,
+                                            _ClosetTab.skin,
+                                            '스킨',
+                                          ),
+                                          _tabLabel(
+                                            figma,
+                                            _ClosetTab.clothing,
+                                            '옷',
+                                          ),
+                                          _tabLabel(
+                                            figma,
+                                            _ClosetTab.accessory,
+                                            '악세서리',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              if (items.isEmpty)
+                                Center(
+                                  child: Text(
+                                    widget.showCatalog
+                                        ? '준비 중인 아이템이에요'
+                                        : '아직 가진 아이템이 없어요',
+                                    style: FigmaShopTokens.body(figma.scale),
+                                  ),
+                                )
+                              else
+                                GridView.builder(
+                                  padding: EdgeInsets.fromLTRB(
+                                    s(20),
+                                    s(23),
+                                    s(20),
+                                    showAction ? s(92) : s(24),
+                                  ),
+                                  itemCount: items.length,
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 3,
+                                        crossAxisSpacing: s(10),
+                                        mainAxisSpacing: s(17),
+                                        childAspectRatio: 111 / 145,
+                                      ),
+                                  itemBuilder: (context, index) {
+                                    final item = items[index];
+                                    return ShopItemCard(
+                                      key: ValueKey('shop-item-${item.id}'),
+                                      figma: figma,
+                                      item: item,
+                                      owned: _owns(item),
+                                      displayPrice: _price(item),
+                                      actionLabel: widget.showCatalog
+                                          ? null
+                                          : _closetActionLabel(item),
+                                      selected: widget.showCatalog
+                                          ? _selectedItem?.id == item.id
+                                          : _isEquipped(item),
+                                      onTap: () => _onItemTap(item),
+                                    );
+                                  },
+                                ),
+                              if (showAction)
+                                Positioned(
+                                  left: s(23),
+                                  right: s(23),
+                                  bottom: s(16),
+                                  child: SizedBox(
+                                    height: s(52),
+                                    child: FilledButton(
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            FigmaShopTokens.purchaseAction,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            s(13),
+                                          ),
+                                        ),
+                                        textStyle: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: s(
+                                            FigmaShopTokens.purchaseButtonSize,
+                                          ),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      onPressed: _saving
+                                          ? null
+                                          : (widget.showCatalog
+                                                ? _confirmSelection
+                                                : _saveOutfit),
+                                      child: Text(
+                                        _saving
+                                            ? '저장 중…'
+                                            : widget.showCatalog
+                                            ? (_owns(_selectedItem!)
+                                                  ? '착용하기'
+                                                  : '구매하기')
+                                            : '저장',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
