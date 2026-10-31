@@ -13,14 +13,13 @@ void main() {
       const MaterialApp(home: StreakCalendarScreen(studyGuardCount: 4)),
     );
     expect(find.text('방어권 보유'), findsOneWidget);
-    expect(find.text('4 개', findRichText: true), findsOneWidget);
+    expect(find.bySemanticsLabel('방어권 보유 4개'), findsOneWidget);
     expect(find.byTooltip('친구 추가'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('consecutive study days are joined by a band', (tester) async {
-    final now = DateHelper.koreaNow();
-    // 한 달 안에서만 확인하도록 월 초에는 건너뛴다.
-    if (now.day < 5) return;
+    // Figma `1006:2899`처럼 한 주 중간에서 시작해 다음 줄로 넘어가는 연속.
+    final now = DateTime(2025, 8, 20);
     String daysAgo(int n) =>
         DateHelper.dateKey(DateTime(now.year, now.month, now.day - n));
     final today = daysAgo(0);
@@ -28,6 +27,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: StreakCalendarScreen(
+          today: now,
           completedDates: {daysAgo(4), daysAgo(2), daysAgo(1), today},
         ),
       ),
@@ -43,7 +43,10 @@ void main() {
     // 오늘 아직 안 했으면 어제까지 잇고 햄스터는 어제에 얹는다.
     await tester.pumpWidget(
       MaterialApp(
-        home: StreakCalendarScreen(completedDates: {daysAgo(2), daysAgo(1)}),
+        home: StreakCalendarScreen(
+          today: now,
+          completedDates: {daysAgo(2), daysAgo(1)},
+        ),
       ),
     );
     expect(find.byKey(ValueKey('today-hamster-$today')), findsNothing);
@@ -54,13 +57,56 @@ void main() {
     // 이미 끊긴 지난 연속도 띠로 잇되, 햄스터는 얹지 않는다.
     await tester.pumpWidget(
       MaterialApp(
-        home: StreakCalendarScreen(completedDates: {daysAgo(4), daysAgo(3)}),
+        home: StreakCalendarScreen(
+          today: now,
+          completedDates: {daysAgo(4), daysAgo(3)},
+        ),
       ),
     );
     expect(find.byKey(ValueKey('streak-band-${daysAgo(4)}')), findsOneWidget);
     expect(find.byKey(ValueKey('streak-band-${daysAgo(3)}')), findsOneWidget);
     expect(find.byKey(ValueKey('today-hamster-${daysAgo(3)}')), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the hamster covers the end of the band like the Figma frame', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(393, 852));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StreakCalendarScreen(
+          today: DateTime(2025, 8, 20),
+          completedDates: {
+            for (var d = 12; d <= 20; d++)
+              '2025-08-${d.toString().padLeft(2, '0')}',
+          },
+        ),
+      ),
+    );
+    final hamster = tester.getRect(
+      find.byKey(const ValueKey('today-hamster-2025-08-20')),
+    );
+    final band = tester.getRect(
+      find.byKey(const ValueKey('streak-band-2025-08-20')),
+    );
+    expect(hamster.size.width, closeTo(39.2248, 0.01));
+    expect(hamster.size.height, closeTo(27.2814, 0.01));
+    // 띠는 23 높이이고 햄스터 아랫변과 같은 선에서 끝난다.
+    expect(band.height, closeTo(23, 0.01));
+    expect(hamster.bottom, closeTo(band.bottom, 0.01));
+    // 띠 끝은 햄스터 가운데 직전이라 햄스터가 덮는다.
+    expect(band.right, lessThan(hamster.center.dx));
+    expect(band.right, greaterThan(hamster.left));
+    // 주가 바뀌면 띠가 끊기고 다음 줄에서 다시 시작한다.
+    final saturday = tester.getRect(
+      find.byKey(const ValueKey('streak-band-2025-08-16')),
+    );
+    final sunday = tester.getRect(
+      find.byKey(const ValueKey('streak-band-2025-08-17')),
+    );
+    expect(sunday.top, greaterThan(saturday.bottom));
   });
 
   testWidgets('shows an empty state when there are no friends', (tester) async {

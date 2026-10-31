@@ -84,7 +84,8 @@ flutter:
     - assets/figma/shop/skins/
     - assets/figma/shop/accessories/
     - assets/figma/calendar/hamster_peek.png
-    - assets/figma/calendar/hamster_header.png
+    - assets/figma/calendar/hamster_header.svg
+    - assets/figma/calendar/goal_flame.svg
     - assets/figma/calendar/hamster_rank_1.png
     - assets/figma/calendar/hamster_rank_2.png
     - assets/figma/calendar/hamster_rank_4.png
