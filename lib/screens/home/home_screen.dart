@@ -555,31 +555,19 @@ List<Widget> _buildFigmaHomeLayers({
             ],
     ),
 
-    // ── Group 548/549 돈주머니 SVG (opacity는 에셋 g에 포함) ──
-    _homeEllipse(
-      figma: figma,
-      left: 65.07,
-      top: 271,
-      width: 50,
-      height: 20.9,
-      color: const Color(0xFFE8E8E8),
-    ),
+    // ── Group 548/549 돈주머니 ──
+    // 왼쪽 그림자(Subtract)는 타원에서 주머니 자리를 뺀 모양이라 반투명한
+    // 주머니 뒤로 비치지 않는다.
     FigmaBox(
       figma: figma,
-      left: 59.48,
-      top: 219.63,
-      width: 65.101,
-      height: 64.646,
-      child: const FigmaSvg(FigmaAssets.homeBagLeft, fit: BoxFit.fill),
+      left: 65.07528686523438,
+      top: 271.0029296875,
+      width: 49.99713134765625,
+      height: 20.898149490356445,
+      child: const FigmaSvg(FigmaAssets.homeBagLeftShadow, fit: BoxFit.fill),
     ),
-    FigmaBox(
-      figma: figma,
-      left: 255,
-      top: 374,
-      width: 120.989,
-      height: 128.141,
-      child: const FigmaSvg(FigmaAssets.homeBagRight, fit: BoxFit.fill),
-    ),
+    _homeBag(figma, _leftBag),
+    _homeBag(figma, _rightBag),
 
     // ── Star 6/7/8 + Rectangle 687 + 왼쪽 스파클 ──
     // 복습 집 도착 화면은 햄핀이가 커진 만큼 장식이 바깥으로 물러난다.
@@ -958,6 +946,138 @@ List<Widget> _buildFigmaHomeLayers({
       child: const SizedBox.expand(),
     ),
   ];
+}
+
+/// 돈주머니 한 개(Figma Group 548/549). 에셋은 Figma SVG를 그대로 세 층으로
+/// 나눴다: 몸통(오른쪽은 바닥 그림자 포함) → 어둠 → 매듭·구슬·물방울.
+///
+/// Figma의 몸통 아래 어둠은 `feGaussianBlur`(4.15)로 흐린 뒤 몸통 모양 마스크로
+/// 가린 것이다. flutter_svg는 filter를 그리지 않아 어둠이 선명한 초승달로
+/// 나오므로, 어둠 층만 Flutter로 흐리고 [_BagBodyClipper]로 자른다.
+class _HomeBag {
+  const _HomeBag({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+    required this.opacity,
+    required this.base,
+    required this.shade,
+    required this.front,
+    required this.body,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  /// 그룹 투명도. 세 층을 합친 뒤 한 번만 입혀야 층끼리 비치지 않는다.
+  final double opacity;
+  final String base;
+  final String shade;
+  final String front;
+
+  /// 마스크(몸통) 경로. SVG viewBox 좌표의 시작점 하나와 cubic 네 개다.
+  final List<double> body;
+}
+
+const _leftBag = _HomeBag(
+  left: 59.4769172668457,
+  top: 219.634765625,
+  width: 65.1013,
+  height: 64.6455,
+  opacity: 0.58,
+  base: FigmaAssets.homeBagLeftBase,
+  shade: FigmaAssets.homeBagLeftShade,
+  front: FigmaAssets.homeBagLeftFront,
+  body: [
+    38.1552, 57.92, //
+    23.2733, 61.634, 8.69996, 54.5907, 5.6048, 42.1884,
+    2.50964, 29.786, 12.0647, 16.7212, 26.9466, 13.0072,
+    41.8285, 9.29324, 56.4019, 16.3365, 59.497, 28.7389,
+    62.5922, 41.1412, 53.0371, 54.206, 38.1552, 57.92,
+  ],
+);
+
+const _rightBag = _HomeBag(
+  left: 255.00025939941406,
+  top: 375,
+  width: 120.99,
+  height: 128.141,
+  opacity: 0.8,
+  base: FigmaAssets.homeBagRightBase,
+  shade: FigmaAssets.homeBagRightShade,
+  front: FigmaAssets.homeBagRightFront,
+  body: [
+    41.4989, 103.11, //
+    64.4183, 113.422, 89.9647, 106.297, 98.5585, 87.1964,
+    107.152, 68.0958, 95.5391, 44.2523, 72.6198, 33.9404,
+    49.7005, 23.6284, 24.1541, 30.753, 15.5603, 49.8535,
+    6.96648, 68.9541, 18.5796, 92.7976, 41.4989, 103.11,
+  ],
+);
+
+Widget _homeBag(FigmaScale figma, _HomeBag bag) {
+  final blur = figma.s(4.15);
+  return FigmaBox(
+    figma: figma,
+    left: bag.left,
+    top: bag.top,
+    width: bag.width,
+    height: bag.height,
+    child: Opacity(
+      opacity: bag.opacity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          FigmaSvg(bag.base, fit: BoxFit.fill),
+          ClipPath(
+            clipper: _BagBodyClipper(bag),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: blur,
+                sigmaY: blur,
+                tileMode: TileMode.decal,
+              ),
+              child: FigmaSvg(bag.shade, fit: BoxFit.fill),
+            ),
+          ),
+          FigmaSvg(bag.front, fit: BoxFit.fill),
+        ],
+      ),
+    ),
+  );
+}
+
+/// [_HomeBag.body]를 박스 크기에 맞춰 늘린 몸통 모양.
+class _BagBodyClipper extends CustomClipper<Path> {
+  const _BagBodyClipper(this.bag);
+
+  final _HomeBag bag;
+
+  @override
+  Path getClip(Size size) {
+    final sx = size.width / bag.width;
+    final sy = size.height / bag.height;
+    final p = bag.body;
+    final path = Path()..moveTo(p[0] * sx, p[1] * sy);
+    for (var i = 2; i + 5 < p.length; i += 6) {
+      path.cubicTo(
+        p[i] * sx,
+        p[i + 1] * sy,
+        p[i + 2] * sx,
+        p[i + 3] * sy,
+        p[i + 4] * sx,
+        p[i + 5] * sy,
+      );
+    }
+    return path..close();
+  }
+
+  @override
+  bool shouldReclip(covariant _BagBodyClipper oldClipper) =>
+      oldClipper.bag != bag;
 }
 
 Widget _homeEllipse({
