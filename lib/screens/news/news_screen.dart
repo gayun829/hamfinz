@@ -23,8 +23,8 @@ const _thumbHeight = 90.0;
 const _thumbRadius = 8.18;
 const _pagePad = 22.0;
 const _metaGray = Color(0xFF8C8C8C);
-const _chipHeight = 21.1;
-const _chipFontSize = 11.06;
+const _chipHeight = 21.12;
+const _chipFontSize = 11.063;
 
 /// 용어 칩 팔레트. 카테고리가 아니라 **줄에 놓인 순서**대로 돈다 —
 /// Figma에서 코스피와 ETF가 같은 주식 카테고리인데 색이 다르다.
@@ -305,15 +305,18 @@ class _NewsScreenState extends State<NewsScreen> with WidgetsBindingObserver {
 }
 
 /// 하늘색 머리띠. 가운데 「햄뉴스」.
+///
+/// Figma 머리띠는 상태바(59)를 포함해 116까지라 안쪽 높이는 57이다. 제목 상자는
+/// 가운데(162)보다 3 오른쪽인 165에서 시작해서 왼쪽 여백을 6 더 준다.
 class _NewsHeader extends StatelessWidget {
   const _NewsHeader();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 59,
+      height: 57,
       alignment: Alignment.center,
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: 8.5, left: 6),
       color: _headerBlue,
       child: const Text(
         '햄뉴스',
@@ -348,34 +351,37 @@ class _TermChips extends StatelessWidget {
     // 칩 안 글씨가 커지면 칩도 커진다. 높이를 못 박으면 위아래가 잘린다.
     final textScale =
         MediaQuery.textScalerOf(context).scale(_chipFontSize) / _chipFontSize;
-    return SizedBox(
-      height: _chipHeight * (textScale < 1 ? 1.0 : textScale),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: _pagePad),
-        itemCount: terms.length + 1,
-        separatorBuilder: (context, index) =>
-            SizedBox(width: index == 0 ? 12 : 6),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return const Center(
-              child: Text(
-                '오늘의 용어',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
+    // 디자이너 피드백: 칩 줄도 좌우 여백(22) 안에서 끊겨야 옆으로 밀 수 있는
+    // 줄로 보인다. 그래서 「오늘의 용어」는 고정하고 칩만 여백 안에서 민다.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _pagePad),
+      child: SizedBox(
+        height: _chipHeight * (textScale < 1 ? 1.0 : textScale),
+        child: Row(
+          children: [
+            const Text(
+              '오늘의 용어',
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: terms.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 6),
+                itemBuilder: (context, index) => _TermChip(
+                  term: terms[index],
+                  color: _chipPalette[index % _chipPalette.length],
+                  onTap: onTap,
                 ),
               ),
-            );
-          }
-          final term = terms[index - 1];
-          return _TermChip(
-            term: term,
-            color: _chipPalette[(index - 1) % _chipPalette.length],
-            onTap: onTap,
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -415,7 +421,7 @@ class _TermChipState extends State<_TermChip> {
         onTap: _handleTap,
         child: Container(
           // Figma: 테두리 없는 알약 모양, 이모지와 용어를 붙여 쓴다.
-          padding: const EdgeInsets.symmetric(horizontal: 7.2),
+          padding: const EdgeInsets.symmetric(horizontal: 7.04),
           alignment: Alignment.center,
           decoration: ShapeDecoration(
             color: widget.color,
@@ -573,17 +579,12 @@ class _NewsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      if (item.source.isNotEmpty) item.source,
-      if (item.relativeTime.isNotEmpty) item.relativeTime,
-    ].join('  ·  ');
-
     return InkWell(
       onTap: onTap,
       child: Padding(
-        // Figma 글자 폭이 215라 오른쪽은 사진 쪽 여백보다 좁은 13만 비운다.
+        // 디자이너 피드백: 제목도 구분선 끝(오른쪽 여백 22)에서 끊는다.
         // 구분선 두께까지 합쳐 줄 간격이 Figma의 114가 되도록 아래를 줄인다.
-        padding: const EdgeInsets.fromLTRB(_pagePad, 12, 13, 10.7),
+        padding: const EdgeInsets.fromLTRB(_pagePad, 12, _pagePad, 10.7),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -605,7 +606,8 @@ class _NewsRow extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
-                          item.title,
+                          _keepAll(item.title),
+                          semanticsLabel: item.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -615,16 +617,7 @@ class _NewsRow extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Text(
-                        meta,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _metaGray,
-                        ),
-                      ),
+                      _NewsMeta(source: item.source, time: item.relativeTime),
                     ],
                   ),
                 ),
@@ -633,6 +626,56 @@ class _NewsRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 한글은 글자마다 줄을 바꿀 수 있어 「인간/을」처럼 낱말이 쪼개진다. Figma
+/// 제목은 낱말 단위로 끊으므로 낱말 안 글자 사이에 WORD JOINER(U+2060)를 넣는다.
+String _keepAll(String text) =>
+    text.split(' ').map((word) => word.characters.join('\u2060')).join(' ');
+
+/// 출처와 시각. Figma는 둘 사이에 지름 2짜리 점을 좌우 8씩 띄워 찍는다.
+class _NewsMeta extends StatelessWidget {
+  const _NewsMeta({required this.source, required this.time});
+
+  final String source;
+  final String time;
+
+  static const _style = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: _metaGray,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (source.isNotEmpty)
+          Flexible(
+            child: Text(
+              source,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _style,
+            ),
+          ),
+        if (source.isNotEmpty && time.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: SizedBox.square(
+              dimension: 2,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _metaGray,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+        if (time.isNotEmpty) Text(time, maxLines: 1, style: _style),
+      ],
     );
   }
 }
