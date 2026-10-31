@@ -15,8 +15,13 @@ class FigmaAssets {
 
   // Home
   static const hamsterMain = '$_home/hamster_main.png';
-  static const homeBagLeft = '$_home/bag_left.svg';
-  static const homeBagRight = '$_home/bag_right.svg';
+  static const homeBagLeftShadow = '$_home/bag_left_shadow.svg';
+  static const homeBagLeftBase = '$_home/bag_left_base.svg';
+  static const homeBagLeftShade = '$_home/bag_left_shade.svg';
+  static const homeBagLeftFront = '$_home/bag_left_front.svg';
+  static const homeBagRightBase = '$_home/bag_right_base.svg';
+  static const homeBagRightShade = '$_home/bag_right_shade.svg';
+  static const homeBagRightFront = '$_home/bag_right_front.svg';
   static const homeStar = '$_home/star.svg';
   static const homeSparkle = '$_home/sparkle.svg';
 
