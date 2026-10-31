@@ -7,7 +7,6 @@ import '../../services/news_quiz_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_quiz_fonts.dart';
 import '../../widgets/figma/figma_asset_image.dart';
-import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/home_bottom_nav.dart';
 
 /// 기사에서 잡은 금융 용어 하나를 가르치고 3지선다 한 문제로 묻는다.
@@ -20,8 +19,10 @@ import '../../widgets/home_bottom_nav.dart';
 /// |---|---|---|
 /// | 학습 | 용어 뜻 + 「나한테는?」 | 퀴즈 풀기 |
 /// | 문제 | 고른 보기만 하늘색 테두리 | 정답 보기 |
-/// | 정오답 | 정답은 하늘색, 내가 틀리게 고른 건 빨강 | 해설 보기 |
-/// | 해설 | 정답 하나만 노랑으로 남기고 아래에 해설 상자 | 나가기 |
+/// | 정오답(`1006:2846`) | 정답은 하늘색, 내가 틀리게 고른 건 빨강 | 해설 보기 |
+/// | 해설(`1006:2792`) | 정답 하나만 노랑으로 남기고 아래에 해설 상자 | 나가기 |
+///
+/// 정오답·해설은 시안 그대로다. 판정 문구나 ✓/✗ 없이 보기 색만으로 맞고 틀림을 보인다.
 ///
 /// 홈 퀴즈([QuizScreen])와 **일부러 안 엮었다.** 그쪽은 에너지를 쓰고 채점을
 /// 서버가 한다. 뉴스에서 들어오는 이 퀴즈는 기사를 읽다 곁다리로 보는
@@ -124,8 +125,9 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  // Figma 뉴스_정오답: 내용 덩어리는 좌우 41씩 들여서 가운데에 둔다.
-                  padding: const EdgeInsets.fromLTRB(41, 10, 41, 16),
+                  // Figma: 보기·버튼은 x=41, 폭 310이라 오른쪽이 42 남는다.
+                  // 위 8은 393×852 기기(상단 안전 영역 59)에서 `<`가 y=75에 오게 한다.
+                  padding: const EdgeInsets.fromLTRB(41, 8, 42, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -162,9 +164,10 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                                       minHeight: 107,
                                     ),
                                     child: Padding(
+                                      // Figma 문제 글상자: x=56, 폭 268.
                                       padding: const EdgeInsets.only(
                                         left: 15,
-                                        right: 28,
+                                        right: 27,
                                         bottom: 12,
                                       ),
                                       child: Text(
@@ -198,33 +201,9 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
                                     key: const ValueKey('explain'),
                                     child: _buildExplain(),
                                   ),
-                                  _ => Column(
+                                  _ => KeyedSubtree(
                                     key: const ValueKey('options'),
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      // 배너가 끼어들 때 보기가 툭 밀리지 않고 미끄러지게.
-                                      AnimatedSize(
-                                        duration: const Duration(
-                                          milliseconds: 220,
-                                        ),
-                                        curve: Curves.easeOut,
-                                        child: _stage == _Stage.graded
-                                            ? Padding(
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 16,
-                                                ),
-                                                child: _Verdict(
-                                                  correct: _isCorrect,
-                                                  earned: _earned,
-                                                ),
-                                              )
-                                            : const SizedBox(
-                                                width: double.infinity,
-                                              ),
-                                      ),
-                                      _buildOptions(),
-                                    ],
+                                    child: _buildOptions(),
                                   ),
                                 },
                               ),
@@ -276,7 +255,6 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
           _OptionBox(
             label: options[i],
             style: _styleFor(i),
-            mark: _markFor(i),
             onTap: _stage == _Stage.question ? () => _pick(i) : null,
           ),
         ],
@@ -301,17 +279,8 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
     }
   }
 
-  /// 정오답 장면에서 보기 오른쪽에 붙는 ✓/✗. 색만으로는 고른 보기와 정답이 헷갈린다.
-  IconData? _markFor(int index) {
-    if (_stage != _Stage.graded) return null;
-    if (index == _quiz.answer) return Icons.check_circle;
-    if (index == _picked) return Icons.cancel;
-    return null;
-  }
-
   /// 해설 — 정답 보기 하나만 노랗게 남기고 그 아래에 해설 상자.
   Widget _buildExplain() {
-    final term = widget.term;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -325,7 +294,14 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
           width: double.infinity,
           // Figma 해설 상자는 내용이 짧아도 높이를 유지한다.
           constraints: const BoxConstraints(minHeight: 140),
-          padding: const EdgeInsets.fromLTRB(15, 16, 14, 15),
+          // Figma 해설 글상자: 상자에서 왼쪽 15, 위 16, 오른쪽 14 안쪽.
+          // Container는 테두리 두께를 padding에 더하므로 그만큼 뺀다.
+          padding: const EdgeInsets.fromLTRB(
+            15 - _borderWidth,
+            16 - _borderWidth,
+            14 - _borderWidth,
+            15 - _borderWidth,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(_radius),
@@ -334,40 +310,10 @@ class _TermQuizScreenState extends State<TermQuizScreen> {
               width: _borderWidth,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isCorrect ? '정답이에요!' : '아쉬워요, 정답은 위와 같아요.',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: _isCorrect
-                      ? AppTheme.figmaTeal
-                      : _OptionStyle.wrong.border,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _quiz.why,
-                style: const TextStyle(fontSize: 18, color: Colors.black),
-              ),
-              if (term.summary.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  '「${term.term}」 ${term.summary}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.5,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-              if (_earned > 0) ...[
-                const SizedBox(height: 12),
-                _SeedAmount(amount: _earned, size: 12, label: '씨앗 '),
-              ],
-            ],
+          // Figma 해설 상자에는 해설 글(Regular 18)만 있다.
+          child: Text(
+            _quiz.why,
+            style: const TextStyle(fontSize: 18, color: Colors.black),
           ),
         ),
       ],
@@ -407,7 +353,7 @@ class _BackChevron extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: CustomPaint(
-            size: const Size(10.6, 21.1),
+            size: const Size(10.644, 21.069),
             painter: _BackChevronPainter(),
           ),
         ),
@@ -553,28 +499,45 @@ class _QuestionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // Figma: Q는 보기보다 13 안쪽(x=54), 배지는 Q 바로 옆(x=92)에 붙는다.
+      // Figma: Q는 보기보다 13 안쪽(x=54), 배지는 Q 글상자(폭 37) 1 옆(x=92)에 붙는다.
       padding: const EdgeInsets.only(left: 13),
       child: Row(
         children: [
-          TweenAnimationBuilder<Color?>(
-            tween: ColorTween(end: color),
-            duration: const Duration(milliseconds: 250),
-            builder: (context, value, _) => StrokedText(
-              'Q',
-              style: const TextStyle(
-                fontFamily: FigmaQuizFonts.suit,
-                fontSize: 32.088,
-                fontWeight: FontWeight.w100,
-                height: 1.309,
+          // Figma Q는 SUIT Thin 글자에 바깥 외곽선 1.3(round join)을 두른 것이다.
+          // 글자에 stroke를 덧그리면 렌더러마다 획 모양이 달라져서, Figma가 내보낸
+          // 글자 윤곽에 같은 획을 입힌 벡터(`quiz_q.svg`)를 쓰고 색만 바꾼다.
+          Semantics(
+            label: 'Q',
+            child: SizedBox(
+              width: 37,
+              height: 42,
+              child: Stack(
+                children: [
+                  // 글상자(54, 159) 안에서 벡터가 놓이는 자리(55.33, 166.31).
+                  Positioned(
+                    left: 1.331,
+                    top: 7.308,
+                    width: 26,
+                    height: 27,
+                    child: TweenAnimationBuilder<Color?>(
+                      tween: ColorTween(end: color),
+                      duration: const Duration(milliseconds: 250),
+                      builder: (context, value, _) => FigmaSvg(
+                        FigmaAssets.newsQuizQ,
+                        fit: BoxFit.fill,
+                        colorFilter: ColorFilter.mode(
+                          value ?? color,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              color: value ?? color,
-              // Figma 바깥쪽 1.3px = Flutter 가운데 정렬 stroke 2.6px.
-              strokeWidth: 2.6,
             ),
           ),
           if (showReward) ...[
-            const SizedBox(width: 10),
+            const SizedBox(width: 1),
             _SeedBadge(reward: reward),
           ],
         ],
@@ -583,7 +546,7 @@ class _QuestionHeader extends StatelessWidget {
   }
 }
 
-/// Figma `Group 384`: 53×26.1 알약에 씨앗 아이콘과 `+N`.
+/// Figma `Group 384`: 53×26.1 알약에 씨앗 아이콘과 `+N`. 안쪽도 시안 좌표 그대로 놓는다.
 class _SeedBadge extends StatelessWidget {
   const _SeedBadge({required this.reward});
 
@@ -592,125 +555,39 @@ class _SeedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 53, minHeight: 26.1),
-      padding: const EdgeInsets.fromLTRB(8.6, 4, 8, 4),
+      width: 53.002,
+      height: 26.117,
       decoration: BoxDecoration(
         color: const Color(0xFFD9FAFF),
-        borderRadius: BorderRadius.circular(16.83),
+        borderRadius: BorderRadius.circular(16.826),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          const SizedBox.square(
-            dimension: 16.5,
-            child: FigmaSvg(
-              FigmaAssets.homeBeginnerStatCoin,
-              fit: BoxFit.contain,
-            ),
+          // `Group 359`는 홈 씨앗 아이콘과 같은 벡터다(16.5×15.98).
+          const Positioned(
+            left: 8.6,
+            top: 4.64,
+            width: 16.5,
+            height: 15.984,
+            child: FigmaSvg(FigmaAssets.homeBeginnerStatCoin, fit: BoxFit.fill),
           ),
-          const SizedBox(width: 2.7),
-          Text(
-            '+$reward',
-            style: const TextStyle(
-              fontFamily: FigmaQuizFonts.inter,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF616161),
+          Positioned(
+            left: 27.78,
+            top: 5.65,
+            child: Text(
+              '+$reward',
+              style: const TextStyle(
+                fontFamily: FigmaQuizFonts.inter,
+                fontSize: 11.988,
+                fontWeight: FontWeight.w600,
+                // Inter 기본 줄 높이 (1984 + 494) / 2048.
+                height: 1.21,
+                color: Color(0xFF616161),
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 홈 상단 씨앗 아이콘 + `+N`. 판정 배너·해설이 같은 모양을 쓴다.
-class _SeedAmount extends StatelessWidget {
-  const _SeedAmount({
-    required this.amount,
-    required this.size,
-    this.label = '',
-  });
-
-  final int amount;
-  final double size;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox.square(
-          dimension: size * 1.3,
-          child: const FigmaSvg(
-            FigmaAssets.homeBeginnerStatCoin,
-            fit: BoxFit.contain,
-          ),
-        ),
-        SizedBox(width: size * 0.3),
-        Text(
-          '$label+$amount',
-          style: TextStyle(
-            fontSize: size,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.figmaTeal,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 정오답 판정 배너. 채점 직후 튀어나와서 맞았는지 틀렸는지 바로 보이게 한다.
-class _Verdict extends StatelessWidget {
-  const _Verdict({required this.correct, required this.earned});
-
-  final bool correct;
-
-  /// 받은 씨앗. 서버 응답 전이거나 이미 받은 용어면 0.
-  final int earned;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = correct ? _OptionStyle.correct : _OptionStyle.wrong;
-    final color = correct ? AppTheme.figmaTeal : _OptionStyle.wrong.border;
-    return TweenAnimationBuilder<double>(
-      // 정답만 통통 튄다. 오답까지 튀면 축하하는 것처럼 보인다.
-      tween: Tween(begin: correct ? 0.6 : 0.95, end: 1),
-      duration: Duration(milliseconds: correct ? 380 : 200),
-      curve: correct ? Curves.elasticOut : Curves.easeOut,
-      builder: (context, scale, child) =>
-          Transform.scale(scale: scale, child: child),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: style.background,
-          borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: style.border, width: _borderWidth),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              correct ? Icons.check_circle : Icons.cancel,
-              color: color,
-              size: correct ? 30 : 22,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                correct ? '정답이에요!' : '아쉬워요, 틀렸어요',
-                // 정답은 크게 축하하고, 오답은 작고 담담하게 — 크게 띄우면 혼나는 느낌이 든다.
-                style: TextStyle(
-                  fontSize: correct ? 18 : 15,
-                  fontWeight: correct ? FontWeight.w800 : FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ),
-            if (earned > 0) _SeedAmount(amount: earned, size: 14),
-          ],
-        ),
       ),
     );
   }
@@ -738,15 +615,11 @@ class _OptionBox extends StatelessWidget {
     required this.label,
     required this.style,
     required this.onTap,
-    this.mark,
   });
 
   final String label;
   final _OptionStyle style;
   final VoidCallback? onTap;
-
-  /// 오른쪽 끝 ✓/✗ 아이콘. 색은 [style] 테두리를 따른다.
-  final IconData? mark;
 
   @override
   Widget build(BuildContext context) {
@@ -756,31 +629,25 @@ class _OptionBox extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         constraints: const BoxConstraints(minHeight: 64),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        alignment: Alignment.center,
+        // Figma 보기 글상자: 상자 위에서 20 아래, 폭 291(양옆 9.5). 한 줄이면
+        // 가운데보다 1px쯤 위에 놓이는 것도 시안 그대로다.
+        // Container는 테두리 두께를 padding에 더하므로 그만큼 뺀다.
+        padding: const EdgeInsets.fromLTRB(
+          9.5 - _borderWidth,
+          20 - _borderWidth,
+          9.5 - _borderWidth,
+          20 - _borderWidth,
+        ),
+        alignment: Alignment.topCenter,
         decoration: BoxDecoration(
           color: style.background,
           borderRadius: BorderRadius.circular(_radius),
           border: Border.all(color: style.border, width: _borderWidth),
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Padding(
-              // 아이콘과 글자가 겹치지 않게 양쪽을 같이 비워 가운데 정렬을 지킨다.
-              padding: EdgeInsets.symmetric(horizontal: mark == null ? 0 : 26),
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, color: Colors.black),
-              ),
-            ),
-            if (mark != null)
-              Positioned(
-                right: 0,
-                child: Icon(mark, size: 22, color: style.border),
-              ),
-          ],
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 18, color: Colors.black),
         ),
       ),
     );

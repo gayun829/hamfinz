@@ -63,12 +63,16 @@ void main() {
 
     await tester.tap(find.text('정답 보기'));
     await tester.pumpAndSettle();
-    // 틀렸다는 게 글로 바로 보인다.
-    expect(find.text('아쉬워요, 틀렸어요'), findsOneWidget);
-    expect(find.byIcon(Icons.cancel), findsWidgets);
+    // Figma 정오답(`1006:2846`)처럼 판정은 보기 색으로만 보이고 보기 셋은 그대로다.
+    for (final option in quiz.options) {
+      expect(find.text(option), findsOneWidget);
+    }
     await tester.tap(find.text('해설 보기'));
     await tester.pumpAndSettle();
 
+    // 해설(`1006:2792`): 정답 보기 하나와 해설 글만 남는다.
+    expect(find.text(quiz.options[quiz.answer]), findsOneWidget);
+    expect(find.text(quiz.options[wrong]), findsNothing);
     expect(find.text(quiz.why), findsOneWidget);
     expect(find.text('나가기'), findsOneWidget);
   });
