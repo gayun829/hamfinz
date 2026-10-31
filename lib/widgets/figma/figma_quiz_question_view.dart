@@ -283,11 +283,10 @@ class FigmaQuizQuestionView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: FigmaQuizFonts.pretendard,
-                    // Figma 정오답 프레임(`639:2873`)만 Regular 18이고 나머지는 SemiBold 20이다.
-                    fontSize: figma.s(
-                      showAnswer ? _T.gradedOptionFontSize : _T.optionFontSize,
-                    ),
-                    fontWeight: showAnswer ? FontWeight.w400 : FontWeight.w600,
+                    // Figma는 Pretendard Variable SemiBold다. wght 600 글자는 번들한
+                    // Pretendard SemiBold와 같아서(1.309 비교) 이 굵기를 쓴다.
+                    fontSize: figma.s(_T.optionFontSize),
+                    fontWeight: FontWeight.w600,
                     color: Colors.black,
                     height: 1.2,
                   ),

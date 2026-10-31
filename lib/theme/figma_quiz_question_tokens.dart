@@ -134,7 +134,6 @@ abstract final class FigmaQuizQuestionTokens {
   static const optionRadius = 13.0;
   static const optionBorderWidth = 1.95;
   static const optionFontSize = 20.0;
-  static const gradedOptionFontSize = 18.0;
   static const optionTops = [417.0, 493.0, 569.0, 645.0];
 
   static const ctaLeft = 24.0;
