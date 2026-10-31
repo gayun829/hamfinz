@@ -137,6 +137,10 @@ class FigmaAssets {
   static const calendarTodayHamster = '$_calendar/today_hamster.svg';
   static const calendarStreakFlame = '$_calendar/streak_flame.svg';
 
+  /// `1006:2899` 헤더: 「목표까지」 불꽃(Group 82)과 카드 위 햄스터(Group 398).
+  static const calendarGoalFlame = '$_calendar/goal_flame.svg';
+  static const calendarHeaderHamster = '$_calendar/hamster_header.svg';
+
   /// 친구 순위 목록 1~3위 아바타 배지 (`연속학습 창_스크롤` 963:7890).
   static const calendarRankFlames = [
     '$_calendar/rank_flame_1.svg',

@@ -17,9 +17,9 @@ import '../friends/add_friend_screen.dart';
 
 typedef _T = FigmaCalendarTokens;
 
-const _mint = Color(0xFFDEFDFE);
+// Figma `1006:2899` 연속학습 캘린더_친구경쟁 없는 버전.
+const _mint = Color(0xFFE0FEFF);
 const _cyan = Color(0xFF65D6F8);
-const _band = Color(0xFFE0FEFF);
 
 class StreakCalendarScreen extends StatefulWidget {
   const StreakCalendarScreen({
@@ -30,6 +30,7 @@ class StreakCalendarScreen extends StatefulWidget {
     this.goalDays = 16,
     this.onNavTap,
     this.loadFriendsRanking,
+    this.today,
   });
 
   final int streak;
@@ -41,12 +42,15 @@ class StreakCalendarScreen extends StatefulWidget {
   /// 친구 순위를 불러온다. 없으면(테스트 등) 친구가 없는 걸로 본다.
   final Future<FriendsRanking> Function()? loadFriendsRanking;
 
+  /// 오늘 날짜. 테스트에서 날짜를 고정할 때만 넘기고, 없으면 한국 시간 오늘이다.
+  final DateTime? today;
+
   @override
   State<StreakCalendarScreen> createState() => _StreakCalendarScreenState();
 }
 
 class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
-  DateTime _month = DateHelper.koreaNow();
+  late DateTime _month = widget.today ?? DateHelper.koreaNow();
   FriendsRanking? _ranking;
   bool _rankingFailed = false;
 
@@ -89,7 +93,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFFAFAFA),
+    backgroundColor: const Color(0xFFFBFBFB),
     bottomNavigationBar: SafeArea(
       top: false,
       child: HomeBottomNav(currentIndex: 1, onTap: _navigate),
@@ -106,10 +110,12 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
               children: [
                 Container(
                   decoration: const BoxDecoration(
+                    // CSS `linear-gradient(54.41deg, ...)`를 393x304 상자의 시작·끝점으로 옮긴 값.
                     gradient: LinearGradient(
-                      begin: Alignment.bottomLeft,
-                      end: Alignment.topRight,
-                      colors: [Color(0xFFB8F0EF), Color(0xFF36C2FA)],
+                      begin: Alignment(-1.0275, 0.9507),
+                      end: Alignment(1.0275, -0.9507),
+                      stops: [0.13104, 0.98552],
+                      colors: [Color(0xFFB7F0F2), Color(0xFF3CC6FF)],
                     ),
                   ),
                   // Figma 좌표는 상태바를 포함한 프레임 기준이라 SafeArea로 또 밀지 않는다.
@@ -118,18 +124,25 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                     child: Stack(
                       children: [
                         Positioned(
-                          left: s(8),
+                          // 화살표(Group 345) 가운데는 (32.32, 42.53)이다.
+                          left: s(32.322) - 24,
                           // 상태바가 높은 기기에서도 화살표가 상태바 위로 올라가지 않게 한다.
-                          top: math.max(s(20), safeTop - 24),
+                          top: math.max(s(42.535), safeTop) - 24,
                           child: IconButton(
                             tooltip: '뒤로가기',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 48,
+                              height: 48,
+                            ),
                             onPressed: () => Navigator.of(context).maybePop(),
+                            // SVG는 선 두께만큼 바깥 여백을 포함한 크기다.
                             icon: FigmaSvg(
                               FigmaAssets.friendsBackChevron,
-                              width: s(10.644),
-                              height: s(21.069),
+                              width: s(13.6514),
+                              height: s(24.0617),
                               colorFilter: const ColorFilter.mode(
-                                Color(0xFFD5FAFC),
+                                Color(0xFFD9FAFF),
                                 BlendMode.srcIn,
                               ),
                             ),
@@ -137,86 +150,82 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                         ),
                         Positioned(
                           left: s(44),
-                          top: s(88),
-                          child: Row(
-                            children: [
-                              FigmaSvg(
-                                FigmaAssets.statStreak,
-                                width: s(28),
-                                height: s(39),
-                              ),
-                              SizedBox(width: s(9)),
-                              Text(
-                                '목표까지 D-${(widget.goalDays - widget.streak).clamp(0, widget.goalDays)}',
-                                style: TextStyle(
-                                  fontSize: s(20),
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                          top: s(89),
+                          child: FigmaSvg(
+                            FigmaAssets.calendarGoalFlame,
+                            width: s(27.6372),
+                            height: s(36.9771),
+                          ),
+                        ),
+                        Positioned(
+                          left: s(82),
+                          top: s(100),
+                          child: Text(
+                            '목표까지 D-${(widget.goalDays - widget.streak).clamp(0, widget.goalDays)}',
+                            style: TextStyle(
+                              fontSize: s(20),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         Positioned(
                           left: s(24),
-                          right: s(24),
                           top: s(142),
+                          width: s(345),
                           height: s(138),
-                          child: Container(
-                            padding: EdgeInsets.all(s(20)),
+                          child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(s(13)),
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  flex: 177,
-                                  child: _Stat(
-                                    scale: scale,
-                                    label: '연속학습',
-                                    value: widget.streak,
-                                    flame: true,
-                                    progress: widget.goalDays > 0
-                                        ? widget.streak / widget.goalDays
-                                        : 0,
-                                  ),
-                                ),
-                                SizedBox(width: s(20)),
-                                Expanded(
-                                  flex: 101,
-                                  child: _Stat(
-                                    scale: scale,
-                                    label: '방어권 보유',
-                                    unit: '개',
-                                    value: widget.studyGuardCount,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                         Positioned(
-                          right: s(38),
-                          top: s(58),
-                          width: s(118),
-                          height: s(91),
-                          child: const FigmaPng(
-                            'assets/figma/calendar/hamster_header.png',
-                            fit: BoxFit.contain,
+                          left: s(44),
+                          top: s(162),
+                          width: s(182),
+                          height: s(98),
+                          child: _StreakStat(
+                            scale: scale,
+                            value: widget.streak,
+                            progress: widget.goalDays > 0
+                                ? widget.streak / widget.goalDays
+                                : 0,
                           ),
                         ),
-                        for (final right in [121.0, 47.0])
+                        Positioned(
+                          left: s(246),
+                          top: s(162),
+                          width: s(103),
+                          height: s(97.684),
+                          child: _GuardStat(
+                            scale: scale,
+                            value: widget.studyGuardCount,
+                          ),
+                        ),
+                        Positioned(
+                          left: s(240),
+                          top: s(59),
+                          child: FigmaSvg(
+                            FigmaAssets.calendarHeaderHamster,
+                            width: s(115),
+                            height: s(84.285),
+                          ),
+                        ),
+                        // 햄스터 앞발은 흰 카드 위에 걸친다.
+                        for (final left in [249.0, 323.0])
                           Positioned(
-                            right: s(right),
-                            top: s(134),
+                            left: s(left),
+                            top: s(132),
                             width: s(23),
                             height: s(18),
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFD47C),
-                                borderRadius: BorderRadius.circular(s(14)),
+                                color: const Color(0xFFFFD27E),
+                                borderRadius: BorderRadius.all(
+                                  Radius.elliptical(s(11.5), s(9)),
+                                ),
                               ),
                             ),
                           ),
@@ -231,6 +240,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                       _Calendar(
                         scale: scale,
                         month: _month,
+                        today: widget.today,
                         completedDates: widget.completedDates,
                         onShift: (delta) => setState(
                           () => _month = DateTime(
@@ -267,143 +277,235 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
   );
 }
 
+/// 카드 그림자: Figma는 같은 크기의 `#E5E5E5` 사각형을 왼쪽으로 2 밀어 흐린다(6.1).
+/// 내보낸 화면의 번짐이 시그마 약 5.5라 Flutter blurRadius로 8.7이다.
 BoxDecoration _card(double scale) => BoxDecoration(
   color: Colors.white,
-  borderRadius: BorderRadius.circular(13 * scale),
+  borderRadius: BorderRadius.circular(13.036 * scale),
   boxShadow: [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.065),
-      blurRadius: 14 * scale,
-      offset: Offset(0, 2 * scale),
+      color: const Color(0xFFE5E5E5),
+      blurRadius: 8.7 * scale,
+      offset: Offset(-2 * scale, 0),
     ),
   ],
 );
 
-class _Stat extends StatelessWidget {
-  const _Stat({
+TextStyle _statLabel(double scale) => TextStyle(
+  fontSize: 12 * scale,
+  fontWeight: FontWeight.w400,
+  color: const Color(0xFF898989),
+);
+
+/// 큰 숫자 옆 단위. Figma는 숫자 윗변에서 16.48 아래에 단위 윗변을 둔다.
+class _StatValue extends StatelessWidget {
+  const _StatValue({
     required this.scale,
-    required this.label,
     required this.value,
-    this.flame = false,
-    this.unit = '일',
-    this.progress = 0,
+    required this.unit,
+    required this.gap,
   });
   final double scale;
-  final String label;
   final int value;
-  final bool flame;
   final String unit;
+  final double gap;
+
+  @override
+  Widget build(BuildContext context) {
+    double s(double value) => value * scale;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: s(32.088),
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(width: s(gap)),
+        Padding(
+          padding: EdgeInsets.only(top: s(16.484)),
+          child: Text(
+            unit,
+            style: TextStyle(
+              fontSize: s(12.033),
+              fontWeight: FontWeight.w400,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// `1006:2915` 연속학습 상자(182x98): 막대, 불꽃, 일수.
+class _StreakStat extends StatelessWidget {
+  const _StreakStat({
+    required this.scale,
+    required this.value,
+    required this.progress,
+  });
+  final double scale;
+  final int value;
   final double progress;
 
   @override
   Widget build(BuildContext context) {
     double s(double value) => value * scale;
-    return Container(
-      decoration: BoxDecoration(
-        color: _mint,
-        borderRadius: BorderRadius.circular(s(7)),
-      ),
-      padding: EdgeInsets.fromLTRB(s(flame ? 18 : 12), s(12), s(12), s(12)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (flame) ...[
-            Container(
-              width: s(_T.streakBar.width),
-              height: s(_T.streakBar.height),
-              decoration: BoxDecoration(
-                color: _T.barTrack,
-                borderRadius: BorderRadius.circular(s(_T.barRadius)),
-              ),
-              alignment: Alignment.bottomCenter,
-              // 채움은 최소 트랙 폭만큼의 원으로 시작해야 둥근 트랙 밖으로
-              // 납작하게 삐져나오지 않는다.
-              child: progress > 0
-                  ? Container(
-                      width: s(_T.streakBar.width),
-                      height:
-                          (s(_T.streakBar.height) * progress.clamp(0.0, 1.0))
-                              .clamp(
-                                s(_T.streakBar.width),
-                                s(_T.streakBar.height),
-                              ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(s(_T.barRadius)),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: [_T.streakBarTopStop, 1],
-                          colors: [_T.streakBarTop, _T.streakBarBottom],
+    return Semantics(
+      label: '연속학습 $value일',
+      excludeSemantics: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _mint,
+          borderRadius: BorderRadius.circular(s(6.5)),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              left: s(18.758),
+              top: s(16.422),
+              child: Container(
+                width: s(_T.streakBar.width),
+                height: s(_T.streakBar.height),
+                decoration: BoxDecoration(
+                  color: _T.barTrack,
+                  borderRadius: BorderRadius.circular(s(_T.barRadius)),
+                ),
+                alignment: Alignment.bottomCenter,
+                // 채움은 최소 트랙 폭만큼의 원으로 시작해야 둥근 트랙 밖으로
+                // 납작하게 삐져나오지 않는다.
+                child: progress > 0
+                    ? Container(
+                        width: s(_T.streakBar.width),
+                        height:
+                            (s(_T.streakBar.height) * progress.clamp(0.0, 1.0))
+                                .clamp(
+                                  s(_T.streakBar.width),
+                                  s(_T.streakBar.height),
+                                ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(s(_T.barRadius)),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: [_T.streakBarTopStop, 1],
+                            colors: [_T.streakBarTop, _T.streakBarBottom],
+                          ),
                         ),
-                      ),
-                    )
-                  : null,
+                      )
+                    : null,
+              ),
             ),
-            SizedBox(width: s(8)),
-            FigmaSvg(
-              FigmaAssets.calendarStreakFlame,
-              width: s(_T.streakFlame.width),
-              height: s(_T.streakFlame.height),
+            Positioned(
+              left: s(43.22),
+              top: s(24.46),
+              child: FigmaSvg(
+                FigmaAssets.calendarStreakFlame,
+                width: s(_T.streakFlame.width),
+                height: s(_T.streakFlame.height),
+              ),
             ),
-            SizedBox(width: s(12)),
+            Positioned(
+              left: s(104.732),
+              top: s(20.721),
+              child: Text('연속학습', style: _statLabel(scale)),
+            ),
+            Positioned(
+              left: s(105),
+              top: s(44),
+              child: _StatValue(
+                scale: scale,
+                value: value,
+                unit: '일',
+                gap: 2.346,
+              ),
+            ),
           ],
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: s(12),
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF898989),
-                    ),
-                  ),
-                  SizedBox(height: s(10)),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '$value',
-                          style: TextStyle(
-                            fontSize: s(32),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' $unit',
-                          style: TextStyle(
-                            fontSize: s(12),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                    style: const TextStyle(color: Colors.black, height: 1),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
+/// `1006:2932` 오른쪽 상자(103x97.7): 글자는 상자 가운데에 맞춘다.
+class _GuardStat extends StatelessWidget {
+  const _GuardStat({required this.scale, required this.value});
+  final double scale;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    double s(double value) => value * scale;
+    return Semantics(
+      label: '방어권 보유 $value개',
+      excludeSemantics: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _mint,
+          borderRadius: BorderRadius.circular(s(6.5)),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: s(21),
+              child: Text(
+                '방어권 보유',
+                textAlign: TextAlign.center,
+                style: _statLabel(scale),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: s(44),
+              child: Center(
+                child: _StatValue(
+                  scale: scale,
+                  value: value,
+                  unit: '개',
+                  gap: 0.346,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// `1006:2939` 캘린더 카드(345 폭). 날짜 칸은 Figma 요일 글자 가운데에 맞춘
+/// 44.37 간격이고, 줄 간격은 41.976이다.
 class _Calendar extends StatelessWidget {
   const _Calendar({
     required this.scale,
     required this.month,
+    required this.today,
     required this.completedDates,
     required this.onShift,
   });
   final double scale;
   final DateTime month;
+  final DateTime? today;
   final Set<String> completedDates;
   final ValueChanged<int> onShift;
+
+  static const _rowHeight = 41.976;
+  static const _bandHeight = 23.0;
+
+  /// 띠 윗변: 숫자 가운데보다 0.27 아래로 띠 가운데가 온다.
+  static const _bandTop = _rowHeight / 2 - _bandHeight / 2 + 0.27;
+
+  /// `1006:2943` 햄스터(39.22x27.28)는 아랫변을 띠 아랫변에 맞춘다.
+  static const _hamster = Size(39.2248, 27.2814);
+  static const _hamsterTop = _bandTop + _bandHeight - 27.2814;
 
   @override
   Widget build(BuildContext context) {
@@ -411,9 +513,13 @@ class _Calendar extends StatelessWidget {
     final leading = DateTime(month.year, month.month).weekday % 7;
     final count = DateTime(month.year, month.month + 1, 0).day;
     final rows = (leading + count + 6) ~/ 7;
-    final now = DateHelper.koreaNow();
+    final now = this.today ?? DateHelper.koreaNow();
     final today = DateTime(now.year, now.month, now.day);
     final streakHead = _streakHead(today);
+    final textStyle = TextStyle(
+      fontSize: s(11.448),
+      fontWeight: FontWeight.w500,
+    );
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
@@ -421,69 +527,66 @@ class _Calendar extends StatelessWidget {
       },
       child: Container(
         decoration: _card(scale),
-        padding: EdgeInsets.fromLTRB(s(16), s(20), s(16), s(18)),
+        padding: EdgeInsets.fromLTRB(s(15.62), s(27), s(18.82), s(16.82)),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                SizedBox(width: s(10)),
-                Expanded(
-                  child: Text(
-                    '${month.year}년 ${month.month}월',
-                    style: TextStyle(
-                      fontSize: s(20),
-                      fontWeight: FontWeight.w500,
+            SizedBox(
+              height: s(20 * AppTheme.figmaAutoLineHeight),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: s(10.38),
+                    top: 0,
+                    child: Text(
+                      '${month.year}년 ${month.month}월',
+                      style: TextStyle(
+                        fontSize: s(20),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  tooltip: '이전 달',
-                  onPressed: () => onShift(-1),
-                  constraints: BoxConstraints.tightFor(
-                    width: s(28),
-                    height: 48,
+                  // 시안에는 없는 달 이동 버튼. 제목 줄 높이는 그대로 둔다.
+                  Positioned(
+                    right: 0,
+                    top: s(10 * AppTheme.figmaAutoLineHeight) - 24,
+                    child: Row(
+                      children: [
+                        for (final (delta, tooltip, icon) in [
+                          (-1, '이전 달', Icons.chevron_left),
+                          (1, '다음 달', Icons.chevron_right),
+                        ])
+                          IconButton(
+                            tooltip: tooltip,
+                            onPressed: () => onShift(delta),
+                            constraints: BoxConstraints.tightFor(
+                              width: s(28),
+                              height: 48,
+                            ),
+                            padding: EdgeInsets.zero,
+                            icon: Icon(
+                              icon,
+                              size: s(18),
+                              color: const Color(0xFFAAAAAA),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.chevron_left,
-                    size: s(18),
-                    color: const Color(0xFFAAAAAA),
-                  ),
-                ),
-                IconButton(
-                  tooltip: '다음 달',
-                  onPressed: () => onShift(1),
-                  constraints: BoxConstraints.tightFor(
-                    width: s(28),
-                    height: 48,
-                  ),
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.chevron_right,
-                    size: s(18),
-                    color: const Color(0xFFAAAAAA),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-            SizedBox(height: s(40)),
+            SizedBox(height: s(52.2)),
             Row(
               children: [
                 for (final label in ['일', '월', '화', '수', '목', '금', '토'])
                   Expanded(
-                    child: Center(
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: s(11.448),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                    child: Center(child: Text(label, style: textStyle)),
                   ),
               ],
             ),
-            SizedBox(height: s(10)),
+            SizedBox(height: s(9.68)),
             for (var row = 0; row < rows; row++)
               Row(
                 children: [
@@ -525,32 +628,35 @@ class _Calendar extends StatelessWidget {
                           return Semantics(
                             label: '$key${completed ? ', 학습 완료' : ''}',
                             child: SizedBox(
-                              height: s(42),
+                              height: s(_rowHeight),
                               child: LayoutBuilder(
                                 builder: (context, cell) {
                                   final half = cell.maxWidth / 2;
                                   return Stack(
-                                    alignment: Alignment.center,
+                                    clipBehavior: Clip.none,
                                     children: [
-                                      // 이어진 학습일은 한 줄의 띠로 잇는다.
-                                      // 햄스터 칸에서는 띠가 가운데까지만 오고 햄스터가 덮는다.
+                                      // 이어진 학습일은 한 줄의 띠로 잇는다. 끝은 숫자
+                                      // 가운데에서 왼쪽 16.9, 오른쪽 18만큼 나간다.
+                                      // 햄스터 칸에서는 햄스터 가운데 직전에서 끝나고
+                                      // 햄스터가 그 끝을 덮는다.
                                       if (inRun)
                                         Positioned(
                                           key: ValueKey('streak-band-$key'),
-                                          left: runStart ? half - s(16) : 0,
+                                          left: runStart ? half - s(16.9) : 0,
                                           right: runEnd
-                                              ? (isHead ? half : half - s(18))
+                                              ? half - s(isHead ? -1.28 : 18)
                                               : 0,
-                                          height: s(23),
+                                          top: s(_bandTop),
+                                          height: s(_bandHeight),
                                           child: DecoratedBox(
                                             decoration: BoxDecoration(
-                                              color: _band,
+                                              color: _mint,
                                               borderRadius:
                                                   BorderRadius.horizontal(
                                                     left: runStart
                                                         ? pill
                                                         : Radius.zero,
-                                                    right: runEnd && !isHead
+                                                    right: runEnd
                                                         ? pill
                                                         : Radius.zero,
                                                   ),
@@ -558,35 +664,42 @@ class _Calendar extends StatelessWidget {
                                           ),
                                         ),
                                       if (isHead)
-                                        Transform.translate(
-                                          offset: Offset(0, -s(2.1)),
+                                        Positioned(
+                                          left:
+                                              half -
+                                              s(_hamster.width / 2 - 0.33),
+                                          top: s(_hamsterTop),
                                           child: FigmaSvg(
                                             FigmaAssets.calendarTodayHamster,
                                             key: ValueKey('today-hamster-$key'),
-                                            width: s(39),
-                                            height: s(27.3),
+                                            width: s(_hamster.width),
+                                            height: s(_hamster.height),
                                           ),
                                         )
                                       else if (completed && !inRun)
-                                        Container(
+                                        Positioned(
                                           key: ValueKey('study-circle-$key'),
-                                          width: s(23),
-                                          height: s(23),
-                                          decoration: const BoxDecoration(
-                                            color: _band,
-                                            shape: BoxShape.circle,
+                                          left: half - s(_bandHeight / 2),
+                                          top: s(_bandTop),
+                                          width: s(_bandHeight),
+                                          height: s(_bandHeight),
+                                          child: const DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: _mint,
+                                              shape: BoxShape.circle,
+                                            ),
                                           ),
                                         ),
-                                      Text(
-                                        '${date.day}',
-                                        style: TextStyle(
-                                          fontSize: s(11.448),
-                                          fontWeight: FontWeight.w500,
-                                          color: !inMonth
-                                              ? const Color(0xFFD9D9D9)
-                                              : completed || isToday
-                                              ? Colors.black
-                                              : const Color(0xFF8C8C8C),
+                                      Center(
+                                        child: Text(
+                                          '${date.day}',
+                                          style: textStyle.copyWith(
+                                            color: !inMonth
+                                                ? const Color(0xFFD9D9D9)
+                                                : completed || isToday
+                                                ? Colors.black
+                                                : const Color(0xFF8C8C8C),
+                                          ),
                                         ),
                                       ),
                                     ],
