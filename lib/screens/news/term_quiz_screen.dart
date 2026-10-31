@@ -7,7 +7,6 @@ import '../../services/news_quiz_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_quiz_fonts.dart';
 import '../../widgets/figma/figma_asset_image.dart';
-import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/home_bottom_nav.dart';
 
 /// 기사에서 잡은 금융 용어 하나를 가르치고 3지선다 한 문제로 묻는다.
@@ -504,28 +503,36 @@ class _QuestionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(left: 13),
       child: Row(
         children: [
-          SizedBox(
-            width: 37,
-            height: 42,
-            // Figma Q 글상자는 높이 42 고정에 줄 높이 auto라 글자가 상자 위에 붙는다.
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: TweenAnimationBuilder<Color?>(
-                tween: ColorTween(end: color),
-                duration: const Duration(milliseconds: 250),
-                builder: (context, value, _) => StrokedText(
-                  'Q',
-                  style: const TextStyle(
-                    fontFamily: FigmaQuizFonts.suit,
-                    fontSize: 32.088,
-                    fontWeight: FontWeight.w100,
-                    // SUIT 기본 줄 높이 (988 + 260) / 1000.
-                    height: 1.248,
+          // Figma Q는 SUIT Thin 글자에 바깥 외곽선 1.3(round join)을 두른 것이다.
+          // 글자에 stroke를 덧그리면 렌더러마다 획 모양이 달라져서, Figma가 내보낸
+          // 글자 윤곽에 같은 획을 입힌 벡터(`quiz_q.svg`)를 쓰고 색만 바꾼다.
+          Semantics(
+            label: 'Q',
+            child: SizedBox(
+              width: 37,
+              height: 42,
+              child: Stack(
+                children: [
+                  // 글상자(54, 159) 안에서 벡터가 놓이는 자리(55.33, 166.31).
+                  Positioned(
+                    left: 1.331,
+                    top: 7.308,
+                    width: 26,
+                    height: 27,
+                    child: TweenAnimationBuilder<Color?>(
+                      tween: ColorTween(end: color),
+                      duration: const Duration(milliseconds: 250),
+                      builder: (context, value, _) => FigmaSvg(
+                        FigmaAssets.newsQuizQ,
+                        fit: BoxFit.fill,
+                        colorFilter: ColorFilter.mode(
+                          value ?? color,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
                   ),
-                  color: value ?? color,
-                  // Figma 바깥쪽 1.3px = Flutter 가운데 정렬 stroke 2.6px.
-                  strokeWidth: 2.6,
-                ),
+                ],
               ),
             ),
           ),

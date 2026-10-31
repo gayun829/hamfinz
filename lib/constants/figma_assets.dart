@@ -2,6 +2,7 @@ class FigmaAssets {
   static const _home = 'assets/figma/home';
   static const _homeBeginner = '$_home/beginner';
   static const _auth = 'assets/figma/auth';
+  static const _news = 'assets/figma/news';
   static const _quiz = 'assets/figma/quiz';
   static const _quizStreak = '$_quiz/streak';
   static const _quizReward = '$_quiz/reward';
@@ -74,6 +75,9 @@ class FigmaAssets {
   static const homeBeginnerStatEnergy = '$_homeBeginner/stat_energy.svg';
   static const homeBeginnerStatCoin = '$_homeBeginner/stat_coin.svg';
   static const homeBeginnerStatStreak = '$_homeBeginner/stat_streak.svg';
+
+  // 뉴스 퀴즈 Q (`1006:2792`, `1006:2846`)
+  static const newsQuizQ = '$_news/quiz_q.svg';
 
   // 하단 탭 아이콘 — 선택된 탭만 파란색, 나머지는 회색 (뉴스화면 579:2230,
   // 홈화면_초급 526:2699, 마이페이지 538:56).
