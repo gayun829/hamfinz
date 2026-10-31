@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:testapp/constants/figma_assets.dart';
 import 'package:testapp/models/user_profile.dart';
 import 'package:testapp/screens/settings/settings_screen.dart';
 import 'package:testapp/theme/app_theme.dart';
+import 'package:testapp/widgets/figma/figma_asset_image.dart';
 import 'package:testapp/widgets/figma/stroked_text.dart';
 
 void main() {
@@ -65,8 +67,9 @@ void main() {
     expect(find.text('저축왕이 될 거예요'), findsOneWidget);
   });
 
-  testWidgets('bio field keeps the blue box, not the themed white input',
-      (tester) async {
+  testWidgets('bio field keeps the blue box, not the themed white input', (
+    tester,
+  ) async {
     // 앱 테마의 InputDecorationTheme은 흰 배경 + 둥근 테두리다. 한줄소개는
     // 하늘색 박스 자체가 입력칸이라 그 스타일이 새어 들어오면 안 된다.
     await pumpSettings(tester, const Size(393, 852));
@@ -105,8 +108,9 @@ void main() {
     expect(find.text('한줄소개를 저장하지 못했어요.'), findsOneWidget);
   });
 
-  testWidgets('learning card shows the current stage on the flame',
-      (tester) async {
+  testWidgets('learning card shows the current stage on the flame', (
+    tester,
+  ) async {
     await pumpSettings(tester, const Size(393, 852), learningStage: 3);
     expect(
       find.byWidgetPredicate((w) => w is StrokedText && w.text == '3'),
@@ -114,8 +118,9 @@ void main() {
     );
   });
 
-  testWidgets('tapping the learning card opens the stage sheet',
-      (tester) async {
+  testWidgets('tapping the learning card opens the stage sheet', (
+    tester,
+  ) async {
     await pumpSettings(tester, const Size(393, 852), learningStage: 3);
     await tester.tap(find.text('열심히 달리는 중이에요~~!'));
     await tester.pumpAndSettle();
@@ -127,6 +132,15 @@ void main() {
     expect(find.text('고급'), findsOneWidget);
     for (var stage = 1; stage <= 10; stage++) {
       expect(find.bySemanticsLabel('$stage단계'), findsOneWidget);
+      // 숫자는 Figma 글자 윤곽 SVG로 그린다.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is FigmaSvg &&
+              w.asset == FigmaAssets.settingsStageNumber(stage),
+        ),
+        findsOneWidget,
+      );
     }
     expect(tester.takeException(), isNull);
   });
@@ -165,8 +179,9 @@ void main() {
     expect(loggedOut, isFalse);
   });
 
-  testWidgets('logout popup buttons turn sky blue only while pressed',
-      (tester) async {
+  testWidgets('logout popup buttons turn sky blue only while pressed', (
+    tester,
+  ) async {
     await pumpSettings(tester, const Size(393, 852));
     await tester.ensureVisible(find.text('로그아웃/ 계정전환'));
     await tester.tap(find.text('로그아웃/ 계정전환'));
@@ -176,7 +191,10 @@ void main() {
     Color? fillOf(String label) {
       final box = tester.widget<Container>(
         find
-            .ancestor(of: find.text(label).last, matching: find.byType(Container))
+            .ancestor(
+              of: find.text(label).last,
+              matching: find.byType(Container),
+            )
             .first,
       );
       return (box.decoration as BoxDecoration?)?.color;
