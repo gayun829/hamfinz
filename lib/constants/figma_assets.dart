@@ -173,6 +173,12 @@ class FigmaAssets {
   /// 학습 과정 시트의 곰 모양 단계 칩 (Group 556, 67×47) — colorFilter로 칠한다.
   static const settingsStageBear = '$_settings/stage_bear.svg';
 
+  /// 곰 칩 위 단계 숫자 (Figma `539:2557`~`539:2566`, Pretendard Thin 20.107 +
+  /// 바깥 흰 외곽선 1.1). 글자 윤곽을 [settingsStageBear]와 같은 68×48 좌표에
+  /// 옮겼다 — 숫자마다 칩 안 위치가 달라서 곰 위에 그대로 겹치면 된다.
+  static String settingsStageNumber(int stage) =>
+      '$_settings/stage_number_$stage.svg';
+
   // Quiz (Figma `137:5521` 퀴즈._객_문제)
   static const quizSpeechBubble = '$_quiz/speech_bubble.svg';
   static const quizBackChevronQuestion = '$_quiz/back_chevron_question.svg';
