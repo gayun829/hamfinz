@@ -7,6 +7,7 @@ import '../../theme/figma_quiz_fonts.dart';
 import '../../theme/figma_quiz_reward_tokens.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 import '../../widgets/figma/figma_scale.dart';
+import '../../widgets/figma/stroked_text.dart';
 import '../../widgets/quiz_figma_cta_button.dart';
 
 /// 퀴즈_중간 학습창 다음에 뜨는 보상 확인창.
@@ -92,19 +93,18 @@ class QuizRewardScreen extends StatelessWidget {
           FigmaQuizRewardTokens.designWidth / 2,
       top: FigmaQuizRewardTokens.titleTop,
       width: FigmaQuizRewardTokens.designWidth,
-      child: Text(
+      child: StrokedText(
         '레슨 완료!',
-        textAlign: TextAlign.center,
-        maxLines: 1,
-        softWrap: false,
         style: TextStyle(
           fontFamily: FigmaQuizFonts.pretendard,
           fontSize: figma.s(FigmaQuizRewardTokens.titleFontSize),
           height: 1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w400,
           letterSpacing: figma.s(FigmaQuizRewardTokens.titleLetterSpacing),
-          color: FigmaQuizRewardTokens.titleColor,
         ),
+        color: FigmaQuizRewardTokens.titleColor,
+        // Figma 바깥쪽 0.7px = Flutter 가운데 정렬 stroke 1.4px.
+        strokeWidth: figma.s(1.4),
       ),
     );
   }

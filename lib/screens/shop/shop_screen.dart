@@ -127,158 +127,104 @@ class _ShopScreenState extends State<ShopScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFBFBFB),
       body: SafeArea(
-        child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: clampedScaler),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final figma = FigmaScale.ofLayout(
-                constraints,
-                designWidth: FigmaShopTokens.designWidth,
-              );
-              final s = figma.s;
-              return Column(
-                children: [
-                  _ItemShopHeader(
-                    figma: figma,
-                    seeds: _profile.seeds,
-                    onBack: () => Navigator.of(context).pop(),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.fromLTRB(
-                        s(FigmaShopTokens.pagePadding),
-                        s(27),
-                        s(FigmaShopTokens.pagePadding),
-                        s(24),
-                      ),
+        // 상태바 자리는 Figma처럼 머리띠와 같은 흰색으로 칠한다.
+        top: false,
+        child: Column(
+          children: [
+            ColoredBox(
+              color: Colors.white,
+              child: SizedBox(
+                width: double.infinity,
+                height: MediaQuery.paddingOf(context).top,
+              ),
+            ),
+            Expanded(
+              child: MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: clampedScaler),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final figma = FigmaScale.ofLayout(
+                      constraints,
+                      designWidth: FigmaShopTokens.designWidth,
+                    );
+                    final s = figma.s;
+                    return Column(
                       children: [
-                        _ClosetBanner(figma: figma, onTap: _openCloset),
-                        SizedBox(height: s(23)),
-                        _ClothingShopBanner(
+                        ShopHeader(
                           figma: figma,
-                          onTap: _openClothingShop,
+                          title: '아이템 상점',
+                          seeds: _profile.seeds,
+                          onBack: () => Navigator.of(context).pop(),
                         ),
-                        SizedBox(height: s(23)),
-                        SizedBox(height: s(14)),
-                        Text(
-                          '아이템 목록',
-                          style: FigmaShopTokens.sectionTitle(figma.scale),
-                        ),
-                        SizedBox(height: s(8)),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _ItemPurchaseTile(
-                                figma: figma,
-                                title: '방어햄',
-                                price: _catalogItem('study_guard').price,
-                                item: _catalogItem('study_guard'),
-                                background: const Color(0xFFE2F6FF),
-                                onTap: _buyStudyGuard,
-                              ),
+                        Expanded(
+                          child: ListView(
+                            padding: EdgeInsets.fromLTRB(
+                              s(FigmaShopTokens.pagePadding),
+                              s(27),
+                              s(FigmaShopTokens.pagePadding),
+                              s(24),
                             ),
-                            SizedBox(width: s(8)),
-                            Expanded(
-                              child: _ItemPurchaseTile(
+                            children: [
+                              _ClosetBanner(figma: figma, onTap: _openCloset),
+                              SizedBox(height: s(23)),
+                              _ClothingShopBanner(
                                 figma: figma,
-                                title: '에너지햄',
-                                price: _catalogItem('energy_pack').price,
-                                item: _catalogItem('energy_pack'),
-                                background: const Color(0xFFFFF3D2),
-                                icon: FigmaSvg(
-                                  FigmaAssets.statEnergy,
-                                  width: s(84),
-                                  height: s(59),
+                                onTap: _openClothingShop,
+                              ),
+                              SizedBox(height: s(25)),
+                              Padding(
+                                padding: EdgeInsets.only(left: s(7)),
+                                child: Text(
+                                  '아이템 목록',
+                                  style: FigmaShopTokens.sectionTitle(
+                                    figma.scale,
+                                  ),
                                 ),
-                                onTap: _buyEnergy,
                               ),
-                            ),
-                          ],
+                              SizedBox(height: s(10)),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _ItemPurchaseTile(
+                                      figma: figma,
+                                      title: '방어햄',
+                                      price: _catalogItem('study_guard').price,
+                                      item: _catalogItem('study_guard'),
+                                      background: const Color(0xFFE2F6FF),
+                                      onTap: _buyStudyGuard,
+                                    ),
+                                  ),
+                                  SizedBox(width: s(12)),
+                                  Expanded(
+                                    child: _ItemPurchaseTile(
+                                      figma: figma,
+                                      title: '에너지햄',
+                                      price: _catalogItem('energy_pack').price,
+                                      item: _catalogItem('energy_pack'),
+                                      background: const Color(0xFFFFF3D2),
+                                      icon: FigmaSvg(
+                                        FigmaAssets.statEnergy,
+                                        width: s(84),
+                                        height: s(59),
+                                      ),
+                                      onTap: _buyEnergy,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-/// Figma `675:454` 아이템 상점창 상단 바 (상태바 아래 57px).
-class _ItemShopHeader extends StatelessWidget {
-  const _ItemShopHeader({
-    required this.figma,
-    required this.seeds,
-    required this.onBack,
-  });
-  final FigmaScale figma;
-  final int seeds;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = figma.s;
-    return Container(
-      height: s(57),
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 2)),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Text(
-            '아이템 상점',
-            style: TextStyle(
-              fontSize: 22 * figma.scale,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-          ),
-          Positioned(
-            left: s(10),
-            child: Semantics(
-              button: true,
-              label: '뒤로',
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onBack,
-                child: Padding(
-                  padding: EdgeInsets.all(s(16)),
-                  child: FigmaSvg(
-                    FigmaAssets.friendsBackChevron,
-                    width: s(10.644),
-                    height: s(21.069),
-                    colorFilter: const ColorFilter.mode(
-                      Color(0xFFD9D9D9),
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: s(14),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: s(100)),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: ShopSeedChip(
-                  figma: figma,
-                  seeds: seeds,
-                  iconSize: FigmaShopTokens.seedIconHeader,
-                  amountSize: 17.243,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -522,13 +468,13 @@ class _ItemPurchaseTile extends StatelessWidget {
     final s = figma.s;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(s(12)),
+      borderRadius: BorderRadius.circular(s(13)),
       child: Container(
-        height: s(200),
+        height: s(230),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(s(12)),
+          borderRadius: BorderRadius.circular(s(13)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x12000000),
@@ -539,24 +485,24 @@ class _ItemPurchaseTile extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Expanded(
-              child: Container(
-                color: background,
-                child: Center(child: icon ?? ShopItemImage(item: item)),
-              ),
+            Container(
+              height: s(155),
+              width: double.infinity,
+              color: background,
+              child: Center(child: icon ?? ShopItemImage(item: item)),
             ),
             Padding(
-              padding: EdgeInsets.only(top: s(8)),
+              padding: EdgeInsets.only(top: s(10)),
               child: Text(
                 title,
                 style: FigmaShopTokens.body(figma.scale).copyWith(
-                  fontSize: 14 * figma.scale,
+                  fontSize: 15 * figma.scale,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             Padding(
-              padding: EdgeInsets.only(bottom: s(8)),
+              padding: EdgeInsets.only(top: s(7), bottom: s(8)),
               child: ShopSeedChip(
                 figma: figma,
                 seeds: price,

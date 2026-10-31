@@ -5,9 +5,10 @@ import '../../services/auth_service.dart';
 import '../../services/friend_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/figma_friends_tokens.dart';
+import '../../theme/figma_home_fonts.dart';
 import '../../widgets/figma/figma_asset_image.dart';
 
-/// 친구 화면 (Figma `270:9` 마이>친구탭 수정). 탭이 아니라 친구 추가·받은 요청·
+/// 친구 화면 (Figma `856:2910` 마이>친구탭). 탭이 아니라 친구 추가·받은 요청·
 /// 친구 목록이 한 화면에 카드로 쌓인 구조다.
 class AddFriendScreen extends StatefulWidget {
   const AddFriendScreen({super.key});
@@ -49,9 +50,9 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
 
   void _showError(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('문제가 발생했어요: $error')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('문제가 발생했어요: $error')));
   }
 
   Future<void> _loadProfile() async {
@@ -216,6 +217,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
         elevation: 0,
         foregroundColor: Colors.white,
         centerTitle: true,
+        toolbarHeight: 59,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const FigmaSvg(
@@ -228,31 +230,39 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
           '친구',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshAll,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            _HeroHeader(nickname: _nickname),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildSearchCard(),
-                  const SizedBox(height: 16),
-                  _buildRequestsCard(),
-                  const SizedBox(height: 16),
-                  _buildFriendsCard(),
-                ],
+      body: DefaultTextStyle.merge(
+        style: const TextStyle(height: AppTheme.figmaAutoLineHeight),
+        child: RefreshIndicator(
+          onRefresh: _refreshAll,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              _HeroHeader(nickname: _nickname),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  FigmaFriendsTokens.sectionGap,
+                  16,
+                  24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildSearchCard(),
+                    const SizedBox(height: FigmaFriendsTokens.sectionGap),
+                    _buildRequestsSection(),
+                    const SizedBox(height: FigmaFriendsTokens.sectionGap),
+                    _buildFriendsSection(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -261,15 +271,25 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
   Widget _buildSearchCard() {
     return _FriendsCard(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(
+          horizontal: FigmaFriendsTokens.sectionInset,
+          vertical: 15,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '친구 추가하기',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            const Padding(
+              padding: EdgeInsets.only(left: 3),
+              child: Text(
+                '친구 추가하기',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
@@ -287,11 +307,16 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                           fontSize: 14,
                           color: FigmaFriendsTokens.placeholder,
                         ),
+                        // Figma: 아이콘 x=13(12×12), 안내 문구 x=31.
                         prefixIcon: const Padding(
-                          padding: EdgeInsets.all(14),
+                          padding: EdgeInsets.fromLTRB(13, 13.5, 6, 13.5),
                           child: FigmaSvg(FigmaAssets.friendsSearchIcon),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                        prefixIconConstraints: const BoxConstraints.tightFor(
+                          width: 31,
+                          height: 39,
+                        ),
+                        contentPadding: const EdgeInsets.only(right: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(7.5),
                           borderSide: const BorderSide(
@@ -309,7 +334,12 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _FilledPillButton(label: '검색', onPressed: _search),
+                _FilledPillButton(
+                  label: '검색',
+                  onPressed: _search,
+                  size: const Size(84, 39),
+                  fontSize: 18,
+                ),
               ],
             ),
             if (_searching) ...[
@@ -344,9 +374,15 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
   Widget _searchResultTrailing(FriendSearchResult result) {
     switch (result.status) {
       case FriendStatus.friends:
-        return const Text('친구', style: TextStyle(color: AppTheme.textSecondary));
+        return const Text(
+          '친구',
+          style: TextStyle(color: AppTheme.textSecondary),
+        );
       case FriendStatus.requestSent:
-        return const Text('요청 보냄', style: TextStyle(color: AppTheme.textSecondary));
+        return const Text(
+          '요청 보냄',
+          style: TextStyle(color: AppTheme.textSecondary),
+        );
       case FriendStatus.requestReceived:
         return const Text(
           '받은 요청 있음',
@@ -360,119 +396,156 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
     }
   }
 
-  Widget _buildRequestsCard() {
-    return _FriendsCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildRequestsSection() {
+    return _FriendsSection(
+      title: Row(
+        children: [
+          const Text(
+            '받은 요청',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+          if (_requests.isNotEmpty) ...[
+            const SizedBox(width: 5),
+            Text(
+              '${_requests.length}',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: FigmaFriendsTokens.badge,
+              ),
+            ),
+          ],
+        ],
+      ),
+      child: _loadingRequests
+          ? const _CardMessage(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _requestsError != null
+          ? _CardMessage(
+              child: _ErrorRetry(
+                message: '받은 요청을 불러오지 못했어요.',
+                onRetry: _loadRequests,
+              ),
+            )
+          : _requests.isEmpty
+          ? const _CardMessage(
+              child: Text(
+                '받은 친구 요청이 없어요.',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
+          : Column(
               children: [
-                const Text(
-                  '받은 요청',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                if (_requests.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '${_requests.length}',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: FigmaFriendsTokens.badge,
+                for (var i = 0; i < _requests.length; i++) ...[
+                  if (i > 0) const _RowDivider(),
+                  _PersonRow(
+                    nickname: _requests[i].nickname,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _OutlinePillButton(
+                          label: '거절',
+                          onPressed: () => _decline(_requests[i]),
+                        ),
+                        const SizedBox(width: 8),
+                        _FilledPillButton(
+                          label: '수락',
+                          onPressed: () => _accept(_requests[i]),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ],
             ),
-            const SizedBox(height: 12),
-            if (_loadingRequests)
-              const Center(child: CircularProgressIndicator())
-            else if (_requestsError != null)
-              _ErrorRetry(
-                message: '받은 요청을 불러오지 못했어요.',
-                onRetry: _loadRequests,
-              )
-            else if (_requests.isEmpty)
-              const Text(
-                '받은 친구 요청이 없어요.',
-                style: TextStyle(color: AppTheme.textSecondary),
-              )
-            else
-              Column(
-                children: [
-                  for (var i = 0; i < _requests.length; i++) ...[
-                    if (i > 0) const _RowDivider(),
-                    _PersonRow(
-                      nickname: _requests[i].nickname,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _OutlinePillButton(
-                            label: '거절',
-                            onPressed: () => _decline(_requests[i]),
-                          ),
-                          const SizedBox(width: 8),
-                          _FilledPillButton(
-                            label: '수락',
-                            onPressed: () => _accept(_requests[i]),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildFriendsCard() {
-    return _FriendsCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '친구 목록',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            if (_loadingFriends)
-              const Center(child: CircularProgressIndicator())
-            else if (_friendsError != null)
-              _ErrorRetry(
-                message: '친구 목록을 불러오지 못했어요.',
-                onRetry: _loadFriends,
-              )
-            else if (_friends.isEmpty)
-              const Text(
-                '아직 친구가 없어요. 위에서 검색해 추가해보세요.',
-                style: TextStyle(color: AppTheme.textSecondary),
-              )
-            else
-              Column(
-                children: [
-                  for (var i = 0; i < _friends.length; i++) ...[
-                    if (i > 0) const _RowDivider(),
-                    _PersonRow(
-                      nickname: _friends[i].nickname,
-                      trailing: _OutlinePillButton(
-                        label: '삭제',
-                        onPressed: () => _removeFriend(_friends[i]),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-          ],
+  Widget _buildFriendsSection() {
+    return _FriendsSection(
+      title: const Text(
+        '친구 목록',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+          color: Colors.black,
         ),
       ),
+      child: _loadingFriends
+          ? const _CardMessage(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _friendsError != null
+          ? _CardMessage(
+              child: _ErrorRetry(
+                message: '친구 목록을 불러오지 못했어요.',
+                onRetry: _loadFriends,
+              ),
+            )
+          : _friends.isEmpty
+          ? const _CardMessage(
+              child: Text(
+                '아직 친구가 없어요. 위에서 검색해 추가해보세요.',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < _friends.length; i++) ...[
+                  if (i > 0) const _RowDivider(),
+                  _PersonRow(
+                    nickname: _friends[i].nickname,
+                    trailing: _OutlinePillButton(
+                      label: '삭제',
+                      onPressed: () => _removeFriend(_friends[i]),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+    );
+  }
+}
+
+/// 받은 요청·친구 목록. Figma에서 제목은 카드 바깥 위에 놓인다.
+class _FriendsSection extends StatelessWidget {
+  const _FriendsSection({required this.title, required this.child});
+
+  final Widget title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: FigmaFriendsTokens.sectionInset),
+          child: title,
+        ),
+        const SizedBox(height: FigmaFriendsTokens.sectionTitleGap),
+        _FriendsCard(child: child),
+      ],
+    );
+  }
+}
+
+/// 카드 안 로딩·오류·빈 상태. 시안에 없는 상태라 줄 여백 대신 고른 여백을 둔다.
+class _CardMessage extends StatelessWidget {
+  const _CardMessage({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Align(alignment: Alignment.centerLeft, child: child),
     );
   }
 }
@@ -486,7 +559,8 @@ class _HeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      height: FigmaFriendsTokens.heroHeight,
+      clipBehavior: Clip.hardEdge,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment(-0.7, -1),
@@ -497,24 +571,37 @@ class _HeroHeader extends StatelessWidget {
           ],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            nickname.isEmpty ? ' ' : nickname,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1C1C1E),
+          // Figma에서 햄스터 아래쪽은 머리띠 바깥으로 나가 잘린다.
+          Positioned(
+            top: FigmaFriendsTokens.heroHamsterTop,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox.fromSize(
+                size: FigmaFriendsTokens.heroHamsterSize,
+                child: FigmaSvg(
+                  FigmaAssets.friendsHeroHamster,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
-          SizedBox(
-            width: double.infinity,
-            height: 200,
-            child: Center(
-              child: FigmaSvg(
-                FigmaAssets.friendsHeroHamster,
-                fit: BoxFit.contain,
+          Positioned(
+            left: FigmaFriendsTokens.heroNicknameLeft,
+            right: FigmaFriendsTokens.heroNicknameLeft,
+            top: FigmaFriendsTokens.heroNicknameTop,
+            child: Text(
+              nickname.isEmpty ? ' ' : nickname,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: FigmaHomeFonts.cafe24Ssurround,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: FigmaFriendsTokens.nickname,
               ),
             ),
           ),
@@ -557,7 +644,7 @@ class _PersonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.fromLTRB(11, 10, 12, 10),
       child: Row(
         children: [
           const CircleAvatar(
@@ -570,7 +657,11 @@ class _PersonRow extends StatelessWidget {
               nickname,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
             ),
           ),
           trailing,
@@ -585,7 +676,13 @@ class _RowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(height: 1, thickness: 1, color: FigmaFriendsTokens.divider);
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      indent: FigmaFriendsTokens.sectionInset,
+      endIndent: FigmaFriendsTokens.sectionInset,
+      color: FigmaFriendsTokens.divider,
+    );
   }
 }
 
@@ -609,10 +706,17 @@ class _ErrorRetry extends StatelessWidget {
 }
 
 class _FilledPillButton extends StatelessWidget {
-  const _FilledPillButton({required this.label, required this.onPressed});
+  const _FilledPillButton({
+    required this.label,
+    required this.onPressed,
+    this.size = const Size(66, 36),
+    this.fontSize = 16,
+  });
 
   final String label;
   final VoidCallback? onPressed;
+  final Size size;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -622,12 +726,15 @@ class _FilledPillButton extends StatelessWidget {
         backgroundColor: FigmaFriendsTokens.appBar,
         foregroundColor: Colors.white,
         elevation: 0,
-        minimumSize: const Size(0, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(7.5),
+        minimumSize: size,
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.5)),
+        textStyle: TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
         ),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
       child: Text(label),
     );
@@ -645,14 +752,17 @@ class _OutlinePillButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.black87,
+        foregroundColor: Colors.black,
         side: const BorderSide(color: FigmaFriendsTokens.outlineBorder),
-        minimumSize: const Size(0, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(7.5),
+        minimumSize: const Size(66, 36),
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.5)),
+        textStyle: const TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
         ),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
       ),
       child: Text(label),
     );

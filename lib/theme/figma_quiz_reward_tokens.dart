@@ -10,7 +10,7 @@ abstract final class FigmaQuizRewardTokens {
   static const titleColor = Color(0xFF00AFF8);
   static const titleFontSize = 42.0;
   static const titleLetterSpacing = 2.1;
-  static const titleTop = 435.0;
+  static const titleTop = 438.0;
 
   /// Figma 박스는 `left 107 / w 180`이라 중심이 프레임 중앙과 사실상 같다.
   /// 대체 서체가 더 넓어 줄바꿈이 나므로 폭을 묶지 않고 가운데 정렬한다.

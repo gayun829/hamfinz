@@ -442,7 +442,8 @@ class FigmaQuizOxView extends StatelessWidget {
             style: TextStyle(
               fontFamily: FigmaQuizFonts.pretendard,
               fontSize: figma.s(FigmaQuizOxTokens.explainTextFontSize),
-              fontWeight: FontWeight.w400,
+              // Figma `639:3433`: Pretendard Variable SemiBold 18.
+              fontWeight: FontWeight.w600,
               color: Colors.black,
               height: FigmaQuizOxTokens.questionLineHeight,
             ),

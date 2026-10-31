@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../constants/figma_assets.dart';
 import '../../services/friend_service.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/figma_calendar_tokens.dart';
 import '../../theme/figma_home_fonts.dart';
 import '../../utils/date_helper.dart';
@@ -95,33 +98,40 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
       builder: (context, constraints) {
         final scale = constraints.maxWidth / 393;
         double s(double value) => value * scale;
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomLeft,
-                    end: Alignment.topRight,
-                    colors: [Color(0xFFB8F0EF), Color(0xFF36C2FA)],
+        final safeTop = MediaQuery.paddingOf(context).top;
+        return DefaultTextStyle.merge(
+          style: const TextStyle(height: AppTheme.figmaAutoLineHeight),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomLeft,
+                      end: Alignment.topRight,
+                      colors: [Color(0xFFB8F0EF), Color(0xFF36C2FA)],
+                    ),
                   ),
-                ),
-                child: SafeArea(
-                  bottom: false,
+                  // Figma 좌표는 상태바를 포함한 프레임 기준이라 SafeArea로 또 밀지 않는다.
                   child: SizedBox(
                     height: s(304),
                     child: Stack(
                       children: [
                         Positioned(
-                          left: s(14),
-                          top: s(20),
+                          left: s(8),
+                          // 상태바가 높은 기기에서도 화살표가 상태바 위로 올라가지 않게 한다.
+                          top: math.max(s(20), safeTop - 24),
                           child: IconButton(
                             tooltip: '뒤로가기',
                             onPressed: () => Navigator.of(context).maybePop(),
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: s(26),
-                              color: const Color(0xFFD5FAFC),
+                            icon: FigmaSvg(
+                              FigmaAssets.friendsBackChevron,
+                              width: s(10.644),
+                              height: s(21.069),
+                              colorFilter: const ColorFilter.mode(
+                                Color(0xFFD5FAFC),
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
@@ -156,9 +166,10 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                             padding: EdgeInsets.all(s(20)),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(s(14)),
+                              borderRadius: BorderRadius.circular(s(13)),
                             ),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Expanded(
                                   flex: 177,
@@ -213,39 +224,42 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(s(26), s(32), s(22), s(28)),
-                child: Column(
-                  children: [
-                    _Calendar(
-                      scale: scale,
-                      month: _month,
-                      completedDates: widget.completedDates,
-                      onShift: (delta) => setState(
-                        () => _month = DateTime(
-                          _month.year,
-                          _month.month + delta,
+                Padding(
+                  padding: EdgeInsets.fromLTRB(s(26), s(32), s(22), s(28)),
+                  child: Column(
+                    children: [
+                      _Calendar(
+                        scale: scale,
+                        month: _month,
+                        completedDates: widget.completedDates,
+                        onShift: (delta) => setState(
+                          () => _month = DateTime(
+                            _month.year,
+                            _month.month + delta,
+                          ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: s(11),
-                        vertical: s(30),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: s(11),
+                          vertical: s(30),
+                        ),
+                        child: const Divider(
+                          height: 1,
+                          color: Color(0xFFE6E6E6),
+                        ),
                       ),
-                      child: const Divider(height: 1, color: Color(0xFFE6E6E6)),
-                    ),
-                    _FriendsCard(
-                      scale: scale,
-                      ranking: _ranking,
-                      failed: _rankingFailed,
-                      onAddFriend: _openAddFriend,
-                    ),
-                  ],
+                      _FriendsCard(
+                        scale: scale,
+                        ranking: _ranking,
+                        failed: _rankingFailed,
+                        onAddFriend: _openAddFriend,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -255,7 +269,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
 
 BoxDecoration _card(double scale) => BoxDecoration(
   color: Colors.white,
-  borderRadius: BorderRadius.circular(14 * scale),
+  borderRadius: BorderRadius.circular(13 * scale),
   boxShadow: [
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.065),
@@ -289,7 +303,7 @@ class _Stat extends StatelessWidget {
         color: _mint,
         borderRadius: BorderRadius.circular(s(7)),
       ),
-      padding: EdgeInsets.symmetric(horizontal: s(12), vertical: s(12)),
+      padding: EdgeInsets.fromLTRB(s(flame ? 18 : 12), s(12), s(12), s(12)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -399,7 +413,7 @@ class _Calendar extends StatelessWidget {
     final rows = (leading + count + 6) ~/ 7;
     final now = DateHelper.koreaNow();
     final today = DateTime(now.year, now.month, now.day);
-    final currentRun = _currentRun(today);
+    final streakHead = _streakHead(today);
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
@@ -487,24 +501,25 @@ class _Calendar extends StatelessWidget {
                           final completed =
                               inMonth && completedDates.contains(key);
                           final isToday = date == today;
-                          final todayCompleted = completed && isToday;
-                          final inRun = completed && currentRun.contains(key);
+                          final isHead = completed && key == streakHead;
+                          final prevCompleted = completedDates.contains(
+                            DateHelper.dateKey(
+                              DateTime(date.year, date.month, date.day - 1),
+                            ),
+                          );
+                          final nextCompleted = completedDates.contains(
+                            DateHelper.dateKey(
+                              DateTime(date.year, date.month, date.day + 1),
+                            ),
+                          );
+                          final inRun =
+                              completed && (prevCompleted || nextCompleted);
                           final runStart =
-                              col == 0 ||
-                              !currentRun.contains(
-                                DateHelper.dateKey(
-                                  DateTime(date.year, date.month, date.day - 1),
-                                ),
-                              ) ||
-                              date.day == 1;
+                              col == 0 || !prevCompleted || date.day == 1;
                           final runEnd =
                               col == 6 ||
-                              isToday ||
-                              !currentRun.contains(
-                                DateHelper.dateKey(
-                                  DateTime(date.year, date.month, date.day + 1),
-                                ),
-                              ) ||
+                              isHead ||
+                              !nextCompleted ||
                               date.day == count;
                           final pill = Radius.circular(s(100));
                           return Semantics(
@@ -517,14 +532,14 @@ class _Calendar extends StatelessWidget {
                                   return Stack(
                                     alignment: Alignment.center,
                                     children: [
-                                      // 오늘과 이어진 연속학습일은 한 줄의 띠로 잇는다.
-                                      // 오늘 칸에서는 띠가 가운데까지만 오고 햄스터가 덮는다.
+                                      // 이어진 학습일은 한 줄의 띠로 잇는다.
+                                      // 햄스터 칸에서는 띠가 가운데까지만 오고 햄스터가 덮는다.
                                       if (inRun)
                                         Positioned(
                                           key: ValueKey('streak-band-$key'),
                                           left: runStart ? half - s(16) : 0,
                                           right: runEnd
-                                              ? (isToday ? half : half - s(18))
+                                              ? (isHead ? half : half - s(18))
                                               : 0,
                                           height: s(23),
                                           child: DecoratedBox(
@@ -535,14 +550,14 @@ class _Calendar extends StatelessWidget {
                                                     left: runStart
                                                         ? pill
                                                         : Radius.zero,
-                                                    right: runEnd && !isToday
+                                                    right: runEnd && !isHead
                                                         ? pill
                                                         : Radius.zero,
                                                   ),
                                             ),
                                           ),
                                         ),
-                                      if (todayCompleted)
+                                      if (isHead)
                                         Transform.translate(
                                           offset: Offset(0, -s(2.1)),
                                           child: FigmaSvg(
@@ -591,16 +606,15 @@ class _Calendar extends StatelessWidget {
     );
   }
 
-  /// 오늘부터 거꾸로 끊김 없이 이어지는 학습일들. 오늘 학습했을 때만 띠로 잇고,
-  /// 그 밖의 학습일은 동그라미로 둔다.
-  Set<String> _currentRun(DateTime today) {
-    var day = today;
-    final run = <String>{};
-    while (completedDates.contains(DateHelper.dateKey(day))) {
-      run.add(DateHelper.dateKey(day));
-      day = DateTime(day.year, day.month, day.day - 1);
-    }
-    return run;
+  /// 햄스터를 얹을 날: 오늘 학습했으면 오늘, 아직이면 연속이 살아 있는 어제.
+  /// 자정이 지나 학습 전이어도 어제까지의 연속 표시가 사라지지 않는다.
+  String? _streakHead(DateTime today) {
+    final todayKey = DateHelper.dateKey(today);
+    if (completedDates.contains(todayKey)) return todayKey;
+    final yesterdayKey = DateHelper.dateKey(
+      DateTime(today.year, today.month, today.day - 1),
+    );
+    return completedDates.contains(yesterdayKey) ? yesterdayKey : null;
   }
 }
 
