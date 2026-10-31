@@ -48,6 +48,9 @@ Functions 배포가 필요하다. 유저의 씨앗·보유·착용 데이터는 
 firestore.rules와 firestore.rules.production의 shopItems 클라이언트 접근은 차단한다.
 실제 DB의 테스트 상품 문서 삭제와 규칙 배포는 아직 실행하지 않았다.
 몸과 부품은 동일한 384×384 좌표계의 asset으로 관리한다.
+부품 PNG는 768×768(2배)이며 `python scripts/align_shop_layers.py`가 원본 완성형 스킨과
+비교한 이동량을 출력한다. 새 부품을 추가하면 `TARGETS`에 등록하고 `--apply`로 맞춘 뒤
+`--sheet <png>`로 기본 몸 착용 모습을 확인한다.
 
 ## 검증과 화면 캡처
 
