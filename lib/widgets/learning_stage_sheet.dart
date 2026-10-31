@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../constants/figma_assets.dart';
 import '../data/learning_stages.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 import '../theme/figma_settings_tokens.dart';
 import 'figma/figma_asset_image.dart';
 import 'figma/figma_scale.dart';
-import 'figma/stroked_text.dart';
 
 /// 학습 과정 시트 (Figma `539:2373` 마이페이지_학습과정).
 ///
@@ -136,11 +136,12 @@ class _LearningStageSheetState extends State<LearningStageSheet> {
   bool _saving = false;
 
   /// 시트 기준 Figma 좌표 (시트 top = 305.4). 단계 칩은 90px 간격 4열.
+  /// 라벨은 (left, top) — 시안에서 고급만 4px 왼쪽(27)에 있다.
   static const _chipLefts = [28.0, 118.0, 208.0, 298.0];
   static const _tiers = [
-    (LearningStageTier.beginner, 152.8, 179.8),
-    (LearningStageTier.intermediate, 252.9, 279.9),
-    (LearningStageTier.advanced, 353.0, 380.1),
+    (LearningStageTier.beginner, 31.0, 152.79, 179.83),
+    (LearningStageTier.intermediate, 31.0, 252.92, 279.95),
+    (LearningStageTier.advanced, 27.0, 353.05, 380.08),
   ];
 
   @override
@@ -190,79 +191,81 @@ class _LearningStageSheetState extends State<LearningStageSheet> {
             top: Radius.circular(s(FigmaSettingsTokens.sheetRadius)),
           ),
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: s(15.6),
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  width: s(53),
-                  height: s(5),
+        child: DefaultTextStyle.merge(
+          style: const TextStyle(height: AppTheme.figmaAutoLineHeight),
+          child: Stack(
+            children: [
+              // 시안의 핸들(539:2567)은 가운데(170)보다 3px 오른쪽에 있다.
+              FigmaBox(
+                figma: figma,
+                left: 173,
+                top: 15.6,
+                width: 53,
+                height: 5,
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: FigmaSettingsTokens.sheetHandle,
                     borderRadius: BorderRadius.circular(s(31)),
                   ),
                 ),
               ),
-            ),
-            FigmaBox(
-              figma: figma,
-              left: 31,
-              top: 50.7,
-              child: Text(
-                '학습 과정',
-                style: FigmaSettingsTokens.sheetTitleStyle(figma.scale),
-              ),
-            ),
-            FigmaBox(
-              figma: figma,
-              left: 29,
-              top: 86.7,
-              child: Text(
-                '1~10단계 중 하나를 선택하세요.',
-                style: FigmaSettingsTokens.sheetBodyStyle(figma.scale),
-              ),
-            ),
-            FigmaBox(
-              figma: figma,
-              left: 29,
-              top: 109.7,
-              child: Text(
-                '선택한 단계 난이도 문제가 출제됩니다.',
-                style: FigmaSettingsTokens.sheetBodyStyle(
-                  figma.scale,
-                  color: FigmaSettingsTokens.sheetHint,
-                ),
-              ),
-            ),
-            for (final (tier, labelTop, chipTop) in _tiers) ...[
               FigmaBox(
                 figma: figma,
                 left: 31,
-                top: labelTop,
+                top: 50.7,
                 child: Text(
-                  tier.label,
-                  style: FigmaSettingsTokens.sheetTierStyle(figma.scale),
+                  '학습 과정',
+                  style: FigmaSettingsTokens.sheetTitleStyle(figma.scale),
                 ),
               ),
-              for (final (i, stage) in stagesInTier(tier).indexed)
-                FigmaBox(
-                  figma: figma,
-                  left: _chipLefts[i],
-                  top: chipTop,
-                  width: 67.28,
-                  height: 47.06,
-                  child: _StageChip(
-                    figma: figma,
-                    stage: stage,
-                    selectedStage: _selectedStage,
-                    onTap: _saving ? null : () => _selectStage(stage),
+              FigmaBox(
+                figma: figma,
+                left: 29,
+                top: 86.7,
+                child: Text(
+                  '1~10단계 중 하나를 선택하세요.',
+                  style: FigmaSettingsTokens.sheetBodyStyle(figma.scale),
+                ),
+              ),
+              FigmaBox(
+                figma: figma,
+                left: 29,
+                top: 109.7,
+                child: Text(
+                  '선택한 단계 난이도 문제가 출제됩니다.',
+                  style: FigmaSettingsTokens.sheetBodyStyle(
+                    figma.scale,
+                    color: FigmaSettingsTokens.sheetHint,
                   ),
                 ),
+              ),
+              for (final (tier, labelLeft, labelTop, chipTop) in _tiers) ...[
+                FigmaBox(
+                  figma: figma,
+                  left: labelLeft,
+                  top: labelTop,
+                  child: Text(
+                    tier.label,
+                    style: FigmaSettingsTokens.sheetTierStyle(figma.scale),
+                  ),
+                ),
+                for (final (i, stage) in stagesInTier(tier).indexed)
+                  FigmaBox(
+                    figma: figma,
+                    left: _chipLefts[i],
+                    top: chipTop,
+                    // SVG 캔버스(68×48) 크기 — 67.28×47.06에 맞춰 늘이면 곰이 1~2% 줄어든다.
+                    width: 68,
+                    height: 48,
+                    child: _StageChip(
+                      stage: stage,
+                      selectedStage: _selectedStage,
+                      onTap: _saving ? null : () => _selectStage(stage),
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -272,13 +275,11 @@ class _LearningStageSheetState extends State<LearningStageSheet> {
 /// 곰 모양 단계 칩 — 지난 단계는 연한 하늘색, 현재 단계는 진한 하늘색, 나머지는 회색.
 class _StageChip extends StatelessWidget {
   const _StageChip({
-    required this.figma,
     required this.stage,
     required this.selectedStage,
     required this.onTap,
   });
 
-  final FigmaScale figma;
   final int stage;
   final int selectedStage;
   final VoidCallback? onTap;
@@ -299,6 +300,7 @@ class _StageChip extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
+        // 곰과 숫자 SVG 모두 68×48 캔버스에 Figma 좌표 그대로 들어 있다.
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -307,19 +309,7 @@ class _StageChip extends StatelessWidget {
               fit: BoxFit.fill,
               colorFilter: ColorFilter.mode(_color, BlendMode.srcIn),
             ),
-            // 숫자는 귀를 뺀 몸통 가운데 — 칩 중심보다 4.5px 아래.
-            Padding(
-              padding: EdgeInsets.only(top: figma.s(9)),
-              child: Center(
-                child: StrokedText(
-                  '$stage',
-                  style: FigmaSettingsTokens.stageNumberStyle(figma.scale),
-                  color: Colors.white,
-                  strokeWidth:
-                      figma.s(FigmaSettingsTokens.stageNumberStrokeWidth),
-                ),
-              ),
-            ),
+            FigmaSvg(FigmaAssets.settingsStageNumber(stage), fit: BoxFit.fill),
           ],
         ),
       ),
