@@ -75,6 +75,7 @@ flutter:
     - assets/figma/onboarding/
     - assets/figma/category/
     - assets/icons/onboarding/
+    - assets/figma/news/
     - assets/figma/quiz/
     - assets/figma/quiz/complete/
     - assets/figma/quiz/streak/
