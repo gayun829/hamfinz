@@ -142,7 +142,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('review hat only on the default hamster at the review house', (
+  testWidgets('review hat on every hamster at the review house', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(393, 852));
@@ -178,7 +178,7 @@ void main() {
       find.byKey(const ValueKey('home-review-arrival-beginner')),
       findsOneWidget,
     );
-    expect(hat(), findsNothing);
+    expect(hat(), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox.shrink());
